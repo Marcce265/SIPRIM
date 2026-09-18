@@ -1,8 +1,9 @@
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
+from app.domain.value_objects.dictamen_ia import DictamenIA
 
 
-class EvaluationState(TypedDict, total=False):
+class EvaluationState(TypedDict):
     proyecto: dict[str, Any]
-    analisis_coordinador: str
-    analisis_tecnico: str
-    dictamen: dict[str, Any]
+    analisis_coordinador: NotRequired[str]
+    analisis_tecnico: NotRequired[str]
+    dictamen: NotRequired[DictamenIA]
