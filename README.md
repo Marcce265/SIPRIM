@@ -20,7 +20,7 @@ ni los casos de uso.
 
 ## Requisitos
 
-- Python 3.12
+- Python 3.12 o superior (probado también con Python 3.14)
 - PostgreSQL solo si se activa la persistencia SQL
 
 ## Instalacion y ejecucion
@@ -28,7 +28,7 @@ ni los casos de uso.
 Desde la carpeta `SIPRIM_Agente`:
 
 ```powershell
-py -3.12 -m venv .venv
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
