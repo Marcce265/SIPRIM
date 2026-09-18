@@ -1,20 +1,13 @@
 from typing import Any, Mapping
-from app.ai.graph.evaluation_graph import build_evaluation_graph
 from app.domain.ports.ia_service import IIAService
+from app.domain.value_objects.dictamen_ia import DictamenIA
 
 
 class AIEvaluationService(IIAService):
-    """Ejecuta el grafo mínimo y delega la generación final al proveedor LLM."""
+    """Servicio de aplicación; la orquestación concreta vive tras el puerto."""
 
-    def __init__(self, llm_service: IIAService) -> None:
-        self.llm_service = llm_service
-        self.graph = build_evaluation_graph()
+    def __init__(self, ia_service: IIAService) -> None:
+        self.ia_service = ia_service
 
-    async def generar_dictamen(self, proyecto: Mapping[str, Any]) -> dict[str, Any]:
-        state = await self.graph.ainvoke({"proyecto": dict(proyecto)})
-        contexto = {
-            **dict(proyecto),
-            "analisis_coordinador": state.get("analisis_coordinador"),
-            "analisis_tecnico": state.get("analisis_tecnico"),
-        }
-        return await self.llm_service.generar_dictamen(contexto)
+    async def generar_dictamen(self, proyecto: Mapping[str, Any]) -> DictamenIA:
+        return await self.ia_service.generar_dictamen(proyecto)
