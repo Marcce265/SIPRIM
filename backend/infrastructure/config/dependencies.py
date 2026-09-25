@@ -5,6 +5,7 @@ from fastapi import Depends
 from backend.application.use_cases.evaluar_economia_proyecto import (
     EvaluarEconomiaProyectoUseCase,
 )
+from backend.application.use_cases.evaluar_proyecto_ia import EvaluarProyectoIAUseCase
 from backend.application.use_cases.evaluar_cumplimiento_legal import (
     EvaluarCumplimientoLegalUseCase,
 )
@@ -19,6 +20,7 @@ from backend.domain.ports.evaluacion_juridica_repository_port import (
     EvaluacionJuridicaRepositoryPort,
 )
 from backend.domain.ports.proyecto_repository_port import ProyectoRepositoryPort
+from backend.domain.ports.ia_service_port import IAServicePort
 from backend.infrastructure.config.settings import get_settings
 from backend.infrastructure.output.repositories.in_memory_evaluacion_economica_repository import (
     InMemoryEvaluacionEconomicaRepository,
@@ -32,6 +34,7 @@ from backend.infrastructure.output.repositories.in_memory_evaluacion_juridica_re
 from backend.infrastructure.output.repositories.in_memory_proyecto_repository import (
     InMemoryProyectoRepository,
 )
+from backend.infrastructure.output.ai.gemini_adapter import GeminiAdapter
 
 
 @lru_cache
@@ -81,6 +84,21 @@ def get_evaluacion_juridica_repository() -> EvaluacionJuridicaRepositoryPort:
     return SQLAlchemyEvaluacionJuridicaRepository(SessionLocal)
 
 
+@lru_cache
+def get_ia_service() -> IAServicePort:
+    settings = get_settings()
+    api_key = (
+        settings.gemini_api_key.get_secret_value()
+        if settings.gemini_api_key
+        else None
+    )
+    return GeminiAdapter(
+        api_key=api_key,
+        model=settings.ai_model,
+        timeout_seconds=settings.ai_timeout_seconds,
+    )
+
+
 def get_registrar_proyecto_use_case(
     repository: ProyectoRepositoryPort = Depends(get_proyecto_repository),
 ) -> RegistrarProyectoUseCase:
@@ -124,3 +142,12 @@ def get_evaluar_cumplimiento_legal_use_case(
         evaluacion_repository=evaluacion_repository,
     )
 
+
+def get_evaluar_proyecto_ia_use_case(
+    proyecto_repository: ProyectoRepositoryPort = Depends(get_proyecto_repository),
+    ia_service: IAServicePort = Depends(get_ia_service),
+) -> EvaluarProyectoIAUseCase:
+    return EvaluarProyectoIAUseCase(
+        proyecto_repository=proyecto_repository,
+        ia_service=ia_service,
+    )
