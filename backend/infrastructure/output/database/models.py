@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, JSON, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.infrastructure.output.database.base import Base
@@ -42,6 +42,22 @@ class EvaluacionEconomicaModel(Base):
     )
     estado_evaluacion: Mapped[str] = mapped_column(String(30), nullable=False)
     pendientes: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    fecha_evaluacion: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+
+
+class EvaluacionJuridicaModel(Base):
+    __tablename__ = "evaluaciones_juridicas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    proyecto_id: Mapped[int] = mapped_column(
+        ForeignKey("proyectos.id"), unique=True, nullable=False
+    )
+    estado: Mapped[str] = mapped_column(String(50), nullable=False)
+    cumple: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    observaciones: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    fuentes: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     fecha_evaluacion: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )

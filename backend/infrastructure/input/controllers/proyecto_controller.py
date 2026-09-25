@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Path, status
 
 from backend.application.dto.proyecto_dto import (
     EvaluacionEconomicaResponse,
+    EvaluacionJuridicaResponse,
     ProyectoCreate,
     ProyectoResponse,
     RegistrarProyectoResponse,
@@ -12,10 +13,14 @@ from backend.application.dto.proyecto_dto import (
 from backend.application.use_cases.evaluar_economia_proyecto import (
     EvaluarEconomiaProyectoUseCase,
 )
+from backend.application.use_cases.evaluar_cumplimiento_legal import (
+    EvaluarCumplimientoLegalUseCase,
+)
 from backend.application.use_cases.obtener_proyecto import ObtenerProyectoUseCase
 from backend.application.use_cases.registrar_proyecto import RegistrarProyectoUseCase
 from backend.application.use_cases.validar_proyecto import ValidarProyectoUseCase
 from backend.infrastructure.config.dependencies import (
+    get_evaluar_cumplimiento_legal_use_case,
     get_evaluar_economia_proyecto_use_case,
     get_obtener_proyecto_use_case,
     get_registrar_proyecto_use_case,
@@ -87,5 +92,20 @@ def evaluar_economia_proyecto(
         Depends(get_evaluar_economia_proyecto_use_case),
     ],
 ) -> EvaluacionEconomicaResponse:
+    return use_case.execute(proyecto_id)
+
+
+@router.post(
+    "/{proyecto_id}/evaluacion-juridica",
+    response_model=EvaluacionJuridicaResponse,
+    summary="Solicitar la evaluacion de cumplimiento legal",
+)
+def evaluar_cumplimiento_legal(
+    proyecto_id: Annotated[int, Path(gt=0)],
+    use_case: Annotated[
+        EvaluarCumplimientoLegalUseCase,
+        Depends(get_evaluar_cumplimiento_legal_use_case),
+    ],
+) -> EvaluacionJuridicaResponse:
     return use_case.execute(proyecto_id)
 

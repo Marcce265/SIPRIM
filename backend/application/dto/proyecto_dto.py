@@ -7,6 +7,9 @@ from backend.domain.value_objects.estado_expediente import EstadoExpediente
 from backend.domain.value_objects.estado_evaluacion_economica import (
     EstadoEvaluacionEconomica,
 )
+from backend.domain.value_objects.estado_evaluacion_juridica import (
+    EstadoEvaluacionJuridica,
+)
 from backend.domain.value_objects.estado_proyecto import EstadoProyecto
 
 
@@ -91,3 +94,11 @@ class EvaluacionEconomicaResponse(BaseModel):
     )
     def serializar_importes(self, value: Decimal | None) -> float | None:
         return float(value) if value is not None else None
+
+
+class EvaluacionJuridicaResponse(BaseModel):
+    proyecto_id: int
+    estado: EstadoEvaluacionJuridica
+    cumple: bool | None
+    observaciones: list[str]
+    fuentes: list[str]

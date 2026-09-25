@@ -3,6 +3,8 @@ from fastapi.testclient import TestClient
 
 from backend.infrastructure.config.dependencies import (
     get_evaluacion_economica_repository,
+    get_evaluacion_juridica_repository,
+    get_evaluador_juridico,
     get_proyecto_repository,
 )
 from backend.main import create_app
@@ -13,10 +15,14 @@ def client() -> TestClient:
     # Cada prueba recibe un repositorio temporal nuevo y determinista.
     get_proyecto_repository.cache_clear()
     get_evaluacion_economica_repository.cache_clear()
+    get_evaluacion_juridica_repository.cache_clear()
+    get_evaluador_juridico.cache_clear()
     with TestClient(create_app()) as test_client:
         yield test_client
     get_proyecto_repository.cache_clear()
     get_evaluacion_economica_repository.cache_clear()
+    get_evaluacion_juridica_repository.cache_clear()
+    get_evaluador_juridico.cache_clear()
 
 
 @pytest.fixture
@@ -164,6 +170,46 @@ def test_evaluacion_economica_proyecto_inexistente_devuelve_404(
     client: TestClient,
 ) -> None:
     response = client.post("/api/v1/proyectos/999/evaluacion-economica")
+    assert response.status_code == 404
+
+
+def test_evaluacion_juridica_pendiente_de_integracion_rag(
+    client: TestClient, proyecto_valido: dict[str, object]
+) -> None:
+    client.post("/api/v1/proyectos", json=proyecto_valido)
+
+    response = client.post("/api/v1/proyectos/1/evaluacion-juridica")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "proyecto_id": 1,
+        "estado": "PENDIENTE_VALIDACION_NORMATIVA",
+        "cumple": None,
+        "observaciones": [
+            "La evaluacion juridica requiere integracion con el servicio RAG"
+        ],
+        "fuentes": [],
+    }
+    guardada = get_evaluacion_juridica_repository().obtener_por_proyecto(1)
+    assert guardada is not None
+    assert guardada.cumple is None
+
+
+def test_evaluacion_juridica_bloquea_expediente_incompleto(
+    client: TestClient,
+) -> None:
+    client.post("/api/v1/proyectos", json={"nombre": "Proyecto juridico"})
+
+    response = client.post("/api/v1/proyectos/1/evaluacion-juridica")
+
+    assert response.status_code == 409
+    assert get_evaluacion_juridica_repository().obtener_por_proyecto(1) is None
+
+
+def test_evaluacion_juridica_proyecto_inexistente_devuelve_404(
+    client: TestClient,
+) -> None:
+    response = client.post("/api/v1/proyectos/999/evaluacion-juridica")
     assert response.status_code == 404
 
 

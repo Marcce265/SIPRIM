@@ -5,16 +5,29 @@ from fastapi import Depends
 from backend.application.use_cases.evaluar_economia_proyecto import (
     EvaluarEconomiaProyectoUseCase,
 )
+from backend.application.use_cases.evaluar_cumplimiento_legal import (
+    EvaluarCumplimientoLegalUseCase,
+)
 from backend.application.use_cases.obtener_proyecto import ObtenerProyectoUseCase
 from backend.application.use_cases.registrar_proyecto import RegistrarProyectoUseCase
 from backend.application.use_cases.validar_proyecto import ValidarProyectoUseCase
 from backend.domain.ports.evaluacion_economica_repository_port import (
     EvaluacionEconomicaRepositoryPort,
 )
+from backend.domain.ports.evaluacion_juridica_port import EvaluacionJuridicaPort
+from backend.domain.ports.evaluacion_juridica_repository_port import (
+    EvaluacionJuridicaRepositoryPort,
+)
 from backend.domain.ports.proyecto_repository_port import ProyectoRepositoryPort
 from backend.infrastructure.config.settings import get_settings
 from backend.infrastructure.output.repositories.in_memory_evaluacion_economica_repository import (
     InMemoryEvaluacionEconomicaRepository,
+)
+from backend.infrastructure.output.legal.evaluacion_juridica_provisional_adapter import (
+    EvaluacionJuridicaProvisionalAdapter,
+)
+from backend.infrastructure.output.repositories.in_memory_evaluacion_juridica_repository import (
+    InMemoryEvaluacionJuridicaRepository,
 )
 from backend.infrastructure.output.repositories.in_memory_proyecto_repository import (
     InMemoryProyectoRepository,
@@ -50,6 +63,24 @@ def get_evaluacion_economica_repository() -> EvaluacionEconomicaRepositoryPort:
     return SQLAlchemyEvaluacionEconomicaRepository(SessionLocal)
 
 
+@lru_cache
+def get_evaluador_juridico() -> EvaluacionJuridicaPort:
+    return EvaluacionJuridicaProvisionalAdapter()
+
+
+@lru_cache
+def get_evaluacion_juridica_repository() -> EvaluacionJuridicaRepositoryPort:
+    if get_settings().use_in_memory_repository:
+        return InMemoryEvaluacionJuridicaRepository()
+
+    from backend.infrastructure.output.database.session import SessionLocal
+    from backend.infrastructure.output.repositories.sqlalchemy_evaluacion_juridica_repository import (
+        SQLAlchemyEvaluacionJuridicaRepository,
+    )
+
+    return SQLAlchemyEvaluacionJuridicaRepository(SessionLocal)
+
+
 def get_registrar_proyecto_use_case(
     repository: ProyectoRepositoryPort = Depends(get_proyecto_repository),
 ) -> RegistrarProyectoUseCase:
@@ -76,6 +107,20 @@ def get_evaluar_economia_proyecto_use_case(
 ) -> EvaluarEconomiaProyectoUseCase:
     return EvaluarEconomiaProyectoUseCase(
         proyecto_repository=proyecto_repository,
+        evaluacion_repository=evaluacion_repository,
+    )
+
+
+def get_evaluar_cumplimiento_legal_use_case(
+    proyecto_repository: ProyectoRepositoryPort = Depends(get_proyecto_repository),
+    evaluador_juridico: EvaluacionJuridicaPort = Depends(get_evaluador_juridico),
+    evaluacion_repository: EvaluacionJuridicaRepositoryPort = Depends(
+        get_evaluacion_juridica_repository
+    ),
+) -> EvaluarCumplimientoLegalUseCase:
+    return EvaluarCumplimientoLegalUseCase(
+        proyecto_repository=proyecto_repository,
+        evaluador_juridico=evaluador_juridico,
         evaluacion_repository=evaluacion_repository,
     )
 

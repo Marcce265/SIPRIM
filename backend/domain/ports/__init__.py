@@ -1,7 +1,16 @@
 from backend.domain.ports.evaluacion_economica_repository_port import (
     EvaluacionEconomicaRepositoryPort,
 )
+from backend.domain.ports.evaluacion_juridica_port import EvaluacionJuridicaPort
+from backend.domain.ports.evaluacion_juridica_repository_port import (
+    EvaluacionJuridicaRepositoryPort,
+)
 from backend.domain.ports.proyecto_repository_port import ProyectoRepositoryPort
 
-__all__ = ["EvaluacionEconomicaRepositoryPort", "ProyectoRepositoryPort"]
+__all__ = [
+    "EvaluacionEconomicaRepositoryPort",
+    "EvaluacionJuridicaPort",
+    "EvaluacionJuridicaRepositoryPort",
+    "ProyectoRepositoryPort",
+]
 
