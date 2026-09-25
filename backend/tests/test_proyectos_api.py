@@ -1,7 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.infrastructure.config.dependencies import get_proyecto_repository
+from backend.infrastructure.config.dependencies import (
+    get_evaluacion_economica_repository,
+    get_proyecto_repository,
+)
 from backend.main import create_app
 
 
@@ -9,9 +12,11 @@ from backend.main import create_app
 def client() -> TestClient:
     # Cada prueba recibe un repositorio temporal nuevo y determinista.
     get_proyecto_repository.cache_clear()
+    get_evaluacion_economica_repository.cache_clear()
     with TestClient(create_app()) as test_client:
         yield test_client
     get_proyecto_repository.cache_clear()
+    get_evaluacion_economica_repository.cache_clear()
 
 
 @pytest.fixture
@@ -112,6 +117,53 @@ def test_valida_expediente_completo(
 
 def test_validar_proyecto_inexistente_devuelve_404(client: TestClient) -> None:
     response = client.post("/api/v1/proyectos/999/validar")
+    assert response.status_code == 404
+
+
+def test_evaluacion_economica_parcial(
+    client: TestClient, proyecto_valido: dict[str, object]
+) -> None:
+    client.post("/api/v1/proyectos", json=proyecto_valido)
+
+    response = client.post("/api/v1/proyectos/1/evaluacion-economica")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "proyecto_id": 1,
+        "presupuesto": 2_500_000.0,
+        "beneficiarios": 5_000,
+        "costo_por_habitante": 500.0,
+        "retorno_socioeconomico": None,
+        "estado_evaluacion": "PARCIAL",
+        "pendientes": ["retorno_socioeconomico"],
+    }
+    guardada = get_evaluacion_economica_repository().obtener_por_proyecto(1)
+    assert guardada is not None
+    assert float(guardada.costo_por_habitante) == 500.0
+
+
+def test_evaluacion_economica_bloquea_expediente_incompleto(
+    client: TestClient,
+) -> None:
+    client.post("/api/v1/proyectos", json={"nombre": "Proyecto en borrador"})
+
+    response = client.post("/api/v1/proyectos/1/evaluacion-economica")
+
+    assert response.status_code == 409
+    assert response.json()["campos_faltantes"] == [
+        "descripcion",
+        "ubicacion",
+        "presupuesto",
+        "beneficiarios",
+        "tipo_proyecto",
+    ]
+    assert get_evaluacion_economica_repository().obtener_por_proyecto(1) is None
+
+
+def test_evaluacion_economica_proyecto_inexistente_devuelve_404(
+    client: TestClient,
+) -> None:
+    response = client.post("/api/v1/proyectos/999/evaluacion-economica")
     assert response.status_code == 404
 
 

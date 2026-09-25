@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.domain.exceptions.proyecto_exceptions import (
+    ExpedienteIncompletoError,
     ProyectoInvalidoError,
     ProyectoNoEncontradoError,
 )
@@ -49,6 +50,18 @@ def create_app() -> FastAPI:
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={"detail": str(exc)},
+        )
+
+    @application.exception_handler(ExpedienteIncompletoError)
+    async def expediente_incompleto_handler(
+        request: Request, exc: ExpedienteIncompletoError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={
+                "detail": str(exc),
+                "campos_faltantes": exc.campos_faltantes,
+            },
         )
 
     return application

@@ -1,4 +1,5 @@
 from backend.application.dto.proyecto_dto import (
+    EvaluacionEconomicaResponse,
     ProyectoCreate,
     ProyectoResponse,
     RegistrarProyectoResponse,
@@ -6,6 +7,7 @@ from backend.application.dto.proyecto_dto import (
 )
 
 __all__ = [
+    "EvaluacionEconomicaResponse",
     "ProyectoCreate",
     "ProyectoResponse",
     "RegistrarProyectoResponse",

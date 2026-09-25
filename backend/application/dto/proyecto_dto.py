@@ -3,8 +3,11 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
-from backend.domain.value_objects.estado_proyecto import EstadoProyecto
 from backend.domain.value_objects.estado_expediente import EstadoExpediente
+from backend.domain.value_objects.estado_evaluacion_economica import (
+    EstadoEvaluacionEconomica,
+)
+from backend.domain.value_objects.estado_proyecto import EstadoProyecto
 
 
 class ProyectoCreate(BaseModel):
@@ -69,3 +72,22 @@ class ValidacionProyectoResponse(BaseModel):
     estado: EstadoExpediente
     campos_faltantes: list[str]
     mensaje: str
+
+
+class EvaluacionEconomicaResponse(BaseModel):
+    proyecto_id: int
+    presupuesto: Decimal
+    beneficiarios: int
+    costo_por_habitante: Decimal
+    retorno_socioeconomico: Decimal | None
+    estado_evaluacion: EstadoEvaluacionEconomica
+    pendientes: list[str]
+
+    @field_serializer(
+        "presupuesto",
+        "costo_por_habitante",
+        "retorno_socioeconomico",
+        when_used="json",
+    )
+    def serializar_importes(self, value: Decimal | None) -> float | None:
+        return float(value) if value is not None else None
