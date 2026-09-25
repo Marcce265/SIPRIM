@@ -59,6 +59,37 @@ JSON de ejemplo:
 }
 ```
 
+## Integracion IA/API con Gemini
+
+El aporte de integracion IA agrega un dictamen preliminar sobre los proyectos ya
+registrados, sin reemplazar los casos de uso economico o juridico existentes. El
+flujo conserva la arquitectura hexagonal del proyecto:
+
+```text
+POST /api/v1/proyectos/{id}/evaluacion-ia
+  -> EvaluarProyectoIAUseCase
+  -> IAServicePort
+  -> GeminiAdapter
+  -> LangGraph: coordinador -> tecnico -> dictamen
+  -> DictamenIAResponse
+```
+
+La ficha debe estar completa. El resultado incluye `puntaje` (0-100), `viabilidad`
+(`ALTA`, `MEDIA` o `BAJA`), `justificacion`, `observaciones` y `recomendaciones`.
+Es una evaluacion orientativa y no constituye aprobacion municipal.
+
+En `.env` configurar:
+
+```dotenv
+GEMINI_API_KEY=clave_de_google_ai_studio
+AI_MODEL=gemini-2.5-flash
+AI_TIMEOUT_SECONDS=45
+```
+
+La clave no se almacena en Git. En un despliegue debe registrarse como variable
+privada del servicio. Para probar en Swagger: registrar un proyecto completo, copiar
+su `id` y ejecutar `POST /api/v1/proyectos/{id}/evaluacion-ia`.
+
 ## Llamadas de ejemplo
 
 Registro con curl:
