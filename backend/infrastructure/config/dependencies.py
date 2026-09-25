@@ -4,6 +4,7 @@ from fastapi import Depends
 
 from backend.application.use_cases.obtener_proyecto import ObtenerProyectoUseCase
 from backend.application.use_cases.registrar_proyecto import RegistrarProyectoUseCase
+from backend.application.use_cases.validar_proyecto import ValidarProyectoUseCase
 from backend.domain.ports.proyecto_repository_port import ProyectoRepositoryPort
 from backend.infrastructure.config.settings import get_settings
 from backend.infrastructure.output.repositories.in_memory_proyecto_repository import (
@@ -37,4 +38,10 @@ def get_obtener_proyecto_use_case(
     repository: ProyectoRepositoryPort = Depends(get_proyecto_repository),
 ) -> ObtenerProyectoUseCase:
     return ObtenerProyectoUseCase(repository)
+
+
+def get_validar_proyecto_use_case(
+    repository: ProyectoRepositoryPort = Depends(get_proyecto_repository),
+) -> ValidarProyectoUseCase:
+    return ValidarProyectoUseCase(repository)
 

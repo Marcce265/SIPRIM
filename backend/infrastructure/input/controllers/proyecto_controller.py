@@ -6,12 +6,15 @@ from backend.application.dto.proyecto_dto import (
     ProyectoCreate,
     ProyectoResponse,
     RegistrarProyectoResponse,
+    ValidacionProyectoResponse,
 )
 from backend.application.use_cases.obtener_proyecto import ObtenerProyectoUseCase
 from backend.application.use_cases.registrar_proyecto import RegistrarProyectoUseCase
+from backend.application.use_cases.validar_proyecto import ValidarProyectoUseCase
 from backend.infrastructure.config.dependencies import (
     get_obtener_proyecto_use_case,
     get_registrar_proyecto_use_case,
+    get_validar_proyecto_use_case,
 )
 
 
@@ -51,4 +54,18 @@ def obtener_proyecto(
 ) -> ProyectoResponse:
     proyecto = use_case.execute(proyecto_id)
     return ProyectoResponse.model_validate(proyecto)
+
+
+@router.post(
+    "/{proyecto_id}/validar",
+    response_model=ValidacionProyectoResponse,
+    summary="Validar que el expediente este completo",
+)
+def validar_proyecto(
+    proyecto_id: Annotated[int, Path(gt=0)],
+    use_case: Annotated[
+        ValidarProyectoUseCase, Depends(get_validar_proyecto_use_case)
+    ],
+) -> ValidacionProyectoResponse:
+    return use_case.execute(proyecto_id)
 

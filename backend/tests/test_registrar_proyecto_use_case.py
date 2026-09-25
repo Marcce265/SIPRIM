@@ -22,3 +22,19 @@ def test_caso_de_uso_asigna_estado_e_id() -> None:
     assert proyecto.id == 1
     assert proyecto.estado is EstadoProyecto.REGISTRADO
 
+
+def test_caso_de_uso_guarda_borrador_si_faltan_datos() -> None:
+    use_case = RegistrarProyectoUseCase(InMemoryProyectoRepository())
+
+    proyecto = use_case.execute(ProyectoCreate(nombre="Parque barrial"))
+
+    assert proyecto.id == 1
+    assert proyecto.estado is EstadoProyecto.BORRADOR
+    assert proyecto.campos_faltantes() == [
+        "descripcion",
+        "ubicacion",
+        "presupuesto",
+        "beneficiarios",
+        "tipo_proyecto",
+    ]
+

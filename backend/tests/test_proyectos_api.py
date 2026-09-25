@@ -53,12 +53,9 @@ def test_registrar_y_consultar_proyecto(
     ("field", "invalid_value"),
     [
         ("nombre", "   "),
-        ("descripcion", ""),
-        ("ubicacion", ""),
         ("presupuesto", 0),
         ("presupuesto", -1),
         ("beneficiarios", 0),
-        ("tipo_proyecto", ""),
     ],
 )
 def test_rechaza_datos_invalidos(
@@ -70,6 +67,52 @@ def test_rechaza_datos_invalidos(
     proyecto_valido[field] = invalid_value
     response = client.post("/api/v1/proyectos", json=proyecto_valido)
     assert response.status_code == 422
+
+
+def test_registra_borrador_y_reporta_campos_faltantes(client: TestClient) -> None:
+    created = client.post(
+        "/api/v1/proyectos",
+        json={"nombre": "Recuperacion de alameda", "descripcion": ""},
+    )
+
+    assert created.status_code == 201
+    proyecto = created.json()["proyecto"]
+    assert proyecto["estado"] == "BORRADOR"
+    assert proyecto["descripcion"] is None
+
+    validation = client.post("/api/v1/proyectos/1/validar")
+    assert validation.status_code == 200
+    assert validation.json() == {
+        "estado": "INCOMPLETO",
+        "campos_faltantes": [
+            "descripcion",
+            "ubicacion",
+            "presupuesto",
+            "beneficiarios",
+            "tipo_proyecto",
+        ],
+        "mensaje": "El expediente debe completarse antes de iniciar la evaluacion",
+    }
+
+
+def test_valida_expediente_completo(
+    client: TestClient, proyecto_valido: dict[str, object]
+) -> None:
+    client.post("/api/v1/proyectos", json=proyecto_valido)
+
+    response = client.post("/api/v1/proyectos/1/validar")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "estado": "COMPLETO",
+        "campos_faltantes": [],
+        "mensaje": "El expediente esta completo y puede iniciar la evaluacion",
+    }
+
+
+def test_validar_proyecto_inexistente_devuelve_404(client: TestClient) -> None:
+    response = client.post("/api/v1/proyectos/999/validar")
+    assert response.status_code == 404
 
 
 def test_proyecto_inexistente_devuelve_404(client: TestClient) -> None:

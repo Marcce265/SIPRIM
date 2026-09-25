@@ -14,11 +14,11 @@ class ProyectoModel(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nombre: Mapped[str] = mapped_column(String(200), nullable=False)
-    descripcion: Mapped[str] = mapped_column(Text, nullable=False)
-    ubicacion: Mapped[str] = mapped_column(String(300), nullable=False)
-    presupuesto: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
-    beneficiarios: Mapped[int] = mapped_column(Integer, nullable=False)
-    tipo_proyecto: Mapped[str] = mapped_column(String(150), nullable=False)
+    descripcion: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ubicacion: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    presupuesto: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
+    beneficiarios: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tipo_proyecto: Mapped[str | None] = mapped_column(String(150), nullable=True)
     estado: Mapped[str] = mapped_column(String(30), nullable=False)
     fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
