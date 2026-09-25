@@ -11,6 +11,9 @@ from backend.infrastructure.config.settings import get_settings
 from backend.infrastructure.input.controllers.proyecto_controller import (
     router as proyecto_router,
 )
+from backend.infrastructure.input.controllers.evaluacion_ia_controller import (
+    router as evaluacion_ia_router,
+)
 
 
 def create_app() -> FastAPI:
@@ -29,6 +32,7 @@ def create_app() -> FastAPI:
     )
 
     application.include_router(proyecto_router)
+    application.include_router(evaluacion_ia_router)
 
     @application.get("/health", tags=["Sistema"])
     def health() -> dict[str, str]:
