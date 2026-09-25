@@ -5,4 +5,7 @@ __pycache__/
 .env
 .coverage
 htmlcov/
+node_modules/
+frontend/dist/
+docs/_extracted_summary.txt
 

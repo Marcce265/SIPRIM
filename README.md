@@ -104,16 +104,44 @@ pytest
 Las pruebas cubren salud, registro, consulta, validaciones, proyecto inexistente y
 el caso de uso aislado.
 
-## Activar PostgreSQL posteriormente
+## Base de datos PostgreSQL
 
-1. Crear la base de datos y las tablas (idealmente con Alembic en la siguiente HU).
-2. En `.env`, definir una URL real y cambiar el adaptador:
+Scripts en [`database/`](database/). Conexión rápida con Docker:
+
+```powershell
+docker compose up -d db
+Copy-Item .env.example .env   # si aún no tiene .env
+python scripts/check_database.py
+uvicorn backend.main:app --reload
+```
+
+En `.env`:
 
 ```dotenv
 USE_IN_MEMORY_REPOSITORY=false
-DATABASE_URL=postgresql+psycopg://usuario:clave@localhost:5432/siprim
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/siprim
 ```
 
-`ProyectoRepositoryPort` desacopla la aplicacion de la base de datos. Este mismo
-limite permite sumar luego eventos, RAG juridico o agentes IA sin introducir esas
-dependencias en el controlador ni en la entidad.
+Para Neon/Supabase, pegue `database/schema.sql` en el SQL Editor y use su URL en
+`DATABASE_URL` (prefijo `postgresql+psycopg://`).
+
+`ProyectoRepositoryPort` desacopla la aplicacion de la base de datos. El frontend
+solo consume la API; no necesita acceso directo a PostgreSQL.
+
+## Frontend (React + Vite)
+
+Interfaz PMV1 para la carga y consulta de expedientes (HU1.1).
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Abrir `http://localhost:5173` con el backend en `http://127.0.0.1:8000`.
+En desarrollo, Vite redirige `/api` y `/health` al backend.
+
+## Documentación
+
+Los PDF y materiales de referencia del proyecto van en la carpeta [`docs/`](docs/).
+Consulta [`docs/README.md`](docs/README.md) para el índice de archivos.
