@@ -1,7 +1,12 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.infrastructure.config.dependencies import get_proyecto_repository
+from backend.infrastructure.config.dependencies import (
+    get_evaluacion_economica_repository,
+    get_evaluacion_juridica_repository,
+    get_evaluador_juridico,
+    get_proyecto_repository,
+)
 from backend.main import create_app
 
 
@@ -9,9 +14,15 @@ from backend.main import create_app
 def client() -> TestClient:
     # Cada prueba recibe un repositorio temporal nuevo y determinista.
     get_proyecto_repository.cache_clear()
+    get_evaluacion_economica_repository.cache_clear()
+    get_evaluacion_juridica_repository.cache_clear()
+    get_evaluador_juridico.cache_clear()
     with TestClient(create_app()) as test_client:
         yield test_client
     get_proyecto_repository.cache_clear()
+    get_evaluacion_economica_repository.cache_clear()
+    get_evaluacion_juridica_repository.cache_clear()
+    get_evaluador_juridico.cache_clear()
 
 
 @pytest.fixture
@@ -53,12 +64,9 @@ def test_registrar_y_consultar_proyecto(
     ("field", "invalid_value"),
     [
         ("nombre", "   "),
-        ("descripcion", ""),
-        ("ubicacion", ""),
         ("presupuesto", 0),
         ("presupuesto", -1),
         ("beneficiarios", 0),
-        ("tipo_proyecto", ""),
     ],
 )
 def test_rechaza_datos_invalidos(
@@ -70,6 +78,139 @@ def test_rechaza_datos_invalidos(
     proyecto_valido[field] = invalid_value
     response = client.post("/api/v1/proyectos", json=proyecto_valido)
     assert response.status_code == 422
+
+
+def test_registra_borrador_y_reporta_campos_faltantes(client: TestClient) -> None:
+    created = client.post(
+        "/api/v1/proyectos",
+        json={"nombre": "Recuperacion de alameda", "descripcion": ""},
+    )
+
+    assert created.status_code == 201
+    proyecto = created.json()["proyecto"]
+    assert proyecto["estado"] == "BORRADOR"
+    assert proyecto["descripcion"] is None
+
+    validation = client.post("/api/v1/proyectos/1/validar")
+    assert validation.status_code == 200
+    assert validation.json() == {
+        "estado": "INCOMPLETO",
+        "campos_faltantes": [
+            "descripcion",
+            "ubicacion",
+            "presupuesto",
+            "beneficiarios",
+            "tipo_proyecto",
+        ],
+        "mensaje": "El expediente debe completarse antes de iniciar la evaluacion",
+    }
+
+
+def test_valida_expediente_completo(
+    client: TestClient, proyecto_valido: dict[str, object]
+) -> None:
+    client.post("/api/v1/proyectos", json=proyecto_valido)
+
+    response = client.post("/api/v1/proyectos/1/validar")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "estado": "COMPLETO",
+        "campos_faltantes": [],
+        "mensaje": "El expediente esta completo y puede iniciar la evaluacion",
+    }
+
+
+def test_validar_proyecto_inexistente_devuelve_404(client: TestClient) -> None:
+    response = client.post("/api/v1/proyectos/999/validar")
+    assert response.status_code == 404
+
+
+def test_evaluacion_economica_parcial(
+    client: TestClient, proyecto_valido: dict[str, object]
+) -> None:
+    client.post("/api/v1/proyectos", json=proyecto_valido)
+
+    response = client.post("/api/v1/proyectos/1/evaluacion-economica")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "proyecto_id": 1,
+        "presupuesto": 2_500_000.0,
+        "beneficiarios": 5_000,
+        "costo_por_habitante": 500.0,
+        "retorno_socioeconomico": None,
+        "estado_evaluacion": "PARCIAL",
+        "pendientes": ["retorno_socioeconomico"],
+    }
+    guardada = get_evaluacion_economica_repository().obtener_por_proyecto(1)
+    assert guardada is not None
+    assert float(guardada.costo_por_habitante) == 500.0
+
+
+def test_evaluacion_economica_bloquea_expediente_incompleto(
+    client: TestClient,
+) -> None:
+    client.post("/api/v1/proyectos", json={"nombre": "Proyecto en borrador"})
+
+    response = client.post("/api/v1/proyectos/1/evaluacion-economica")
+
+    assert response.status_code == 409
+    assert response.json()["campos_faltantes"] == [
+        "descripcion",
+        "ubicacion",
+        "presupuesto",
+        "beneficiarios",
+        "tipo_proyecto",
+    ]
+    assert get_evaluacion_economica_repository().obtener_por_proyecto(1) is None
+
+
+def test_evaluacion_economica_proyecto_inexistente_devuelve_404(
+    client: TestClient,
+) -> None:
+    response = client.post("/api/v1/proyectos/999/evaluacion-economica")
+    assert response.status_code == 404
+
+
+def test_evaluacion_juridica_pendiente_de_integracion_rag(
+    client: TestClient, proyecto_valido: dict[str, object]
+) -> None:
+    client.post("/api/v1/proyectos", json=proyecto_valido)
+
+    response = client.post("/api/v1/proyectos/1/evaluacion-juridica")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "proyecto_id": 1,
+        "estado": "PENDIENTE_VALIDACION_NORMATIVA",
+        "cumple": None,
+        "observaciones": [
+            "La evaluacion juridica requiere integracion con el servicio RAG"
+        ],
+        "fuentes": [],
+    }
+    guardada = get_evaluacion_juridica_repository().obtener_por_proyecto(1)
+    assert guardada is not None
+    assert guardada.cumple is None
+
+
+def test_evaluacion_juridica_bloquea_expediente_incompleto(
+    client: TestClient,
+) -> None:
+    client.post("/api/v1/proyectos", json={"nombre": "Proyecto juridico"})
+
+    response = client.post("/api/v1/proyectos/1/evaluacion-juridica")
+
+    assert response.status_code == 409
+    assert get_evaluacion_juridica_repository().obtener_por_proyecto(1) is None
+
+
+def test_evaluacion_juridica_proyecto_inexistente_devuelve_404(
+    client: TestClient,
+) -> None:
+    response = client.post("/api/v1/proyectos/999/evaluacion-juridica")
+    assert response.status_code == 404
 
 
 def test_proyecto_inexistente_devuelve_404(client: TestClient) -> None:

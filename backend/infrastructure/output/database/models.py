@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, JSON, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.infrastructure.output.database.base import Base
@@ -14,13 +14,51 @@ class ProyectoModel(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nombre: Mapped[str] = mapped_column(String(200), nullable=False)
-    descripcion: Mapped[str] = mapped_column(Text, nullable=False)
-    ubicacion: Mapped[str] = mapped_column(String(300), nullable=False)
-    presupuesto: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
-    beneficiarios: Mapped[int] = mapped_column(Integer, nullable=False)
-    tipo_proyecto: Mapped[str] = mapped_column(String(150), nullable=False)
+    descripcion: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ubicacion: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    presupuesto: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
+    beneficiarios: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tipo_proyecto: Mapped[str | None] = mapped_column(String(150), nullable=True)
     estado: Mapped[str] = mapped_column(String(30), nullable=False)
     fecha_creacion: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+
+
+class EvaluacionEconomicaModel(Base):
+    __tablename__ = "evaluaciones_economicas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    proyecto_id: Mapped[int] = mapped_column(
+        ForeignKey("proyectos.id"), unique=True, nullable=False
+    )
+    presupuesto: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    beneficiarios: Mapped[int] = mapped_column(Integer, nullable=False)
+    costo_por_habitante: Mapped[Decimal] = mapped_column(
+        Numeric(18, 2), nullable=False
+    )
+    retorno_socioeconomico: Mapped[Decimal | None] = mapped_column(
+        Numeric(18, 2), nullable=True
+    )
+    estado_evaluacion: Mapped[str] = mapped_column(String(30), nullable=False)
+    pendientes: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    fecha_evaluacion: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+
+
+class EvaluacionJuridicaModel(Base):
+    __tablename__ = "evaluaciones_juridicas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    proyecto_id: Mapped[int] = mapped_column(
+        ForeignKey("proyectos.id"), unique=True, nullable=False
+    )
+    estado: Mapped[str] = mapped_column(String(50), nullable=False)
+    cumple: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    observaciones: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    fuentes: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    fecha_evaluacion: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
 
