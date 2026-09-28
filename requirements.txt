@@ -6,4 +6,5 @@ SQLAlchemy>=2.0,<3.0
 psycopg[binary]>=3.2,<4.0
 pytest>=8.3,<9.0
 httpx>=0.28,<1.0
-
+google-genai>=1.75,<2.0
+langgraph>=0.6,<1.0
