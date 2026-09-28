@@ -55,9 +55,16 @@ src/
 
 | Ruta | Feature | Descripción |
 |------|---------|-------------|
+| `/login` | `auth` | Acceso al sistema (demo PMV1, sesión en localStorage) |
 | `/` | `home` | Inicio, hoja de ruta y expedientes recientes (localStorage) |
 | `/registrar` | `registrar` | Carga de expediente HU1.1 / RF-01 |
 | `/consultar` | `consultar` | Detalle por ID de expediente |
+
+### Login demo (hasta integrar RNF-03 en backend)
+
+- `planificador@eltambo.gob.pe` / `siprim2026`
+- `evaluador@eltambo.gob.pe` / `siprim2026`
+- `admin@eltambo.gob.pe` / `siprim2026`
 
 ## Scripts
 

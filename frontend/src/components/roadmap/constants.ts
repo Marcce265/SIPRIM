@@ -12,5 +12,5 @@ export const PMV1_ROADMAP: RoadmapItem[] = [
   { label: 'Expedientes en revisión y alertas', status: 'planned' },
   { label: 'Validación humana (human-in-the-loop)', status: 'planned' },
   { label: 'Ranking y priorización (RF-09)', status: 'planned' },
-  { label: 'Acceso con roles (RNF-03)', status: 'planned' },
+  { label: 'Acceso con roles (RNF-03)', status: 'active' },
 ]

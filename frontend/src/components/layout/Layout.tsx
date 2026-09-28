@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../features/auth/AuthContext'
 import { useApiHealth } from '../../hooks/useApiHealth'
 import { ApiStatusPill } from './ApiStatusPill'
 
@@ -7,6 +8,13 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 export function Layout() {
   const apiOnline = useApiHealth()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <div className="app-shell">
@@ -34,7 +42,20 @@ export function Layout() {
               Consultar
             </NavLink>
           </nav>
-          <ApiStatusPill apiOnline={apiOnline} />
+          <div className="user-menu">
+            <ApiStatusPill apiOnline={apiOnline} />
+            {user && (
+              <>
+                <div className="user-info">
+                  <p className="user-name">{user.nombre}</p>
+                  <p className="user-role">{user.rol}</p>
+                </div>
+                <button type="button" className="btn-logout" onClick={handleLogout}>
+                  Cerrar sesión
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
