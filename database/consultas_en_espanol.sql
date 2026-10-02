@@ -34,6 +34,17 @@ SELECT codigo_proyecto, version_expediente, estado, compatible,
 FROM vista_revisiones_zonificacion
 ORDER BY solicitada_en DESC;
 
+-- Fuentes normativas y alertas para el Asesor Juridico (HU2.1)
+SELECT id_fragmento, documento, codigo_corto, version_norma, tema,
+       tiene_alerta, origen_dato
+FROM vista_fuentes_normativas
+ORDER BY codigo_corto, id_fragmento;
+
+-- Historial de busquedas normativas (HU2.1)
+SELECT id_busqueda, consulta, filtro_documento, resultados_obtenidos, consultado_en
+FROM vista_busquedas_normativas
+ORDER BY consultado_en DESC;
+
 -- ===== economic_db =====
 -- Resultados del agente economico
 SELECT budget_snapshot_pen AS presupuesto, beneficiaries_snapshot AS beneficiarios,

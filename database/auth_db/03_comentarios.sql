@@ -8,7 +8,7 @@ COMMENT ON COLUMN users.is_active IS 'Indica si la cuenta esta activa';
 COMMENT ON COLUMN users.created_at IS 'Fecha de creacion';
 COMMENT ON COLUMN users.updated_at IS 'Fecha de ultima actualizacion';
 
-COMMENT ON TABLE roles IS 'Roles del sistema (ADMIN = Administrador, PLANNER = Planificador)';
+COMMENT ON TABLE roles IS 'Roles del sistema (ADMIN = Administrador, PLANNER = Planificador, LEGAL_ADVISOR = Asesor Juridico)';
 COMMENT ON COLUMN roles.id IS 'Identificador unico del rol';
 COMMENT ON COLUMN roles.code IS 'Codigo del rol';
 COMMENT ON COLUMN roles.name IS 'Nombre del rol';

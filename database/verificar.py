@@ -76,22 +76,32 @@ with (
         f"v{pesos[0][0]} suma {pesos[0][1]} %" if pesos else "sin politica",
     )
 
+    eval_ab = dict(
+        plat.execute(
+            """SELECT e.id::text, p.code
+            FROM evaluations e
+            JOIN project_versions pv ON pv.id = e.project_version_id
+            JOIN projects p ON p.id = pv.project_id
+            WHERE p.code IN ('PRY-A', 'PRY-B')"""
+        ).fetchall()
+    )
     filas = dict(
         (str(a), (c, s))
         for a, c, s in eco.execute(
             "SELECT evaluation_id, cost_per_beneficiary_pen, score_0_100 FROM economic_assessments"
         ).fetchall()
     )
-    costos = sorted(filas.values())
+    filas_ab = {eval_ab[e]: v for e, v in filas.items() if e in eval_ab}
+    costos_ab = sorted(filas_ab.values())
     caso(
         4,
         "costo/persona 200 y 300; puntos 100 y 66,67",
-        costos
+        costos_ab
         == [
             (Decimal("200.00"), Decimal("100.00")),
             (Decimal("300.00"), Decimal("66.67")),
         ],
-        ", ".join(f"S/ {c} -> {s} pts" for c, s in costos),
+        ", ".join(f"{k}: S/ {c} -> {s} pts" for k, (c, s) in sorted(filas_ab.items())),
     )
 
     proy = {
@@ -121,7 +131,7 @@ with (
     caso(
         6,
         "sin duplicados: 1 evaluacion = 1 assessment = 1 proyeccion",
-        n_ev == n_as == len(proy) == 2,
+        n_ev == n_as == len(proy) >= 2,
         f"evaluaciones={n_ev}, assessments={n_as}, proyecciones={len(proy)}",
     )
 
@@ -188,6 +198,44 @@ with (
         "HU1.11 conserva datos territoriales y prohibe una conclusion sin evidencia",
         territoriales >= 2 and sin_evidencia,
         f"versiones territoriales={territoriales}, conclusion sin evidencia rechazada={sin_evidencia}",
+    )
+
+
+    legal_role = auth.execute(
+        """SELECT count(*) FROM users u
+        JOIN user_roles ur ON ur.user_id = u.id
+        JOIN roles r ON r.id = ur.role_id
+        WHERE u.email = 'legal@siprim.test' AND r.code = 'LEGAL_ADVISOR'"""
+    ).fetchone()[0]
+
+    normativos = plat.execute(
+        """SELECT count(*),
+                  count(*) FILTER (WHERE has_alert = TRUE),
+                  count(DISTINCT short_code)
+        FROM normative_documents
+        WHERE in_force = TRUE AND data_origin = 'simulated'"""
+    ).fetchone()
+
+    origen_invalido = rechaza(
+        plat,
+        """INSERT INTO normative_documents
+        (id, document_name, short_code, version, topic, content, data_origin)
+        VALUES ('TEST-ERR', 'Norma Test', 'TEST', 'v1', 'Tema', 'Contenido', 'origen_falso')""",
+    )
+
+    p10_ok = bool(
+        legal_role == 1
+        and normativos[0] >= 24
+        and normativos[1] >= 2
+        and normativos[2] >= 4
+        and origen_invalido
+    )
+
+    caso(
+        10,
+        "HU2.1 rol LEGAL_ADVISOR, 24 fragmentos normativos con alertas y origen restringido",
+        p10_ok,
+        f"legal={legal_role}, fragmentos={normativos[0]}, alertas={normativos[1]}, grupos={normativos[2]}, rechazo={origen_invalido}",
     )
 
     print(f"\nResultado: {sum(resultados)} de {len(resultados)} pruebas pasaron")

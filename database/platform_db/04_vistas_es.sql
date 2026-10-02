@@ -41,3 +41,26 @@ SELECT occurred_at AS fecha,
                    WHEN 'EVALUATION_COMPLETED' THEN 'Evaluación completada' ELSE action END AS accion,
        entity_type AS tipo, details AS detalle
 FROM audit_events;
+
+CREATE OR REPLACE VIEW vista_fuentes_normativas AS
+SELECT id AS id_fragmento,
+       document_name AS documento,
+       short_code AS codigo_corto,
+       version AS version_norma,
+       topic AS tema,
+       content AS contenido,
+       in_force AS vigente,
+       has_alert AS tiene_alerta,
+       data_origin AS origen_dato,
+       created_at AS registrado_en
+FROM normative_documents;
+
+CREATE OR REPLACE VIEW vista_busquedas_normativas AS
+SELECT id AS id_busqueda,
+       actor_user_id AS usuario_actor_id,
+       query AS consulta,
+       document_filter AS filtro_documento,
+       results_count AS resultados_obtenidos,
+       idempotency_key AS clave_idempotencia,
+       created_at AS consultado_en
+FROM normative_search_logs;

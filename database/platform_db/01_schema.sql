@@ -156,3 +156,37 @@ CREATE INDEX IF NOT EXISTS evaluations_version_idx ON evaluations(project_versio
 CREATE INDEX IF NOT EXISTS audit_entity_idx ON audit_events(entity_type, entity_id, occurred_at);
 CREATE INDEX IF NOT EXISTS outbox_pending_idx ON outbox_events(created_at)
     WHERE published_at IS NULL;
+
+-- =========================================================
+-- HU2.1 / RF03 / RF12 · Corpus normativo versionado y trazabilidad de consultas
+-- Fuentes referenciales didacticas para el Asesor Juridico
+-- =========================================================
+CREATE TABLE IF NOT EXISTS normative_documents (
+    id VARCHAR(40) PRIMARY KEY,
+    document_name VARCHAR(150) NOT NULL,
+    short_code VARCHAR(40) NOT NULL,
+    version VARCHAR(40) NOT NULL DEFAULT '2026-v1',
+    topic VARCHAR(150) NOT NULL,
+    content TEXT NOT NULL,
+    in_force BOOLEAN NOT NULL DEFAULT TRUE,
+    has_alert BOOLEAN NOT NULL DEFAULT FALSE,
+    data_origin VARCHAR(24) NOT NULL DEFAULT 'simulated',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT normative_data_origin_check
+        CHECK (data_origin IN ('declared', 'simulated', 'public', 'official'))
+);
+
+CREATE TABLE IF NOT EXISTS normative_search_logs (
+    id UUID PRIMARY KEY,
+    actor_user_id UUID NOT NULL,
+    query TEXT NOT NULL,
+    document_filter VARCHAR(150),
+    results_count INTEGER NOT NULL CHECK (results_count >= 0),
+    idempotency_key VARCHAR(120) UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS normative_docs_lookup_idx ON normative_documents(document_name, in_force);
+CREATE INDEX IF NOT EXISTS normative_docs_short_code_idx ON normative_documents(short_code);
+CREATE INDEX IF NOT EXISTS normative_docs_topic_idx ON normative_documents(topic);
+CREATE INDEX IF NOT EXISTS normative_search_actor_idx ON normative_search_logs(actor_user_id, created_at DESC);

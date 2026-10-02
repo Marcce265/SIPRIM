@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from backend.application.dto.pmv1_dto import PMV1ProjectCreate
 from backend.application.services.pmv1_services import (
     EconomicProcessor,
+    NormativeSearchEngine,
     PlatformService,
 )
 from backend.domain.exceptions.pmv1_exceptions import ConfiguracionPMV1Error
@@ -26,6 +27,22 @@ ZONING_REVIEW_ID = UUID("11000000-0000-4000-a000-00000000000a")
 
 class FakeAuth:
     def login(self, email: str, password: str) -> dict[str, Any]:
+        if "legal" in email:
+            return {
+                "access_token": "token-legal",
+                "expires_in": 3600,
+                "user_id": UUID("10000000-0000-4000-a000-000000000003"),
+                "full_name": "Asesor Juridico de prueba",
+                "roles": ["LEGAL_ADVISOR"],
+            }
+        if "admin" in email:
+            return {
+                "access_token": "token-admin",
+                "expires_in": 3600,
+                "user_id": UUID("10000000-0000-4000-a000-000000000001"),
+                "full_name": "Administrador de prueba",
+                "roles": ["ADMIN"],
+            }
         return {
             "access_token": "token-prueba",
             "expires_in": 3600,
@@ -35,6 +52,16 @@ class FakeAuth:
         }
 
     def decode(self, token: str) -> dict[str, Any]:
+        if token == "token-legal":
+            return {
+                "sub": "10000000-0000-4000-a000-000000000003",
+                "roles": ["LEGAL_ADVISOR"],
+            }
+        if token == "token-admin":
+            return {
+                "sub": "10000000-0000-4000-a000-000000000001",
+                "roles": ["ADMIN"],
+            }
         return {
             "sub": "10000000-0000-4000-a000-000000000002",
             "roles": ["PLANNER"],
@@ -122,6 +149,91 @@ class FakePlatform:
             "requires_human_review": True,
             "duplicated": idempotency_key == "zoning-repeat",
         }
+
+    def search_normatives(
+        self,
+        query: str,
+        actor_id: UUID,
+        document_filter: str | None = None,
+        only_in_force: bool = True,
+        limit: int = 5,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        if idempotency_key == "normative-conflict":
+            raise ConfiguracionPMV1Error("Idempotency-Key ya fue utilizada para otra consulta")
+
+        has_alert_match = "incompatible" in query.lower() or "riesgo" in query.lower()
+        results = [
+            {
+                "id": "PDUPDM-02" if has_alert_match else "LEY27972-01",
+                "document_name": "PDU/PDM Huancayo-El Tambo" if has_alert_match else "Ley N.° 27972",
+                "short_code": "PDU_EL_TAMBO" if has_alert_match else "LEY_27972",
+                "version": "2026-v1",
+                "topic": "Compatibilidad de uso de suelo" if has_alert_match else "Competencias municipales",
+                "content": (
+                    "Resumen didactico simulado: si el uso propuesto para un proyecto es incompatible "
+                    "con la zonificacion vigente, el expediente requiere observacion y revision juridica."
+                ) if has_alert_match else (
+                    "Resumen didactico simulado: las municipalidades ejercen competencias y funciones en asuntos "
+                    "de interes local dentro del marco legal correspondiente."
+                ),
+                "in_force": True,
+                "has_alert": has_alert_match,
+                "data_origin": "simulated",
+                "relevance_score": 85.0 if has_alert_match else 70.0,
+            }
+        ]
+        alerts = [
+            f"Alerta legal detectada en {results[0]['id']} ({results[0]['topic']}): {results[0]['content']}"
+        ] if has_alert_match else []
+
+        return {
+            "query": query,
+            "document_filter": document_filter,
+            "total_results": len(results),
+            "results": results,
+            "alerts_found": alerts,
+            "disclaimer": "Material didactico y simulado para el PMV1 en El Tambo.",
+            "requires_human_review": bool(alerts),
+            "duplicated": idempotency_key == "normative-repeat",
+        }
+
+    def list_normative_documents(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "short_code": "DL_1252",
+                "document_name": "D. L. N.° 1252 - Invierte.pe",
+                "version": "2026-v1",
+                "in_force": True,
+                "data_origin": "simulated",
+                "chunks_count": 6,
+            },
+            {
+                "short_code": "LEY_27972",
+                "document_name": "Ley N.° 27972",
+                "version": "2026-v1",
+                "in_force": True,
+                "data_origin": "simulated",
+                "chunks_count": 6,
+            },
+            {
+                "short_code": "LEY_32069",
+                "document_name": "Ley N.° 32069",
+                "version": "2026-v1",
+                "in_force": True,
+                "data_origin": "simulated",
+                "chunks_count": 6,
+            },
+            {
+                "short_code": "PDU_EL_TAMBO",
+                "document_name": "PDU/PDM Huancayo-El Tambo",
+                "version": "2026-v1",
+                "in_force": True,
+                "data_origin": "simulated",
+                "chunks_count": 6,
+            },
+        ]
+
 
 
 @pytest.fixture
@@ -243,3 +355,127 @@ def test_hu111_no_reutiliza_clave_de_otro_expediente(client: TestClient) -> None
     )
     assert response.status_code == 409
     assert "otro expediente" in response.json()["detail"]
+
+
+def test_hu21_busqueda_normativa_requiere_autenticacion(client: TestClient) -> None:
+    response = client.post("/api/v1/normative/search", json={"query": "competencias"})
+    assert response.status_code == 401
+
+
+def test_hu21_busqueda_normativa_prohibida_para_planner(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/normative/search",
+        headers={"Authorization": "Bearer token-prueba"},
+        json={"query": "competencias municipales"},
+    )
+    assert response.status_code == 403
+    assert "LEGAL_ADVISOR o ADMIN" in response.json()["detail"]
+
+
+def test_hu21_busqueda_normativa_permitida_para_legal_advisor(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/normative/search",
+        headers={"Authorization": "Bearer token-legal"},
+        json={"query": "competencias municipales"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_results"] >= 1
+    assert body["results"][0]["id"] == "LEY27972-01"
+    assert body["results"][0]["relevance_score"] > 0
+    assert body["requires_human_review"] is False
+    assert "Material didactico" in body["disclaimer"]
+
+
+def test_hu21_busqueda_normativa_permitida_para_admin(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/normative/search",
+        headers={"Authorization": "Bearer token-admin"},
+        json={"query": "competencias municipales"},
+    )
+    assert response.status_code == 200
+
+
+def test_hu21_busqueda_normativa_detecta_alerta_y_exige_revision_humana(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/normative/search",
+        headers={"Authorization": "Bearer token-legal"},
+        json={"query": "uso de suelo incompatible con zonificacion"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["results"][0]["has_alert"] is True
+    assert body["results"][0]["id"] == "PDUPDM-02"
+    assert body["requires_human_review"] is True
+    assert len(body["alerts_found"]) >= 1
+    assert "Alerta legal detectada" in body["alerts_found"][0]
+
+
+def test_hu21_busqueda_normativa_idempotente(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/normative/search",
+        headers={
+            "Authorization": "Bearer token-legal",
+            "Idempotency-Key": "normative-repeat",
+        },
+        json={"query": "competencias municipales"},
+    )
+    assert response.status_code == 200
+    assert response.json()["duplicated"] is True
+
+
+def test_hu21_busqueda_normativa_conflicto_idempotencia(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/normative/search",
+        headers={
+            "Authorization": "Bearer token-legal",
+            "Idempotency-Key": "normative-conflict",
+        },
+        json={"query": "consulta diferente"},
+    )
+    assert response.status_code == 409
+    assert "otra consulta" in response.json()["detail"]
+
+
+def test_hu21_listar_documentos_normativos(client: TestClient) -> None:
+    # Prohibido para PLANNER
+    res_planner = client.get(
+        "/api/v1/normative/documents",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert res_planner.status_code == 403
+
+    # Permitido para LEGAL_ADVISOR
+    res_legal = client.get(
+        "/api/v1/normative/documents",
+        headers={"Authorization": "Bearer token-legal"},
+    )
+    assert res_legal.status_code == 200
+    body = res_legal.json()
+    assert body["total_documents"] == 4
+    codes = [d["short_code"] for d in body["documents"]]
+    assert "LEY_27972" in codes
+    assert "PDU_EL_TAMBO" in codes
+    assert "DL_1252" in codes
+    assert "LEY_32069" in codes
+
+
+def test_hu21_motor_ponderacion_scoring() -> None:
+
+    chunk = {
+        "id": "PDUPDM-02",
+        "document_name": "PDU/PDM Huancayo-El Tambo",
+        "short_code": "PDU_EL_TAMBO",
+        "topic": "Compatibilidad de uso de suelo",
+        "content": "Resumen didáctico simulado: si el uso propuesto para un proyecto es incompatible con la zonificación vigente, el expediente requiere observación y revisión jurídica.",
+        "has_alert": True,
+    }
+
+    kw = NormativeSearchEngine.extract_keywords("uso de suelo incompatible")
+    assert "uso" in kw
+    assert "suelo" in kw
+    assert "incompatible" in kw
+    assert "de" not in kw  # Stop word eliminada
+
+    score = NormativeSearchEngine.score_chunk(chunk, "uso de suelo incompatible", kw)
+    assert score > 50.0  # Coincide en topic, content y alerta

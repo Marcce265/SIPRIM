@@ -138,3 +138,68 @@ class ZoningPrecheckResponse(BaseModel):
     limitations: str
     requires_human_review: bool
     duplicated: bool
+
+
+class NormativeSearchRequest(BaseModel):
+    """Solicitud de busqueda automatica en normativas vigentes (HU2.1 / RF12)."""
+
+    model_config = ConfigDict(extra="forbid")
+    query: str = Field(min_length=2, max_length=500)
+    document_filter: str | None = Field(default=None, max_length=150)
+    only_in_force: bool = True
+    limit: int = Field(default=5, ge=1, le=20)
+
+    @field_validator("query", "document_filter", mode="before")
+    @classmethod
+    def strip_text(cls, value: object) -> object:
+        if isinstance(value, str):
+            cleaned = value.strip()
+            return cleaned or None
+        return value
+
+
+class NormativeChunkItem(BaseModel):
+    """Fragmento normativo recuperado con trazabilidad de origen y metadatos."""
+
+    id: str
+    document_name: str
+    short_code: str
+    version: str
+    topic: str
+    content: str
+    in_force: bool
+    has_alert: bool
+    data_origin: str
+    relevance_score: float
+
+
+class NormativeSearchResponse(BaseModel):
+    """Resultado de busqueda normativa para el Asesor Juridico (HU2.1)."""
+
+    query: str
+    document_filter: str | None
+    total_results: int
+    results: list[NormativeChunkItem]
+    alerts_found: list[str]
+    disclaimer: str
+    requires_human_review: bool
+    duplicated: bool = False
+
+
+class NormativeDocumentItem(BaseModel):
+    """Resumen de norma o plan territorial registrado en el catalogo."""
+
+    short_code: str
+    document_name: str
+    version: str
+    in_force: bool
+    data_origin: str
+    chunks_count: int
+
+
+class NormativeDocumentListResponse(BaseModel):
+    """Listado del catalogo normativo activo y versionado (RF03)."""
+
+    total_documents: int
+    documents: list[NormativeDocumentItem]
+    disclaimer: str

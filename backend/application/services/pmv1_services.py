@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Any, Protocol
+from typing import Any, ClassVar, Protocol
 from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 import jwt
@@ -98,6 +99,66 @@ class AuthService:
             raise CredencialesInvalidasError("Token invalido o expirado") from exc
 
 
+
+class NormativeSearchEngine:
+    """Motor de ponderacion de relevancia para consultas normativas referenciales (HU2.1 / RF12)."""
+
+    STOP_WORDS: ClassVar[set[str]] = {
+        "a", "al", "ante", "bajo", "cabe", "como", "con", "contra", "de", "del",
+        "desde", "el", "ella", "ellas", "ellos", "en", "entre", "es", "esa", "esas",
+        "ese", "esos", "esta", "estas", "este", "estos", "fue", "fueron", "hacia",
+        "hasta", "la", "las", "le", "les", "lo", "los", "me", "mi", "mis", "muy",
+        "nos", "nosotros", "o", "para", "pero", "por", "que", "qué", "se", "según",
+        "sin", "so", "sobre", "son", "su", "sus", "te", "ti", "tu", "tus", "un",
+        "una", "unas", "unos", "y", "ya"
+    }
+
+    @classmethod
+    def extract_keywords(cls, query: str) -> list[str]:
+        words = re.findall(r"[\wáéíóúüñ]+", query.lower())
+        return [w for w in words if len(w) > 1 and w not in cls.STOP_WORDS]
+
+    @classmethod
+    def score_chunk(cls, chunk: dict[str, Any], query: str, keywords: list[str]) -> float:
+        score = 0.0
+        q_lower = query.lower()
+        id_lower = str(chunk.get("id", "")).lower()
+        topic_lower = str(chunk.get("topic", "")).lower()
+        content_lower = str(chunk.get("content", "")).lower()
+        doc_lower = str(chunk.get("document_name", "")).lower()
+        code_lower = str(chunk.get("short_code", "")).lower()
+
+        # Coincidencia directa por id (ej: "PDUPDM-02", "LEY27972-01")
+        if id_lower and (id_lower in q_lower or q_lower in id_lower):
+            score += 50.0
+
+        # Coincidencia de frase completa
+        if q_lower in topic_lower:
+            score += 35.0
+        if q_lower in content_lower:
+            score += 25.0
+        if q_lower in doc_lower or q_lower in code_lower:
+            score += 15.0
+
+        # Coincidencias por palabra clave
+        for kw in keywords:
+            if kw in id_lower:
+                score += 20.0
+            if kw in topic_lower:
+                score += 15.0
+            if kw in content_lower:
+                score += 5.0
+            if kw in doc_lower or kw in code_lower:
+                score += 4.0
+
+        # Ponderacion de alertas si la consulta alude a temas de riesgo/suelo/incompatibilidad
+        alert_terms = {"alerta", "riesgo", "incompatible", "incompatibilidad", "conflicto", "vulnera", "suelo", "zonificacion", "proteccion"}
+        if chunk.get("has_alert") and any(at in q_lower for at in alert_terms):
+            score += 20.0
+
+        return round(score, 2)
+
+
 class PlatformService:
     def __init__(self, db_url: str, dispatcher: TaskDispatcher) -> None:
         self.db_url = _dsn(db_url)
@@ -126,8 +187,7 @@ class PlatformService:
             raise ExpedientePMV1IncompletoError(missing)
         project_id, version_id = uuid4(), uuid4()
         code = data.code or f"PRY-{project_id.hex[:8].upper()}"
-        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
-            with conn.transaction():
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
                 conn.execute(
                     "INSERT INTO projects (id, code, created_by_user_id, status) VALUES (%s,%s,%s,'ready')",
                     (project_id, code, actor_id),
@@ -211,8 +271,7 @@ class PlatformService:
     ) -> dict[str, Any]:
         if not idempotency_key.strip():
             raise ConfiguracionPMV1Error("Idempotency-Key es obligatorio")
-        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
-            with conn.transaction():
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
                 previous = conn.execute(
                     """SELECT e.id AS evaluation_id, e.status, o.id AS event_id, o.payload,
                               o.published_at IS NULL AS publication_pending
@@ -367,8 +426,7 @@ class PlatformService:
             "No existe un corpus PDU/PDM oficial, versionado y activo ni una capa GIS "
             "que permita ubicar el predio. La solicitud no equivale a conformidad territorial."
         )
-        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
-            with conn.transaction():
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
                 previous = conn.execute(
                     """
                     SELECT id AS review_id, project_version_id, status,
@@ -452,6 +510,137 @@ class PlatformService:
         }
 
 
+
+    def search_normatives(
+        self,
+        query: str,
+        actor_id: UUID,
+        document_filter: str | None = None,
+        only_in_force: bool = True,
+        limit: int = 5,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        """Busca automaticamente fragmentos normativos versionados para el Asesor Juridico (HU2.1)."""
+        cleaned_query = query.strip()
+        if len(cleaned_query) < 2:
+            raise ConfiguracionPMV1Error("La consulta debe tener al menos 2 caracteres")
+
+        search_id = uuid4()
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
+                duplicated = False
+                if idempotency_key and idempotency_key.strip():
+                    prev = conn.execute(
+                        "SELECT id, query FROM normative_search_logs WHERE idempotency_key = %s",
+                        (idempotency_key.strip(),),
+                    ).fetchone()
+                    if prev:
+                        if prev["query"].strip().lower() != cleaned_query.lower():
+                            raise ConfiguracionPMV1Error(
+                                "Idempotency-Key ya fue utilizada para otra consulta"
+                            )
+                        duplicated = True
+
+                sql = (
+                    "SELECT id, document_name, short_code, version, topic, content, "
+                    "in_force, has_alert, data_origin FROM normative_documents WHERE 1=1"
+                )
+                params: list[Any] = []
+                if only_in_force:
+                    sql += " AND in_force = TRUE"
+                if document_filter and document_filter.strip():
+                    f = f"%{document_filter.strip()}%"
+                    sql += " AND (document_name ILIKE %s OR short_code ILIKE %s)"
+                    params.extend([f, f])
+
+                rows = conn.execute(sql, tuple(params)).fetchall()
+
+                keywords = NormativeSearchEngine.extract_keywords(cleaned_query)
+                scored = []
+                for r in rows:
+                    item = dict(r)
+                    score = NormativeSearchEngine.score_chunk(item, cleaned_query, keywords)
+                    if score > 0:
+                        item["relevance_score"] = score
+                        scored.append(item)
+
+                scored.sort(
+                    key=lambda x: (x["relevance_score"], x["has_alert"]),
+                    reverse=True,
+                )
+                results = scored[:limit]
+
+                alerts_found = []
+                for r in results:
+                    if r.get("has_alert"):
+                        alerts_found.append(
+                            f"Alerta legal detectada en {r['id']} ({r['topic']}): {r['content']}"
+                        )
+
+                if not duplicated:
+                    conn.execute(
+                        """INSERT INTO normative_search_logs
+                        (id, actor_user_id, query, document_filter, results_count, idempotency_key)
+                        VALUES (%s, %s, %s, %s, %s, %s)""",
+                        (
+                            search_id,
+                            actor_id,
+                            cleaned_query,
+                            document_filter.strip() if document_filter else None,
+                            len(results),
+                            idempotency_key.strip() if idempotency_key else None,
+                        ),
+                    )
+                    conn.execute(
+                        """INSERT INTO audit_events
+                        (actor_user_id, action, entity_type, entity_id, details)
+                        VALUES (%s, 'NORMATIVE_SEARCH_PERFORMED', 'normative_search', %s, %s)""",
+                        (
+                            actor_id,
+                            search_id,
+                            Jsonb(
+                                {
+                                    "query": cleaned_query,
+                                    "document_filter": document_filter.strip()
+                                    if document_filter
+                                    else None,
+                                    "results_count": len(results),
+                                    "alerts_count": len(alerts_found),
+                                }
+                            ),
+                        ),
+                    )
+
+        disclaimer = (
+            "Material didactico y simulado para el PMV1 en El Tambo, Huancayo. "
+            "La busqueda automatica asiste la consulta pero no emite dictamenes juridicos "
+            "vinculantes ni sustituye el criterio del Asesor Juridico."
+        )
+
+        return {
+            "query": cleaned_query,
+            "document_filter": document_filter.strip() if document_filter else None,
+            "total_results": len(results),
+            "results": results,
+            "alerts_found": alerts_found,
+            "disclaimer": disclaimer,
+            "requires_human_review": bool(alerts_found),
+            "duplicated": duplicated,
+        }
+
+    def list_normative_documents(self) -> list[dict[str, Any]]:
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            rows = conn.execute(
+                """
+                SELECT short_code, document_name, version, in_force, data_origin,
+                       COUNT(*)::int AS chunks_count
+                FROM normative_documents
+                GROUP BY short_code, document_name, version, in_force, data_origin
+                ORDER BY short_code
+                """
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+
 class EconomicProcessor:
     """Consumidor propietario exclusivo de economic_db e idempotente por event_id."""
 
@@ -484,8 +673,7 @@ class EconomicProcessor:
     def process(self, payload: dict[str, Any]) -> dict[str, Any]:
         event_id = UUID(payload["event_id"])
         evaluation_id = UUID(payload["evaluation_id"])
-        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
-            with conn.transaction():
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
                 existing = conn.execute(
                     """SELECT ea.* FROM processed_requests pr
                     JOIN economic_assessments ea ON ea.id=pr.assessment_id

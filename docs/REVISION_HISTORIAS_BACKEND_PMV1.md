@@ -1,4 +1,4 @@
-# Revision de las cuatro historias backend existentes
+# Revision de las historias backend existentes del PMV1
 
 Fecha de revision: 2026-10-01.
 
@@ -19,6 +19,7 @@ mantiene la trazabilidad entre ambos catálogos.
 | HU1.3 Evaluacion economica | HU10-HU11, RF07 | Cumple el alcance PMV1: calcula costo por beneficiario y puntaje 0-100 con criterios versionados, formula y explicacion. El retorno socioeconomico queda `null` porque no existen beneficios monetizados trazables. |
 | HU1.10 Cumplimiento juridico | HU17, RF11-RF12 | Cumple solo como prevalidacion segura: sin RAG/corpus versionado se abstiene (`complies=null`), no entrega fuentes falsas y exige revision humana. El dictamen legal automatizado sigue fuera del PMV1. |
 | HU1.11 Zonificacion PDU/PDM | HU17, RF11-RF12 | Implementada como prevalidacion persistente: exige ubicacion y uso propuesto, es idempotente y auditable, y bloquea en base de datos cualquier conclusion sin documento, version, localizador y fragmento. Sin corpus/GIS responde `compatible=null` y exige revision humana. |
+| HU2.1 Busqueda automatica de normativa | RF01, RF03, RF11-RF12, RF17 | Implementada para el Asesor Juridico (`LEGAL_ADVISOR`): busqueda automatica con ponderacion de relevancia, stop words y deteccion de alertas sobre el corpus de 24 fragmentos versionados de la PoC (Ley 27972, DL 1252, Ley 32069, PDU/PDM El Tambo). Idempotente y auditada; exige revision humana ante alertas y no emite dictamenes vinculantes. |
 
 ## Bases de datos
 

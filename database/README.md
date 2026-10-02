@@ -48,3 +48,19 @@ el estado siga siendo `requires_review`.
 La tabla es una solicitud/proyección de plataforma, no un agente jurídico ni un
 GIS. El corpus PDU/PDM y el servicio RAG pertenecen al incremento posterior
 descrito por el documento maestro.
+
+## Extensión HU2.1
+
+`auth_db` añade el rol `LEGAL_ADVISOR` (`00000000-0000-4000-a000-000000000003`)
+y el usuario de prueba `legal@siprim.test`.
+
+`platform_db` incorpora el catálogo `normative_documents` con los 24 fragmentos
+versionados de la Prueba de Concepto correspondientes a cuatro normas base (Ley 27972,
+D.L. 1252, Ley 32069 y PDU/PDM Huancayo-El Tambo). Solo los fragmentos `PDUPDM-02`
+y `PDUPDM-04` activan alertas normativas (`has_alert=TRUE`), obligando a marcar
+`requires_human_review=TRUE`.
+
+Las consultas realizadas se auditan de forma idempotente en `normative_search_logs`
+(con clave única `idempotency_key`), vinculándose con `audit_events` bajo el evento
+`NORMATIVE_SEARCH_PERFORMED`. Se agregan además las vistas en español
+`vista_fuentes_normativas` y `vista_busquedas_normativas`.

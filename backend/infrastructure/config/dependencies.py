@@ -199,3 +199,12 @@ def require_planner(
     if "PLANNER" not in user.get("roles", []):
         raise AccesoDenegadoError("Se requiere el rol PLANNER")
     return user
+
+
+def require_legal_advisor(
+    user: Annotated[dict[str, Any], Depends(get_current_user)],
+) -> dict[str, Any]:
+    roles = user.get("roles", [])
+    if "LEGAL_ADVISOR" not in roles and "ADMIN" not in roles:
+        raise AccesoDenegadoError("Se requiere el rol LEGAL_ADVISOR o ADMIN")
+    return user

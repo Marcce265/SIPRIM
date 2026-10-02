@@ -87,3 +87,24 @@ COMMENT ON COLUMN outbox_events.publish_attempts IS 'Intentos de envio';
 COMMENT ON TABLE inbox_events IS 'Bandeja de entrada: eventos ya recibidos (evita procesarlos dos veces)';
 COMMENT ON COLUMN inbox_events.event_id IS 'Identificador del evento recibido';
 COMMENT ON COLUMN inbox_events.received_at IS 'Fecha de recepcion';
+
+COMMENT ON TABLE normative_documents IS 'Corpus normativo y territorial versionado (HU2.1 / RF03 / RF12)';
+COMMENT ON COLUMN normative_documents.id IS 'Identificador unico del fragmento normativo (ej. LEY27972-01, PDUPDM-02)';
+COMMENT ON COLUMN normative_documents.document_name IS 'Nombre de la norma o plan territorial';
+COMMENT ON COLUMN normative_documents.short_code IS 'Codigo corto de agrupacion normativa (ej. LEY_27972, PDU_EL_TAMBO)';
+COMMENT ON COLUMN normative_documents.version IS 'Version o vigencia de la norma referencial';
+COMMENT ON COLUMN normative_documents.topic IS 'Tema legal o territorial del fragmento';
+COMMENT ON COLUMN normative_documents.content IS 'Resumen didactico o texto del fragmento normativo';
+COMMENT ON COLUMN normative_documents.in_force IS 'Indica si la norma o disposicion se encuentra vigente';
+COMMENT ON COLUMN normative_documents.has_alert IS 'Indica si el fragmento senala causales de alerta o incompatibilidad';
+COMMENT ON COLUMN normative_documents.data_origin IS 'Origen del dato: declared, simulated, public u official';
+COMMENT ON COLUMN normative_documents.created_at IS 'Fecha de registro del fragmento';
+
+COMMENT ON TABLE normative_search_logs IS 'Registro de busquedas normativas realizadas por el Asesor Juridico (HU2.1 / RF17)';
+COMMENT ON COLUMN normative_search_logs.id IS 'Identificador unico de la consulta';
+COMMENT ON COLUMN normative_search_logs.actor_user_id IS 'Usuario que ejecuto la busqueda (Asesor Juridico o Administrador)';
+COMMENT ON COLUMN normative_search_logs.query IS 'Texto de consulta introducido';
+COMMENT ON COLUMN normative_search_logs.document_filter IS 'Filtro por documento aplicado, si lo hubo';
+COMMENT ON COLUMN normative_search_logs.results_count IS 'Cantidad de fragmentos devueltos';
+COMMENT ON COLUMN normative_search_logs.idempotency_key IS 'Clave de idempotencia para evitar duplicar el registro de busqueda';
+COMMENT ON COLUMN normative_search_logs.created_at IS 'Fecha y hora de la consulta';

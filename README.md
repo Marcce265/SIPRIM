@@ -171,22 +171,29 @@ ECONOMIC_DB_URL=postgresql+psycopg://economic_app:economic_dev_only@localhost:54
 `database/schema.sql` pertenece al adaptador heredado y no sustituye los esquemas
 oficiales de `auth_db`, `platform_db` y `economic_db`.
 
-Las cuentas ficticias locales son `planner@siprim.test` y `admin@siprim.test`,
-ambas con `Prueba2026!`. No deben utilizarse fuera de desarrollo.
+Las cuentas ficticias locales son `planner@siprim.test`, `admin@siprim.test` y
+`legal@siprim.test`, todas con `Prueba2026!`. No deben utilizarse fuera de desarrollo.
 
 Recorrido principal:
 
-1. `POST /api/v1/auth/login` obtiene el token del planificador.
+1. `POST /api/v1/auth/login` obtiene el token del planificador o asesor jurídico.
 2. `POST /api/v1/projects` registra proyecto y version en `platform_db`.
 3. `POST /api/v1/evaluations` requiere `Idempotency-Key` y responde `202 queued`.
 4. `GET /api/v1/evaluations/{id}` expone el avance y el resultado explicable.
 5. `POST /api/v1/projects/{id}/zoning-precheck`, con `Idempotency-Key`, registra
    la prevalidación de zonificación.
+6. `POST /api/v1/normative/search`, con `Idempotency-Key` y rol `LEGAL_ADVISOR` o `ADMIN`,
+   busca citas normativas versionadas y detecta alertas jurídicas (HU2.1).
+   `GET /api/v1/normative/documents` lista el corpus oficial disponible.
 
 HU1.11 no declara compatibilidad PDU/PDM si no existe evidencia territorial
 versionada. En el alcance actual devuelve `compatible=null`, una alerta y
 `requires_human_review=true`. Una conclusión futura deberá incluir documento,
 versión, localizador y fragmento verificable.
+
+HU2.1 no emite dictámenes jurídicos concluyentes de forma autónoma. Recupera citas
+con trazabilidad completa (documento, versión, artículo, localizador y fragmento)
+y marca alertas para revisión humana obligatoria (`requires_human_review=true`).
 
 El frontend solo consume la API; no necesita ni debe tener acceso directo a
 PostgreSQL.
