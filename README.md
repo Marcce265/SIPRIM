@@ -137,6 +137,12 @@ La clave no se almacena en Git. En un despliegue debe registrarse como variable
 privada del servicio. Para probar en Swagger: registrar un proyecto completo, copiar
 su `id` y ejecutar `POST /api/v1/proyectos/{id}/evaluacion-ia`.
 
+La ruta opcional `/integracion-ia` del frontend permite introducir el ID numérico
+de un expediente registrado en el backend y solicitar el dictamen a Gemini.
+Requiere iniciar FastAPI y configurar `GEMINI_API_KEY`. Esta pantalla no usa los
+proyectos de la simulación local, cuyos identificadores son distintos. El dictamen
+se muestra en pantalla y todavía no se guarda en la base de datos.
+
 ## Llamadas de ejemplo
 
 Registro con curl:
