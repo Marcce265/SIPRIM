@@ -14,17 +14,67 @@ CREATE TABLE IF NOT EXISTS projects (
     CONSTRAINT projects_status_check CHECK (status IN ('draft','ready','evaluating','evaluated','error'))
 );
 
+-- Migracion idempotente para instalaciones creadas antes de HU1.11.
+ALTER TABLE IF EXISTS project_versions
+    ADD COLUMN IF NOT EXISTS location_description VARCHAR(300),
+    ADD COLUMN IF NOT EXISTS proposed_land_use VARCHAR(150),
+    ADD COLUMN IF NOT EXISTS territorial_data_origin VARCHAR(16) NOT NULL DEFAULT 'declared';
+
 CREATE TABLE IF NOT EXISTS project_versions (
     id UUID PRIMARY KEY,
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,
     version_number INTEGER NOT NULL CHECK (version_number > 0),
     title VARCHAR(200) NOT NULL,
     description TEXT NOT NULL DEFAULT '',
+    location_description VARCHAR(300),
+    proposed_land_use VARCHAR(150),
+    territorial_data_origin VARCHAR(16) NOT NULL DEFAULT 'declared'
+        CHECK (territorial_data_origin IN ('declared','simulated','public')),
     estimated_budget_pen NUMERIC(18,2) NOT NULL CHECK (estimated_budget_pen > 0),
     beneficiaries_count INTEGER NOT NULL CHECK (beneficiaries_count > 0),
     created_by_user_id UUID NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (project_id, version_number)
+);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'project_versions_territorial_data_origin_check'
+    ) THEN
+        ALTER TABLE project_versions
+        ADD CONSTRAINT project_versions_territorial_data_origin_check
+        CHECK (territorial_data_origin IN ('declared','simulated','public'));
+    END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS zoning_review_requests (
+    id UUID PRIMARY KEY,
+    project_version_id UUID NOT NULL REFERENCES project_versions(id) ON DELETE RESTRICT,
+    requested_by_user_id UUID NOT NULL,
+    idempotency_key VARCHAR(120) NOT NULL UNIQUE,
+    status VARCHAR(24) NOT NULL DEFAULT 'requires_review'
+        CHECK (status IN ('requires_review','evidence_available','reviewed')),
+    compatible BOOLEAN,
+    source_document VARCHAR(240),
+    source_version VARCHAR(120),
+    source_locator VARCHAR(160),
+    source_excerpt TEXT,
+    limitations TEXT NOT NULL,
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    reviewed_at TIMESTAMPTZ,
+    CONSTRAINT zoning_conclusion_requires_evidence CHECK (
+        compatible IS NULL OR (
+            NULLIF(btrim(source_document), '') IS NOT NULL
+            AND NULLIF(btrim(source_version), '') IS NOT NULL
+            AND NULLIF(btrim(source_locator), '') IS NOT NULL
+            AND NULLIF(btrim(source_excerpt), '') IS NOT NULL
+        )
+    ),
+    CONSTRAINT zoning_pending_has_no_conclusion CHECK (
+        status <> 'requires_review' OR compatible IS NULL
+    )
 );
 
 CREATE TABLE IF NOT EXISTS criteria_versions (
@@ -100,6 +150,7 @@ CREATE TABLE IF NOT EXISTS inbox_events (
 );
 
 CREATE INDEX IF NOT EXISTS versions_project_idx ON project_versions(project_id, version_number DESC);
+CREATE INDEX IF NOT EXISTS zoning_reviews_project_idx ON zoning_review_requests(project_version_id, requested_at DESC);
 CREATE INDEX IF NOT EXISTS evaluations_status_idx ON evaluations(status, requested_at);
 CREATE INDEX IF NOT EXISTS evaluations_version_idx ON evaluations(project_version_id, requested_at DESC);
 CREATE INDEX IF NOT EXISTS audit_entity_idx ON audit_events(entity_type, entity_id, occurred_at);

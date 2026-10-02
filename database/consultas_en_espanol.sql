@@ -28,6 +28,12 @@ ORDER BY r.score_0_100 DESC NULLS LAST;
 SELECT occurred_at AS fecha, action AS accion, entity_type AS tipo, details AS detalle
 FROM audit_events ORDER BY occurred_at;
 
+-- Prevalidaciones territoriales HU1.11
+SELECT codigo_proyecto, version_expediente, estado, compatible,
+       documento, version_fuente, localizador, limitaciones, solicitada_en
+FROM vista_revisiones_zonificacion
+ORDER BY solicitada_en DESC;
+
 -- ===== economic_db =====
 -- Resultados del agente economico
 SELECT budget_snapshot_pen AS presupuesto, beneficiaries_snapshot AS beneficiarios,

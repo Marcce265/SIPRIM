@@ -63,6 +63,10 @@ JSON de ejemplo:
 }
 ```
 
+La ruta oficial `POST /api/v1/projects` usa además `location` y
+`proposed_land_use`. Ambos datos son obligatorios para abrir la prevalidación
+territorial de HU1.11.
+
 ## Integracion IA/API con Gemini
 
 El aporte de integracion IA agrega un dictamen preliminar sobre los proyectos ya
@@ -151,6 +155,10 @@ Copy-Item .env.example .env   # si aún no tiene .env
 python database/verificar.py
 ```
 
+Con Docker, la API queda en `http://127.0.0.1:8001` por defecto para evitar
+conflictos con servidores locales que usan `8000`. Puede cambiarse mediante
+`API_PORT` en `.env`. La ejecución directa con Uvicorn conserva el puerto 8000.
+
 En `.env`:
 
 ```dotenv
@@ -172,6 +180,13 @@ Recorrido principal:
 2. `POST /api/v1/projects` registra proyecto y version en `platform_db`.
 3. `POST /api/v1/evaluations` requiere `Idempotency-Key` y responde `202 queued`.
 4. `GET /api/v1/evaluations/{id}` expone el avance y el resultado explicable.
+5. `POST /api/v1/projects/{id}/zoning-precheck`, con `Idempotency-Key`, registra
+   la prevalidación de zonificación.
+
+HU1.11 no declara compatibilidad PDU/PDM si no existe evidencia territorial
+versionada. En el alcance actual devuelve `compatible=null`, una alerta y
+`requires_human_review=true`. Una conclusión futura deberá incluir documento,
+versión, localizador y fragmento verificable.
 
 El frontend solo consume la API; no necesita ni debe tener acceso directo a
 PostgreSQL.

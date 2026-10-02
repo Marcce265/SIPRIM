@@ -19,11 +19,27 @@ INSERT INTO projects (id, code, created_by_user_id, status) VALUES
     ('a0000000-0000-4000-a000-00000000000b', 'PRY-B', '10000000-0000-4000-a000-000000000002', 'ready')
 ON CONFLICT (code) DO NOTHING;
 
-INSERT INTO project_versions (id, project_id, version_number, title, description, estimated_budget_pen, beneficiaries_count, created_by_user_id) VALUES
+INSERT INTO project_versions (id, project_id, version_number, title, description, location_description,
+                              proposed_land_use, territorial_data_origin, estimated_budget_pen,
+                              beneficiaries_count, created_by_user_id) VALUES
     ('b0000000-0000-4000-a000-00000000000a', 'a0000000-0000-4000-a000-00000000000a', 1,
-     'Proyecto A - Mejoramiento de losa deportiva (prueba)', 'Dato ficticio para el PMV 1', 120000.00, 600,
+     'Proyecto A - Mejoramiento de losa deportiva (prueba)', 'Dato ficticio para el PMV 1',
+     'CASO SIMULADO - distrito de El Tambo', 'recreacion', 'simulated', 120000.00, 600,
      '10000000-0000-4000-a000-000000000002'),
     ('b0000000-0000-4000-a000-00000000000b', 'a0000000-0000-4000-a000-00000000000b', 1,
-     'Proyecto B - Ampliacion de veredas (prueba)', 'Dato ficticio para el PMV 1', 90000.00, 300,
+     'Proyecto B - Ampliacion de veredas (prueba)', 'Dato ficticio para el PMV 1',
+     'CASO SIMULADO - distrito de El Tambo', 'infraestructura vial', 'simulated', 90000.00, 300,
      '10000000-0000-4000-a000-000000000002')
 ON CONFLICT (project_id, version_number) DO NOTHING;
+
+UPDATE project_versions
+SET location_description = 'CASO SIMULADO - distrito de El Tambo',
+    proposed_land_use = CASE
+        WHEN project_id = 'a0000000-0000-4000-a000-00000000000a' THEN 'recreacion'
+        ELSE 'infraestructura vial'
+    END,
+    territorial_data_origin = 'simulated'
+WHERE project_id IN (
+    'a0000000-0000-4000-a000-00000000000a',
+    'a0000000-0000-4000-a000-00000000000b'
+) AND (location_description IS NULL OR proposed_land_use IS NULL);

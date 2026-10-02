@@ -13,6 +13,7 @@ from backend.application.dto.pmv1_dto import (
     PMV1ProjectCreate,
     PMV1ProjectResponse,
     PMV1ValidationResponse,
+    ZoningPrecheckResponse,
 )
 from backend.application.services.pmv1_services import AuthService, PlatformService
 from backend.infrastructure.config.dependencies import (
@@ -62,13 +63,17 @@ def validate_project(
 
 
 @router.post(
-    "/evaluations", response_model=EvaluationAccepted, status_code=status.HTTP_202_ACCEPTED
+    "/evaluations",
+    response_model=EvaluationAccepted,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 def request_evaluation(
     data: EvaluationCreate,
     user: Annotated[dict[str, Any], Depends(require_planner)],
     service: Annotated[PlatformService, Depends(get_platform_service)],
-    idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=120)],
+    idempotency_key: Annotated[
+        str, Header(alias="Idempotency-Key", min_length=1, max_length=120)
+    ],
 ) -> dict[str, Any]:
     return service.request_evaluation(
         data.project_version_id, UUID(user["sub"]), idempotency_key
@@ -84,7 +89,9 @@ def get_evaluation(
     return service.get_evaluation(evaluation_id)
 
 
-@router.post("/projects/{project_id}/legal-precheck", response_model=LegalPrecheckResponse)
+@router.post(
+    "/projects/{project_id}/legal-precheck", response_model=LegalPrecheckResponse
+)
 def legal_precheck(
     project_id: Annotated[UUID, Path()],
     user: Annotated[dict[str, Any], Depends(require_planner)],
@@ -92,3 +99,21 @@ def legal_precheck(
 ) -> dict[str, Any]:
     service.record_legal_abstention(project_id, UUID(user["sub"]))
     return {"project_id": project_id}
+
+
+@router.post(
+    "/projects/{project_id}/zoning-precheck",
+    response_model=ZoningPrecheckResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def zoning_precheck(
+    project_id: Annotated[UUID, Path()],
+    user: Annotated[dict[str, Any], Depends(require_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+    idempotency_key: Annotated[
+        str, Header(alias="Idempotency-Key", min_length=1, max_length=120)
+    ],
+) -> dict[str, Any]:
+    return service.request_zoning_precheck(
+        project_id, UUID(user["sub"]), idempotency_key
+    )

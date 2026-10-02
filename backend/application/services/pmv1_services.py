@@ -108,6 +108,8 @@ class PlatformService:
         values = {
             "title": data.title,
             "description": data.description,
+            "location": data.location,
+            "proposed_land_use": data.proposed_land_use,
             "estimated_budget_pen": data.estimated_budget_pen,
             "beneficiaries_count": data.beneficiaries_count,
         }
@@ -134,14 +136,17 @@ class PlatformService:
                     """
                     INSERT INTO project_versions
                     (id, project_id, version_number, title, description,
+                     location_description, proposed_land_use, territorial_data_origin,
                      estimated_budget_pen, beneficiaries_count, created_by_user_id)
-                    VALUES (%s,%s,1,%s,%s,%s,%s,%s)
+                    VALUES (%s,%s,1,%s,%s,%s,%s,'declared',%s,%s,%s)
                     """,
                     (
                         version_id,
                         project_id,
                         data.title,
                         data.description,
+                        data.location,
+                        data.proposed_land_use,
                         data.estimated_budget_pen,
                         data.beneficiaries_count,
                         actor_id,
@@ -151,7 +156,11 @@ class PlatformService:
                     """INSERT INTO audit_events
                     (actor_user_id, action, entity_type, entity_id, details)
                     VALUES (%s,'PROJECT_CREATED','project',%s,%s)""",
-                    (actor_id, project_id, Jsonb({"project_version_id": str(version_id)})),
+                    (
+                        actor_id,
+                        project_id,
+                        Jsonb({"project_version_id": str(version_id)}),
+                    ),
                 )
         return self.get_project(project_id)
 
@@ -161,6 +170,8 @@ class PlatformService:
                 """
                 SELECT p.id AS project_id, pv.id AS project_version_id, p.code,
                        pv.version_number, p.status, pv.title, pv.description,
+                       pv.location_description AS location, pv.proposed_land_use,
+                       pv.territorial_data_origin,
                        pv.estimated_budget_pen, pv.beneficiaries_count
                 FROM projects p JOIN project_versions pv ON pv.project_id = p.id
                 WHERE p.id=%s ORDER BY pv.version_number DESC LIMIT 1
@@ -175,7 +186,14 @@ class PlatformService:
         project = self.get_project(project_id)
         missing = [
             field
-            for field in ("title", "description", "estimated_budget_pen", "beneficiaries_count")
+            for field in (
+                "title",
+                "description",
+                "location",
+                "proposed_land_use",
+                "estimated_budget_pen",
+                "beneficiaries_count",
+            )
             if project.get(field) in (None, "")
         ]
         complete = not missing
@@ -183,7 +201,9 @@ class PlatformService:
             "complete": complete,
             "status": "ready" if complete else "incomplete",
             "missing_fields": missing,
-            "message": "Expediente completo" if complete else "Complete los datos antes de evaluar",
+            "message": "Expediente completo"
+            if complete
+            else "Complete los datos antes de evaluar",
         }
 
     def request_evaluation(
@@ -240,13 +260,22 @@ class PlatformService:
                     """INSERT INTO evaluations
                     (id, project_version_id, criteria_version_id, requested_by_user_id,
                      status, idempotency_key) VALUES (%s,%s,%s,%s,'queued',%s)""",
-                    (evaluation_id, project_version_id, snapshot["criteria_version_id"], actor_id, idempotency_key),
+                    (
+                        evaluation_id,
+                        project_version_id,
+                        snapshot["criteria_version_id"],
+                        actor_id,
+                        idempotency_key,
+                    ),
                 )
                 conn.execute(
                     "INSERT INTO outbox_events (id,event_type,aggregate_id,payload) VALUES (%s,'EconomicEvaluationRequested',%s,%s)",
                     (event_id, evaluation_id, Jsonb(payload)),
                 )
-                conn.execute("UPDATE projects SET status='evaluating', updated_at=now() WHERE id=%s", (snapshot["project_id"],))
+                conn.execute(
+                    "UPDATE projects SET status='evaluating', updated_at=now() WHERE id=%s",
+                    (snapshot["project_id"],),
+                )
                 conn.execute(
                     """INSERT INTO audit_events
                     (actor_user_id,action,entity_type,entity_id,details)
@@ -318,6 +347,110 @@ class PlatformService:
                 (actor_id, project_id, Jsonb({"reason": "no_versioned_legal_corpus"})),
             )
 
+    def request_zoning_precheck(
+        self, project_id: UUID, actor_id: UUID, idempotency_key: str
+    ) -> dict[str, Any]:
+        """Registra una alerta territorial sin fabricar compatibilidad PDU/PDM."""
+
+        if not idempotency_key.strip():
+            raise ConfiguracionPMV1Error("Idempotency-Key es obligatorio")
+        project = self.get_project(project_id)
+        missing = [
+            field
+            for field in ("location", "proposed_land_use")
+            if not project.get(field)
+        ]
+        if missing:
+            raise ExpedientePMV1IncompletoError(missing)
+
+        limitations = (
+            "No existe un corpus PDU/PDM oficial, versionado y activo ni una capa GIS "
+            "que permita ubicar el predio. La solicitud no equivale a conformidad territorial."
+        )
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            with conn.transaction():
+                previous = conn.execute(
+                    """
+                    SELECT id AS review_id, project_version_id, status,
+                           compatible, limitations
+                    FROM zoning_review_requests WHERE idempotency_key=%s
+                    """,
+                    (idempotency_key,),
+                ).fetchone()
+                if previous:
+                    if previous["project_version_id"] != project["project_version_id"]:
+                        raise ConfiguracionPMV1Error(
+                            "Idempotency-Key ya fue utilizada para otro expediente"
+                        )
+                    previous_data = dict(previous)
+                    previous_data.pop("project_version_id")
+                    return {
+                        **previous_data,
+                        "project_id": project["project_id"],
+                        "project_version_id": project["project_version_id"],
+                        "location": project["location"],
+                        "proposed_land_use": project["proposed_land_use"],
+                        "territorial_data_origin": project["territorial_data_origin"],
+                        "evidence": [],
+                        "alerts": [
+                            "No se puede concluir compatibilidad sin evidencia territorial versionada."
+                        ],
+                        "requires_human_review": True,
+                        "duplicated": True,
+                    }
+
+                review_id = uuid4()
+                conn.execute(
+                    """
+                    INSERT INTO zoning_review_requests
+                    (id,project_version_id,requested_by_user_id,idempotency_key,
+                     status,compatible,limitations)
+                    VALUES (%s,%s,%s,%s,'requires_review',NULL,%s)
+                    """,
+                    (
+                        review_id,
+                        project["project_version_id"],
+                        actor_id,
+                        idempotency_key,
+                        limitations,
+                    ),
+                )
+                conn.execute(
+                    """INSERT INTO audit_events
+                    (actor_user_id,action,entity_type,entity_id,details)
+                    VALUES (%s,'ZONING_REVIEW_REQUESTED','zoning_review',%s,%s)""",
+                    (
+                        actor_id,
+                        review_id,
+                        Jsonb(
+                            {
+                                "project_id": str(project_id),
+                                "project_version_id": str(
+                                    project["project_version_id"]
+                                ),
+                                "reason": "no_versioned_territorial_evidence",
+                            }
+                        ),
+                    ),
+                )
+        return {
+            "review_id": review_id,
+            "project_id": project["project_id"],
+            "project_version_id": project["project_version_id"],
+            "status": "requires_review",
+            "compatible": None,
+            "location": project["location"],
+            "proposed_land_use": project["proposed_land_use"],
+            "territorial_data_origin": project["territorial_data_origin"],
+            "evidence": [],
+            "alerts": [
+                "No se puede concluir compatibilidad sin evidencia territorial versionada."
+            ],
+            "limitations": limitations,
+            "requires_human_review": True,
+            "duplicated": False,
+        }
+
 
 class EconomicProcessor:
     """Consumidor propietario exclusivo de economic_db e idempotente por event_id."""
@@ -340,7 +473,9 @@ class EconomicProcessor:
         elif exact_cost >= unacceptable:
             score = Decimal(0)
         else:
-            score = Decimal(100) * (unacceptable - exact_cost) / (unacceptable - excellent)
+            score = (
+                Decimal(100) * (unacceptable - exact_cost) / (unacceptable - excellent)
+            )
         return (
             exact_cost.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
             score.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
@@ -364,7 +499,9 @@ class EconomicProcessor:
                 beneficiaries = int(payload["beneficiaries_count"])
                 excellent = Decimal(payload["excellent_cost_pen"])
                 unacceptable = Decimal(payload["unacceptable_cost_pen"])
-                cost, score = self.calculate(budget, beneficiaries, excellent, unacceptable)
+                cost, score = self.calculate(
+                    budget, beneficiaries, excellent, unacceptable
+                )
                 assessment_id = uuid4()
                 explanation = (
                     f"Costo por beneficiario = S/ {budget} / {beneficiaries} = S/ {cost}. "
@@ -385,18 +522,30 @@ class EconomicProcessor:
                      beneficiaries_snapshot,excellent_cost_snapshot_pen,unacceptable_cost_snapshot_pen,
                      cost_per_beneficiary_pen,score_0_100,explanation,algorithm_version)
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                    (assessment_id,evaluation_id,UUID(payload["project_version_id"]),UUID(payload["criteria_version_id"]),
-                     budget,beneficiaries,excellent,unacceptable,cost,score,explanation,row["algorithm_version"]),
+                    (
+                        assessment_id,
+                        evaluation_id,
+                        UUID(payload["project_version_id"]),
+                        UUID(payload["criteria_version_id"]),
+                        budget,
+                        beneficiaries,
+                        excellent,
+                        unacceptable,
+                        cost,
+                        score,
+                        explanation,
+                        row["algorithm_version"],
+                    ),
                 )
                 conn.execute(
                     """INSERT INTO assessment_metrics (id,assessment_id,metric_code,numeric_value,unit,formula)
                     VALUES (%s,%s,'COST_PER_BENEFICIARY',%s,'PEN/person','budget / beneficiaries'),
                            (%s,%s,'ECONOMIC_SCORE',%s,'points','linear normalization between thresholds')""",
-                    (uuid4(),assessment_id,cost,uuid4(),assessment_id,score),
+                    (uuid4(), assessment_id, cost, uuid4(), assessment_id, score),
                 )
                 conn.execute(
                     "INSERT INTO processed_requests (event_id,evaluation_id,assessment_id) VALUES (%s,%s,%s)",
-                    (event_id,evaluation_id,assessment_id),
+                    (event_id, evaluation_id, assessment_id),
                 )
         return self._completion(event_id, row)
 
@@ -404,7 +553,11 @@ class EconomicProcessor:
     def _completion(request_event_id: UUID, row: dict[str, Any]) -> dict[str, Any]:
         return {
             # Estable para que un reintento no genere un segundo evento lógico.
-            "event_id": str(uuid5(NAMESPACE_URL, f"siprim:economic-completed:{row['evaluation_id']}")),
+            "event_id": str(
+                uuid5(
+                    NAMESPACE_URL, f"siprim:economic-completed:{row['evaluation_id']}"
+                )
+            ),
             "request_event_id": str(request_event_id),
             "event_type": "EconomicEvaluationCompleted",
             "evaluation_id": str(row["evaluation_id"]),
@@ -424,7 +577,10 @@ class CompletionProcessor:
         self.db_url = _dsn(db_url)
 
     def process(self, payload: dict[str, Any]) -> None:
-        event_id, evaluation_id = UUID(payload["event_id"]), UUID(payload["evaluation_id"])
+        event_id, evaluation_id = (
+            UUID(payload["event_id"]),
+            UUID(payload["evaluation_id"]),
+        )
         with psycopg.connect(self.db_url) as conn:
             with conn.transaction():
                 inserted = conn.execute(
@@ -437,10 +593,19 @@ class CompletionProcessor:
                     """INSERT INTO economic_result_projections
                     (evaluation_id,economic_assessment_id,cost_per_beneficiary_pen,score_0_100,
                      explanation,algorithm_version) VALUES (%s,%s,%s,%s,%s,%s)""",
-                    (evaluation_id,UUID(payload["economic_assessment_id"]),Decimal(payload["cost_per_beneficiary_pen"]),
-                     Decimal(payload["score_0_100"]),payload["explanation"],payload["algorithm_version"]),
+                    (
+                        evaluation_id,
+                        UUID(payload["economic_assessment_id"]),
+                        Decimal(payload["cost_per_beneficiary_pen"]),
+                        Decimal(payload["score_0_100"]),
+                        payload["explanation"],
+                        payload["algorithm_version"],
+                    ),
                 )
-                conn.execute("UPDATE evaluations SET status='completed',finished_at=now() WHERE id=%s", (evaluation_id,))
+                conn.execute(
+                    "UPDATE evaluations SET status='completed',finished_at=now() WHERE id=%s",
+                    (evaluation_id,),
+                )
                 conn.execute(
                     """UPDATE projects SET status='evaluated',updated_at=now()
                     WHERE id=(SELECT pv.project_id FROM project_versions pv JOIN evaluations e
@@ -450,7 +615,15 @@ class CompletionProcessor:
                 conn.execute(
                     """INSERT INTO audit_events (action,entity_type,entity_id,details)
                     VALUES ('EVALUATION_COMPLETED','evaluation',%s,%s)""",
-                    (evaluation_id,Jsonb({"event_id": str(event_id), "assessment_id": payload["economic_assessment_id"]})),
+                    (
+                        evaluation_id,
+                        Jsonb(
+                            {
+                                "event_id": str(event_id),
+                                "assessment_id": payload["economic_assessment_id"],
+                            }
+                        ),
+                    ),
                 )
 
 

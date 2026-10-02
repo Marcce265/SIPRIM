@@ -36,3 +36,15 @@ python database/verificar.py
 
 Las contrasenas incluidas son exclusivamente de desarrollo local. No deben
 usarse en un despliegue ni copiarse a servicios externos.
+
+## Extensión HU1.11
+
+`platform_db` conserva `location_description`, `proposed_land_use` y el origen
+del dato en la versión exacta del expediente. `zoning_review_requests` registra
+la prevalidación idempotente. Dos restricciones impiden guardar una conclusión
+de compatibilidad sin documento, versión, localizador y fragmento, o mientras
+el estado siga siendo `requires_review`.
+
+La tabla es una solicitud/proyección de plataforma, no un agente jurídico ni un
+GIS. El corpus PDU/PDM y el servicio RAG pertenecen al incremento posterior
+descrito por el documento maestro.

@@ -12,14 +12,18 @@ class Settings(BaseSettings):
     app_name: str = "SIPRIM Backend"
     app_env: str = "development"
     use_in_memory_repository: bool = True
-    database_url: str = (
-        "postgresql+psycopg://postgres:postgres@localhost:5432/siprim"
+    database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/siprim"
+    auth_db_url: str = (
+        "postgresql+psycopg://auth_app:auth_dev_only@localhost:5432/auth_db"
     )
-    auth_db_url: str = "postgresql+psycopg://auth_app:auth_dev_only@localhost:5432/auth_db"
-    platform_db_url: str = "postgresql+psycopg://platform_app:platform_dev_only@localhost:5432/platform_db"
-    economic_db_url: str = "postgresql+psycopg://economic_app:economic_dev_only@localhost:5432/economic_db"
+    platform_db_url: str = (
+        "postgresql+psycopg://platform_app:platform_dev_only@localhost:5432/platform_db"
+    )
+    economic_db_url: str = (
+        "postgresql+psycopg://economic_app:economic_dev_only@localhost:5432/economic_db"
+    )
     redis_url: str = "redis://localhost:6379/0"
-    jwt_secret: SecretStr = SecretStr("cambiar-esta-clave-en-produccion")
+    jwt_secret: SecretStr = SecretStr("cambiar-esta-clave-segura-en-produccion")
     jwt_issuer: str = "siprim-auth"
     jwt_audience: str = "siprim-api"
     jwt_expiration_minutes: int = Field(default=60, gt=0, le=1440)

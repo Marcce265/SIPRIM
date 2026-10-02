@@ -18,6 +18,7 @@ mantiene la trazabilidad entre ambos catálogos.
 | HU1.2 Campos faltantes | HU07, RF05 | Cumple: devuelve los campos concretos y no persiste ni evalua presupuestos/beneficiarios ausentes, cero o negativos. |
 | HU1.3 Evaluacion economica | HU10-HU11, RF07 | Cumple el alcance PMV1: calcula costo por beneficiario y puntaje 0-100 con criterios versionados, formula y explicacion. El retorno socioeconomico queda `null` porque no existen beneficios monetizados trazables. |
 | HU1.10 Cumplimiento juridico | HU17, RF11-RF12 | Cumple solo como prevalidacion segura: sin RAG/corpus versionado se abstiene (`complies=null`), no entrega fuentes falsas y exige revision humana. El dictamen legal automatizado sigue fuera del PMV1. |
+| HU1.11 Zonificacion PDU/PDM | HU17, RF11-RF12 | Implementada como prevalidacion persistente: exige ubicacion y uso propuesto, es idempotente y auditable, y bloquea en base de datos cualquier conclusion sin documento, version, localizador y fragmento. Sin corpus/GIS responde `compatible=null` y exige revision humana. |
 
 ## Bases de datos
 

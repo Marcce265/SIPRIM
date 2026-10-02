@@ -5,7 +5,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class LoginRequest(BaseModel):
-    email: str = Field(min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    email: str = Field(
+        min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+    )
     password: str = Field(min_length=8, max_length=200)
 
 
@@ -22,10 +24,16 @@ class PMV1ProjectCreate(BaseModel):
     """Expediente mínimo persistido por ms-platform según el PMV1."""
 
     model_config = ConfigDict(extra="forbid")
-    code: str | None = Field(default=None, min_length=3, max_length=40, pattern=r"^[A-Za-z0-9_-]+$")
+    code: str | None = Field(
+        default=None, min_length=3, max_length=40, pattern=r"^[A-Za-z0-9_-]+$"
+    )
     title: str | None = Field(default=None, max_length=200)
     description: str | None = Field(default=None, max_length=4000)
-    estimated_budget_pen: Decimal | None = Field(default=None, max_digits=18, decimal_places=2)
+    location: str | None = Field(default=None, max_length=300)
+    proposed_land_use: str | None = Field(default=None, max_length=150)
+    estimated_budget_pen: Decimal | None = Field(
+        default=None, max_digits=18, decimal_places=2
+    )
     beneficiaries_count: int | None = None
 
     @field_validator("code")
@@ -33,7 +41,9 @@ class PMV1ProjectCreate(BaseModel):
     def normalize_code(cls, value: str | None) -> str | None:
         return value.strip().upper() if value else value
 
-    @field_validator("title", "description", mode="before")
+    @field_validator(
+        "title", "description", "location", "proposed_land_use", mode="before"
+    )
     @classmethod
     def strip_text(cls, value: object) -> object:
         if isinstance(value, str):
@@ -49,6 +59,9 @@ class PMV1ProjectResponse(BaseModel):
     status: str
     title: str
     description: str
+    location: str | None
+    proposed_land_use: str | None
+    territorial_data_origin: str
     estimated_budget_pen: Decimal
     beneficiaries_count: int
 
@@ -102,3 +115,26 @@ class LegalPrecheckResponse(BaseModel):
         "El PMV1 no contiene un corpus normativo versionado para emitir un dictamen de la Ley de Contrataciones.",
         "Se requiere revision de un asesor juridico; el sistema se abstiene de afirmar cumplimiento.",
     ]
+
+
+class ZoningEvidence(BaseModel):
+    document: str
+    version: str
+    locator: str
+    excerpt: str
+
+
+class ZoningPrecheckResponse(BaseModel):
+    review_id: UUID
+    project_id: UUID
+    project_version_id: UUID
+    status: str
+    compatible: bool | None
+    location: str
+    proposed_land_use: str
+    territorial_data_origin: str
+    evidence: list[ZoningEvidence]
+    alerts: list[str]
+    limitations: str
+    requires_human_review: bool
+    duplicated: bool

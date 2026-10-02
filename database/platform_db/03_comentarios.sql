@@ -13,10 +13,21 @@ COMMENT ON COLUMN project_versions.project_id IS 'Proyecto al que pertenece';
 COMMENT ON COLUMN project_versions.version_number IS 'Numero de version (1, 2, 3...)';
 COMMENT ON COLUMN project_versions.title IS 'Titulo del proyecto';
 COMMENT ON COLUMN project_versions.description IS 'Descripcion';
+COMMENT ON COLUMN project_versions.location_description IS 'Ubicacion territorial declarada por el planificador';
+COMMENT ON COLUMN project_versions.proposed_land_use IS 'Uso de suelo o uso funcional propuesto';
+COMMENT ON COLUMN project_versions.territorial_data_origin IS 'Origen del dato territorial: declarado, simulado o publico';
 COMMENT ON COLUMN project_versions.estimated_budget_pen IS 'Presupuesto estimado en soles (S/)';
 COMMENT ON COLUMN project_versions.beneficiaries_count IS 'Numero de beneficiarios';
 COMMENT ON COLUMN project_versions.created_by_user_id IS 'Usuario que creo la version (referencia a auth_db)';
 COMMENT ON COLUMN project_versions.created_at IS 'Fecha de creacion de la version';
+
+COMMENT ON TABLE zoning_review_requests IS 'Solicitudes de prevalidacion territorial HU1.11; no son una aprobacion municipal';
+COMMENT ON COLUMN zoning_review_requests.compatible IS 'Conclusion de compatibilidad; debe ser nula si no existe evidencia trazable';
+COMMENT ON COLUMN zoning_review_requests.source_document IS 'Documento PDU/PDM que sustenta una conclusion';
+COMMENT ON COLUMN zoning_review_requests.source_version IS 'Version o vigencia de la fuente territorial';
+COMMENT ON COLUMN zoning_review_requests.source_locator IS 'Pagina, seccion, plano o codigo localizador';
+COMMENT ON COLUMN zoning_review_requests.source_excerpt IS 'Fragmento verificable que sustenta el hallazgo';
+COMMENT ON COLUMN zoning_review_requests.limitations IS 'Limites conocidos de la prevalidacion';
 
 COMMENT ON TABLE criteria_versions IS 'Versiones de la politica de criterios de evaluacion';
 COMMENT ON COLUMN criteria_versions.id IS 'Identificador de la politica';

@@ -1,10 +1,21 @@
 CREATE OR REPLACE VIEW vista_proyectos AS
 SELECT p.code AS codigo, pv.title AS titulo, pv.version_number AS version,
+       pv.location_description AS ubicacion, pv.proposed_land_use AS uso_propuesto,
        pv.estimated_budget_pen AS presupuesto_soles, pv.beneficiaries_count AS beneficiarios,
        CASE p.status WHEN 'draft' THEN 'Borrador' WHEN 'ready' THEN 'Listo' WHEN 'evaluating' THEN 'Evaluando'
                      WHEN 'evaluated' THEN 'Evaluado' ELSE 'Error' END AS estado,
        pv.created_at AS registrado_en
 FROM projects p JOIN project_versions pv ON pv.project_id = p.id;
+
+CREATE OR REPLACE VIEW vista_revisiones_zonificacion AS
+SELECT p.code AS codigo_proyecto, pv.version_number AS version_expediente,
+       z.status AS estado, z.compatible AS compatible,
+       z.source_document AS documento, z.source_version AS version_fuente,
+       z.source_locator AS localizador, z.limitations AS limitaciones,
+       z.requested_at AS solicitada_en
+FROM zoning_review_requests z
+JOIN project_versions pv ON pv.id = z.project_version_id
+JOIN projects p ON p.id = pv.project_id;
 
 CREATE OR REPLACE VIEW vista_evaluaciones AS
 SELECT pv.title AS proyecto, pv.version_number AS version,
