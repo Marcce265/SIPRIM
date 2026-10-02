@@ -20,6 +20,8 @@ def test_caso_de_uso_asigna_estado_e_id() -> None:
     proyecto = use_case.execute(data)
 
     assert proyecto.id == 1
+    assert proyecto.codigo.startswith("PRY-")
+    assert proyecto.version_numero == 1
     assert proyecto.estado is EstadoProyecto.REGISTRADO
 
 

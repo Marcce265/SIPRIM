@@ -12,6 +12,7 @@ class RegistrarProyectoUseCase:
     def execute(self, data: ProyectoCreate) -> Proyecto:
         proyecto = Proyecto(
             nombre=data.nombre,
+            **({"codigo": data.codigo} if data.codigo is not None else {}),
             descripcion=data.descripcion,
             ubicacion=data.ubicacion,
             presupuesto=data.presupuesto,

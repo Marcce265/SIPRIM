@@ -34,7 +34,6 @@ from backend.infrastructure.output.repositories.in_memory_evaluacion_juridica_re
 from backend.infrastructure.output.repositories.in_memory_proyecto_repository import (
     InMemoryProyectoRepository,
 )
-from backend.infrastructure.output.ai.gemini_adapter import GeminiAdapter
 
 
 @lru_cache
@@ -86,6 +85,10 @@ def get_evaluacion_juridica_repository() -> EvaluacionJuridicaRepositoryPort:
 
 @lru_cache
 def get_ia_service() -> IAServicePort:
+    # Gemini es una integracion opcional. Importarlo aqui evita que la API base y
+    # sus pruebas fallen al arrancar cuando el extra de IA no esta instalado.
+    from backend.infrastructure.output.ai.gemini_adapter import GeminiAdapter
+
     settings = get_settings()
     api_key = (
         settings.gemini_api_key.get_secret_value()

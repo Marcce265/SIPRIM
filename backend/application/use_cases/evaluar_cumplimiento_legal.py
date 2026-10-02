@@ -40,4 +40,5 @@ class EvaluarCumplimientoLegalUseCase:
             cumple=guardada.cumple,
             observaciones=list(guardada.observaciones),
             fuentes=list(guardada.fuentes),
+            requiere_revision=guardada.cumple is None or not guardada.fuentes,
         )

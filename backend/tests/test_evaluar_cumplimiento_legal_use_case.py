@@ -38,4 +38,5 @@ def test_invoca_puerto_juridico_y_persiste_resultado() -> None:
     assert resultado.estado.value == "PENDIENTE_VALIDACION_NORMATIVA"
     assert resultado.cumple is None
     assert resultado.fuentes == []
+    assert resultado.requiere_revision is True
     assert evaluaciones.obtener_por_proyecto(proyecto.id or 0) is not None

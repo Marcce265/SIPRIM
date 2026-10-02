@@ -1,7 +1,10 @@
-# SIPRIM Backend - HU1.1
+# SIPRIM — backend e infraestructura PMV1
 
-Backend funcional para registrar una sola vez el expediente basico de un proyecto
-urbano y dejarlo disponible para futuros agentes especialistas.
+Prototipo academico para registrar expedientes municipales y ejecutar una
+preevaluacion explicable. Las fuentes principales de producto son el documento
+maestro y el modelo de tres bases del PMV1. El estado comprobado de las cuatro
+capacidades heredadas se encuentra en
+[`docs/REVISION_HISTORIAS_BACKEND_PMV1.md`](docs/REVISION_HISTORIAS_BACKEND_PMV1.md).
 
 ## Arquitectura
 
@@ -132,17 +135,20 @@ La respuesta de registro contiene el mensaje solicitado y el proyecto completo:
 pytest
 ```
 
-Las pruebas cubren salud, registro, consulta, validaciones, proyecto inexistente y
-el caso de uso aislado.
+Las pruebas cubren salud, registro, consulta, campos faltantes, puntuacion
+economica documentada, abstencion juridica y el adaptador opcional de IA.
 
 ## Base de datos PostgreSQL
 
-Scripts en [`database/`](database/). Conexión rápida con Docker:
+Scripts en [`database/`](database/). La infraestructura oficial del PMV1 usa
+tres bases logicas con propietarios separados dentro de una instancia PostgreSQL,
+mas Redis como broker. Conexion rapida con Docker:
 
 ```powershell
-docker compose up -d db
+docker compose up -d postgres redis
 Copy-Item .env.example .env   # si aún no tiene .env
-python scripts/check_database.py
+python database/simular_flujo.py
+python database/verificar.py
 uvicorn backend.main:app --reload
 ```
 
@@ -150,11 +156,13 @@ En `.env`:
 
 ```dotenv
 USE_IN_MEMORY_REPOSITORY=false
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/siprim
+AUTH_DB_URL=postgresql+psycopg://auth_app:auth_dev_only@localhost:5432/auth_db
+PLATFORM_DB_URL=postgresql+psycopg://platform_app:platform_dev_only@localhost:5432/platform_db
+ECONOMIC_DB_URL=postgresql+psycopg://economic_app:economic_dev_only@localhost:5432/economic_db
 ```
 
-Para Neon/Supabase, pegue `database/schema.sql` en el SQL Editor y use su URL en
-`DATABASE_URL` (prefijo `postgresql+psycopg://`).
+`database/schema.sql` pertenece al adaptador heredado y no sustituye los esquemas
+oficiales de `auth_db`, `platform_db` y `economic_db`.
 
 `ProyectoRepositoryPort` desacopla la aplicacion de la base de datos. El frontend
 solo consume la API; no necesita acceso directo a PostgreSQL.

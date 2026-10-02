@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
+from uuid import uuid4
 
 from backend.domain.exceptions.proyecto_exceptions import ProyectoInvalidoError
 from backend.domain.value_objects.estado_proyecto import EstadoProyecto
@@ -11,6 +12,9 @@ class Proyecto:
     """Entidad raiz que protege las reglas esenciales de un proyecto urbano."""
 
     nombre: str
+    codigo: str = field(
+        default_factory=lambda: f"PRY-{uuid4().hex[:8].upper()}"
+    )
     descripcion: str | None = None
     ubicacion: str | None = None
     presupuesto: Decimal | None = None
@@ -18,6 +22,7 @@ class Proyecto:
     tipo_proyecto: str | None = None
     id: int | None = None
     estado: EstadoProyecto = EstadoProyecto.BORRADOR
+    version_numero: int = 1
     fecha_creacion: datetime = field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
@@ -26,6 +31,11 @@ class Proyecto:
         if not self.nombre or not self.nombre.strip():
             raise ProyectoInvalidoError("nombre es obligatorio")
         self.nombre = self.nombre.strip()
+        self.codigo = self.codigo.strip().upper()
+        if not self.codigo:
+            raise ProyectoInvalidoError("codigo es obligatorio")
+        if self.version_numero <= 0:
+            raise ProyectoInvalidoError("version_numero debe ser mayor a cero")
 
         for campo in ("descripcion", "ubicacion", "tipo_proyecto"):
             valor = getattr(self, campo)

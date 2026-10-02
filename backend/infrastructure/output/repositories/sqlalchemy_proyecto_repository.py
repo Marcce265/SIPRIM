@@ -17,6 +17,8 @@ class SQLAlchemyProyectoRepository(ProyectoRepositoryPort):
     def guardar(self, proyecto: Proyecto) -> Proyecto:
         with self._session_factory() as session:
             model = ProyectoModel(
+                codigo=proyecto.codigo,
+                version_numero=proyecto.version_numero,
                 nombre=proyecto.nombre,
                 descripcion=proyecto.descripcion,
                 ubicacion=proyecto.ubicacion,
@@ -44,6 +46,8 @@ class SQLAlchemyProyectoRepository(ProyectoRepositoryPort):
     def _to_entity(model: ProyectoModel) -> Proyecto:
         return Proyecto(
             id=model.id,
+            codigo=model.codigo,
+            version_numero=model.version_numero,
             nombre=model.nombre,
             descripcion=model.descripcion,
             ubicacion=model.ubicacion,

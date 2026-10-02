@@ -19,6 +19,9 @@ class ProyectoCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     nombre: str = Field(min_length=1, max_length=200)
+    codigo: str | None = Field(
+        default=None, min_length=3, max_length=40, pattern=r"^[A-Za-z0-9_-]+$"
+    )
     descripcion: str | None = Field(default=None, min_length=1, max_length=2000)
     ubicacion: str | None = Field(default=None, min_length=1, max_length=300)
     presupuesto: Decimal | None = Field(
@@ -35,6 +38,11 @@ class ProyectoCreate(BaseModel):
             raise ValueError("no puede estar vacio")
         return value
 
+    @field_validator("codigo")
+    @classmethod
+    def normalizar_codigo(cls, value: str | None) -> str | None:
+        return value.strip().upper() if value is not None else None
+
     @field_validator("descripcion", "ubicacion", "tipo_proyecto", mode="before")
     @classmethod
     def texto_vacio_es_dato_faltante(cls, value: object) -> object:
@@ -50,6 +58,8 @@ class ProyectoResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    codigo: str
+    version_numero: int
     nombre: str
     descripcion: str | None
     ubicacion: str | None
@@ -82,13 +92,25 @@ class EvaluacionEconomicaResponse(BaseModel):
     presupuesto: Decimal
     beneficiarios: int
     costo_por_habitante: Decimal
+    costo_por_beneficiario: Decimal
+    score_0_100: Decimal
+    costo_excelente: Decimal
+    costo_inaceptable: Decimal
+    version_criterios: int
+    formula: str
+    explicacion: str
+    version_algoritmo: str
     retorno_socioeconomico: Decimal | None
     estado_evaluacion: EstadoEvaluacionEconomica
-    pendientes: list[str]
+    advertencias: list[str]
 
     @field_serializer(
         "presupuesto",
         "costo_por_habitante",
+        "costo_por_beneficiario",
+        "score_0_100",
+        "costo_excelente",
+        "costo_inaceptable",
         "retorno_socioeconomico",
         when_used="json",
     )
@@ -102,3 +124,4 @@ class EvaluacionJuridicaResponse(BaseModel):
     cumple: bool | None
     observaciones: list[str]
     fuentes: list[str]
+    requiere_revision: bool

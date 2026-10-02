@@ -16,7 +16,8 @@ class EvaluacionJuridicaProvisionalAdapter(EvaluacionJuridicaPort):
             estado=EstadoEvaluacionJuridica.PENDIENTE_VALIDACION_NORMATIVA,
             cumple=None,
             observaciones=(
-                "La evaluacion juridica requiere integracion con el servicio RAG",
+                "Sin fuente normativa verificable no se emite un dictamen; "
+                "el caso requiere revision humana y la integracion del servicio RAG.",
             ),
             fuentes=(),
         )

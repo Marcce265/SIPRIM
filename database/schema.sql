@@ -3,6 +3,8 @@
 
 CREATE TABLE IF NOT EXISTS proyectos (
     id             SERIAL        PRIMARY KEY,
+    codigo         VARCHAR(40)   NOT NULL UNIQUE,
+    version_numero INTEGER       NOT NULL DEFAULT 1 CHECK (version_numero > 0),
     nombre         VARCHAR(200)  NOT NULL,
     descripcion    TEXT          NOT NULL,
     ubicacion      VARCHAR(300)  NOT NULL,
@@ -22,9 +24,16 @@ CREATE TABLE IF NOT EXISTS evaluaciones_economicas (
     presupuesto             NUMERIC(18,2) NOT NULL,
     beneficiarios           INTEGER       NOT NULL,
     costo_por_habitante     NUMERIC(18,2) NOT NULL,
+    score_0_100             NUMERIC(5,2)  NOT NULL CHECK (score_0_100 BETWEEN 0 AND 100),
+    costo_excelente         NUMERIC(18,2) NOT NULL,
+    costo_inaceptable       NUMERIC(18,2) NOT NULL,
+    version_criterios       INTEGER       NOT NULL CHECK (version_criterios > 0),
+    formula                 TEXT          NOT NULL,
+    explicacion             TEXT          NOT NULL,
+    version_algoritmo       VARCHAR(80)   NOT NULL,
     retorno_socioeconomico  NUMERIC(18,2),
     estado_evaluacion       VARCHAR(30)   NOT NULL,
-    pendientes              JSON          NOT NULL DEFAULT '[]',
+    advertencias            JSON          NOT NULL DEFAULT '[]',
     fecha_evaluacion        TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
 

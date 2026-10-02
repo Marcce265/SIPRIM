@@ -13,6 +13,8 @@ class ProyectoModel(Base):
     __tablename__ = "proyectos"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    codigo: Mapped[str] = mapped_column(String(40), unique=True, nullable=False)
+    version_numero: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     nombre: Mapped[str] = mapped_column(String(200), nullable=False)
     descripcion: Mapped[str | None] = mapped_column(Text, nullable=True)
     ubicacion: Mapped[str | None] = mapped_column(String(300), nullable=True)
@@ -37,11 +39,20 @@ class EvaluacionEconomicaModel(Base):
     costo_por_habitante: Mapped[Decimal] = mapped_column(
         Numeric(18, 2), nullable=False
     )
+    score_0_100: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    costo_excelente: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    costo_inaceptable: Mapped[Decimal] = mapped_column(
+        Numeric(18, 2), nullable=False
+    )
+    version_criterios: Mapped[int] = mapped_column(Integer, nullable=False)
+    formula: Mapped[str] = mapped_column(Text, nullable=False)
+    explicacion: Mapped[str] = mapped_column(Text, nullable=False)
+    version_algoritmo: Mapped[str] = mapped_column(String(80), nullable=False)
     retorno_socioeconomico: Mapped[Decimal | None] = mapped_column(
         Numeric(18, 2), nullable=True
     )
     estado_evaluacion: Mapped[str] = mapped_column(String(30), nullable=False)
-    pendientes: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    advertencias: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     fecha_evaluacion: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )

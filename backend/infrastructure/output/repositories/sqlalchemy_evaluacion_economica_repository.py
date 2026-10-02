@@ -31,9 +31,16 @@ class SQLAlchemyEvaluacionEconomicaRepository(EvaluacionEconomicaRepositoryPort)
             model.presupuesto = evaluacion.presupuesto
             model.beneficiarios = evaluacion.beneficiarios
             model.costo_por_habitante = evaluacion.costo_por_habitante
+            model.score_0_100 = evaluacion.score_0_100
+            model.costo_excelente = evaluacion.costo_excelente
+            model.costo_inaceptable = evaluacion.costo_inaceptable
+            model.version_criterios = evaluacion.version_criterios
+            model.formula = evaluacion.formula
+            model.explicacion = evaluacion.explicacion
+            model.version_algoritmo = evaluacion.version_algoritmo
             model.retorno_socioeconomico = evaluacion.retorno_socioeconomico
             model.estado_evaluacion = evaluacion.estado_evaluacion.value
-            model.pendientes = list(evaluacion.pendientes)
+            model.advertencias = list(evaluacion.advertencias)
             model.fecha_evaluacion = evaluacion.fecha_evaluacion
             try:
                 session.commit()
@@ -61,8 +68,15 @@ class SQLAlchemyEvaluacionEconomicaRepository(EvaluacionEconomicaRepositoryPort)
             presupuesto=model.presupuesto,
             beneficiarios=model.beneficiarios,
             costo_por_habitante=model.costo_por_habitante,
+            score_0_100=model.score_0_100,
+            costo_excelente=model.costo_excelente,
+            costo_inaceptable=model.costo_inaceptable,
+            version_criterios=model.version_criterios,
+            formula=model.formula,
+            explicacion=model.explicacion,
+            version_algoritmo=model.version_algoritmo,
             retorno_socioeconomico=model.retorno_socioeconomico,
             estado_evaluacion=EstadoEvaluacionEconomica(model.estado_evaluacion),
-            pendientes=tuple(model.pendientes),
+            advertencias=tuple(model.advertencias),
             fecha_evaluacion=model.fecha_evaluacion,
         )

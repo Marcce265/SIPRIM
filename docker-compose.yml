@@ -1,22 +1,35 @@
 services:
-  db:
+  postgres:
     image: postgres:16-alpine
     container_name: siprim-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: siprim
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
       - siprim_pgdata:/var/lib/postgresql/data
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database:/opt/siprim/database:ro
+      - ./database/bootstrap.sh:/docker-entrypoint-initdb.d/00-bootstrap.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d siprim"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d platform_db"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 15
+
+  redis:
+    image: redis:7-alpine
+    container_name: siprim-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
 
 volumes:
   siprim_pgdata:
