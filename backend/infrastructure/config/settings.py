@@ -32,7 +32,7 @@ class Settings(BaseSettings):
         "http://localhost:5173",
     ]
     gemini_api_key: SecretStr | None = None
-    ai_model: str = Field(default="gemini-2.5-flash", min_length=1)
+    ai_model: str = Field(default="gemini-3.1-flash-lite", min_length=1)
     ai_timeout_seconds: float = Field(default=45, gt=0, le=120)
 
 

@@ -129,7 +129,7 @@ En `.env` configurar:
 
 ```dotenv
 GEMINI_API_KEY=clave_de_google_ai_studio
-AI_MODEL=gemini-2.5-flash
+AI_MODEL=gemini-3.1-flash-lite
 AI_TIMEOUT_SECONDS=45
 ```
 
@@ -142,6 +142,9 @@ Con Docker Compose, crear `.env` desde `.env.example` en la raíz y completar al
 `docker compose up -d --build`. En otra computadora se debe configurar la clave
 en su propio `.env` o en las variables privadas del hosting. GitHub no distribuye
 archivos `.env` ignorados por Git.
+El modelo inicial `gemini-3.1-flash-lite` fue probado con la API real. Puede
+cambiarse mediante `AI_MODEL`; Google recomendó `gemini-3.8-flash`, pero en la
+prueba de integración respondió con saturación temporal (503).
 
 La ruta opcional `/integracion-ia` del frontend permite introducir el ID numérico
 de un expediente registrado en el backend y solicitar el dictamen a Gemini.
