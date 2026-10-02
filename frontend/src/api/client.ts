@@ -19,6 +19,10 @@ export async function parseApiError(response: Response): Promise<string> {
     if (Array.isArray(body.detail)) {
       return body.detail.map((d) => d.msg).join('. ')
     }
+    const providerDetail: unknown = body.detail
+    if (providerDetail && typeof providerDetail === 'object' && 'message' in providerDetail) {
+      return String(providerDetail.message)
+    }
   } catch {
     /* respuesta no JSON */
   }

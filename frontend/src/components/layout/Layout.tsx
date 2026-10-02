@@ -50,6 +50,9 @@ export function Layout() {
             <NavLink to="/consultar" className={navLinkClass}>
               Consultar
             </NavLink>
+            <NavLink to="/integracion-ia" className={navLinkClass}>
+              Integración IA
+            </NavLink>
             {hasRole('LEGAL_ADVISOR') && (
               <NavLink to="/normativa" className={navLinkClass}>
                 Normativa

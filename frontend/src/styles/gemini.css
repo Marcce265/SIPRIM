@@ -1,0 +1,8 @@
+.ia-panel { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.35rem; box-shadow: var(--shadow-sm); }
+.ia-panel .lookup-row { margin-top: .5rem; }
+.ia-panel .lookup-row input { min-width: 0; }
+.ia-panel .ia-error { color: var(--color-error); margin-top: 1rem; }
+.ia-dictamen { border-top: 1px solid var(--color-border); margin-top: 1.25rem; padding-top: 1rem; line-height: 1.5; }
+.ia-dictamen h2 { font-size: 1.15rem; margin: 0 0 .4rem; }
+.ia-dictamen h3 { font-size: .95rem; margin: 1rem 0 .25rem; }
+.ia-dictamen ul { padding-left: 1.3rem; }
