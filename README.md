@@ -176,15 +176,19 @@ Las cuentas ficticias locales son `planner@siprim.test`, `admin@siprim.test` y
 
 Recorrido principal:
 
-1. `POST /api/v1/auth/login` obtiene el token del planificador o asesor jurídico.
+1. `POST /api/v1/auth/login` obtiene el token del planificador, asesor jurídico o administrador.
 2. `POST /api/v1/projects` registra proyecto y version en `platform_db`.
 3. `POST /api/v1/evaluations` requiere `Idempotency-Key` y responde `202 queued`.
 4. `GET /api/v1/evaluations/{id}` expone el avance y el resultado explicable.
 5. `POST /api/v1/projects/{id}/zoning-precheck`, con `Idempotency-Key`, registra
    la prevalidación de zonificación.
 6. `POST /api/v1/normative/search`, con `Idempotency-Key` y rol `LEGAL_ADVISOR` o `ADMIN`,
-   busca citas normativas versionadas y detecta alertas jurídicas (HU2.1).
-   `GET /api/v1/normative/documents` lista el corpus oficial disponible.
+   busca citas normativas con texto legal real y detecta alertas jurídicas (HU2.1).
+   `GET /api/v1/normative/documents` lista el catálogo normativo oficial disponible.
+7. `POST /api/v1/projects/{id}/approval`, con `Idempotency-Key` y rol `ADMIN`, emite
+   el dictamen humano formal (`approved`, `rejected` u `observed`), compuerta final
+   del PMV1 tras completar la evaluación técnica.
+   `GET /api/v1/projects/{id}/approval` consulta el estado de la compuerta humana.
 
 HU1.11 no declara compatibilidad PDU/PDM si no existe evidencia territorial
 versionada. En el alcance actual devuelve `compatible=null`, una alerta y
@@ -192,8 +196,13 @@ versionada. En el alcance actual devuelve `compatible=null`, una alerta y
 versión, localizador y fragmento verificable.
 
 HU2.1 no emite dictámenes jurídicos concluyentes de forma autónoma. Recupera citas
-con trazabilidad completa (documento, versión, artículo, localizador y fragmento)
+con texto legal real y trazabilidad completa (documento, versión, artículo, localizador y fragmento)
 y marca alertas para revisión humana obligatoria (`requires_human_review=true`).
+
+Compuerta de Aprobación Humana: Ningún proyecto se considera concluido o dictaminado
+de forma puramente automática. Una vez procesadas las evaluaciones técnicas (económica,
+territorial y normativa), se exige la intervención de un usuario con rol `ADMIN` que emite
+un dictamen formal con justificación obligatoria y condiciones registradas (en caso de observación).
 
 El frontend solo consume la API; no necesita ni debe tener acceso directo a
 PostgreSQL.

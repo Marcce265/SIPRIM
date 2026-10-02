@@ -208,3 +208,11 @@ def require_legal_advisor(
     if "LEGAL_ADVISOR" not in roles and "ADMIN" not in roles:
         raise AccesoDenegadoError("Se requiere el rol LEGAL_ADVISOR o ADMIN")
     return user
+
+
+def require_admin(
+    user: Annotated[dict[str, Any], Depends(get_current_user)],
+) -> dict[str, Any]:
+    if "ADMIN" not in user.get("roles", []):
+        raise AccesoDenegadoError("Se requiere el rol ADMIN")
+    return user

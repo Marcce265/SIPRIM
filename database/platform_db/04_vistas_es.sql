@@ -3,7 +3,7 @@ SELECT p.code AS codigo, pv.title AS titulo, pv.version_number AS version,
        pv.location_description AS ubicacion, pv.proposed_land_use AS uso_propuesto,
        pv.estimated_budget_pen AS presupuesto_soles, pv.beneficiaries_count AS beneficiarios,
        CASE p.status WHEN 'draft' THEN 'Borrador' WHEN 'ready' THEN 'Listo' WHEN 'evaluating' THEN 'Evaluando'
-                     WHEN 'evaluated' THEN 'Evaluado' ELSE 'Error' END AS estado,
+                     WHEN 'evaluated' THEN 'Evaluado' WHEN 'approved' THEN 'Aprobado' WHEN 'rejected' THEN 'Rechazado' WHEN 'observed' THEN 'Observado' ELSE 'Error' END AS estado,
        pv.created_at AS registrado_en
 FROM projects p JOIN project_versions pv ON pv.project_id = p.id;
 
@@ -64,3 +64,17 @@ SELECT id AS id_busqueda,
        idempotency_key AS clave_idempotencia,
        created_at AS consultado_en
 FROM normative_search_logs;
+
+CREATE OR REPLACE VIEW vista_aprobaciones_humanas AS
+SELECT p.code AS codigo_proyecto,
+       pv.version_number AS version_expediente,
+       CASE ha.decision WHEN 'approved' THEN 'Aprobado'
+                        WHEN 'rejected' THEN 'Rechazado'
+                        WHEN 'observed' THEN 'Observado' END AS dictamen,
+       ha.justification AS justificacion,
+       ha.conditions AS condiciones,
+       ha.decided_by_user_id AS decidido_por_usuario_id,
+       ha.decided_at AS decidido_en
+FROM human_approvals ha
+JOIN projects p ON p.id = ha.project_id
+JOIN project_versions pv ON pv.id = ha.project_version_id;

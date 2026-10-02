@@ -640,6 +640,139 @@ class PlatformService:
             ).fetchall()
         return [dict(r) for r in rows]
 
+    def submit_human_approval(
+        self,
+        project_id: UUID,
+        actor_id: UUID,
+        decision: str,
+        justification: str,
+        conditions: str | None,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        """Registra el dictamen humano formal sobre un proyecto tras la evaluacion tecnica."""
+        cleaned_key = idempotency_key.strip()
+        if not cleaned_key:
+            raise ConfiguracionPMV1Error("Idempotency-Key es obligatorio")
+
+        cleaned_decision = decision.strip().lower()
+        if cleaned_decision not in ("approved", "rejected", "observed"):
+            raise ConfiguracionPMV1Error("Dictamen invalido. Debe ser 'approved', 'rejected' u 'observed'")
+
+        cleaned_justification = justification.strip()
+        if len(cleaned_justification) < 5:
+            raise ConfiguracionPMV1Error("La justificacion debe tener al menos 5 caracteres")
+
+        cleaned_conditions = conditions.strip() if conditions and conditions.strip() else None
+        if cleaned_decision == "observed" and not cleaned_conditions:
+            raise ConfiguracionPMV1Error("El dictamen 'observed' requiere especificar condiciones u observaciones")
+
+        project = self.get_project(project_id)
+        if project["status"] not in ("evaluated", "approved", "rejected", "observed"):
+            raise ConfiguracionPMV1Error(
+                "El proyecto debe haber completado la evaluacion tecnica antes de la aprobacion humana formal"
+            )
+
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
+            prev = conn.execute(
+                """
+                SELECT id AS approval_id, project_id, project_version_id, decision,
+                       justification, conditions, decided_by_user_id, idempotency_key, decided_at
+                FROM human_approvals WHERE idempotency_key = %s
+                """,
+                (cleaned_key,),
+            ).fetchone()
+            if prev:
+                if prev["project_id"] != project_id:
+                    raise ConfiguracionPMV1Error("Idempotency-Key ya fue utilizada para otro expediente")
+                return {**dict(prev), "duplicated": True}
+
+            approval_id = uuid4()
+            now = datetime.now(timezone.utc)
+            conn.execute(
+                """
+                INSERT INTO human_approvals
+                (id, project_id, project_version_id, decision, justification,
+                 conditions, decided_by_user_id, idempotency_key, decided_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    approval_id,
+                    project_id,
+                    project["project_version_id"],
+                    cleaned_decision,
+                    cleaned_justification,
+                    cleaned_conditions,
+                    actor_id,
+                    cleaned_key,
+                    now,
+                ),
+            )
+            conn.execute(
+                "UPDATE projects SET status = %s, updated_at = %s WHERE id = %s",
+                (cleaned_decision, now, project_id),
+            )
+            conn.execute(
+                """
+                INSERT INTO audit_events
+                (actor_user_id, action, entity_type, entity_id, details)
+                VALUES (%s, 'PROJECT_HUMAN_APPROVAL_RECORDED', 'human_approval', %s, %s)
+                """,
+                (
+                    actor_id,
+                    approval_id,
+                    Jsonb(
+                        {
+                            "project_id": str(project_id),
+                            "project_version_id": str(project["project_version_id"]),
+                            "decision": cleaned_decision,
+                            "justification": cleaned_justification,
+                            "conditions": cleaned_conditions,
+                        }
+                    ),
+                ),
+            )
+
+        return {
+            "approval_id": approval_id,
+            "project_id": project_id,
+            "project_version_id": project["project_version_id"],
+            "decision": cleaned_decision,
+            "justification": cleaned_justification,
+            "conditions": cleaned_conditions,
+            "decided_by_user_id": actor_id,
+            "idempotency_key": cleaned_key,
+            "decided_at": now,
+            "duplicated": False,
+        }
+
+    def get_human_approval(self, project_id: UUID) -> dict[str, Any]:
+        """Obtiene el estado de la compuerta humana y el ultimo dictamen del proyecto."""
+        project = self.get_project(project_id)
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            latest = conn.execute(
+                """
+                SELECT id AS approval_id, project_id, project_version_id, decision,
+                       justification, conditions, decided_by_user_id, idempotency_key, decided_at
+                FROM human_approvals
+                WHERE project_id = %s
+                ORDER BY decided_at DESC
+                LIMIT 1
+                """,
+                (project_id,),
+            ).fetchone()
+
+        is_evaluated = project["status"] in ("evaluated", "approved", "rejected", "observed")
+        requires_human_approval = project["status"] == "evaluated" and latest is None
+
+        return {
+            "project_id": project_id,
+            "project_version_id": project["project_version_id"],
+            "project_status": project["status"],
+            "is_evaluated": is_evaluated,
+            "requires_human_approval": requires_human_approval,
+            "current_approval": dict(latest) if latest else None,
+        }
+
 
 class EconomicProcessor:
     """Consumidor propietario exclusivo de economic_db e idempotente por event_id."""

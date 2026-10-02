@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -23,6 +24,7 @@ VERSION_ID = UUID("b0000000-0000-4000-a000-00000000000a")
 EVALUATION_ID = UUID("d0000000-0000-4000-a000-00000000000a")
 EVENT_ID = UUID("e0000000-0000-4000-a000-00000000000a")
 ZONING_REVIEW_ID = UUID("11000000-0000-4000-a000-00000000000a")
+APPROVAL_ID = UUID("c1000000-0000-4000-a000-000000000001")
 
 
 class FakeAuth:
@@ -203,36 +205,72 @@ class FakePlatform:
             {
                 "short_code": "DL_1252",
                 "document_name": "D. L. N.° 1252 - Invierte.pe",
-                "version": "2026-v1",
+                "version": "2018-TUO",
                 "in_force": True,
-                "data_origin": "simulated",
+                "data_origin": "public",
                 "chunks_count": 6,
             },
             {
                 "short_code": "LEY_27972",
-                "document_name": "Ley N.° 27972",
-                "version": "2026-v1",
+                "document_name": "Ley N.° 27972 - Ley Orgánica de Municipalidades",
+                "version": "2003-v1",
                 "in_force": True,
-                "data_origin": "simulated",
+                "data_origin": "public",
                 "chunks_count": 6,
             },
             {
                 "short_code": "LEY_32069",
-                "document_name": "Ley N.° 32069",
-                "version": "2026-v1",
+                "document_name": "Ley N.° 32069 - Ley General de Contrataciones Públicas",
+                "version": "2024-v1",
                 "in_force": True,
-                "data_origin": "simulated",
+                "data_origin": "public",
                 "chunks_count": 6,
             },
             {
                 "short_code": "PDU_EL_TAMBO",
-                "document_name": "PDU/PDM Huancayo-El Tambo",
-                "version": "2026-v1",
+                "document_name": "PDM Huancayo 2017-2037 (O.M. N.° 636-2020-MPH/CM)",
+                "version": "2020-OM636",
                 "in_force": True,
-                "data_origin": "simulated",
+                "data_origin": "public",
                 "chunks_count": 6,
             },
         ]
+
+    def submit_human_approval(
+        self,
+        project_id: UUID,
+        actor_id: UUID,
+        decision: str,
+        justification: str,
+        conditions: str | None,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        if idempotency_key == "used-by-other-project":
+            raise ConfiguracionPMV1Error("Idempotency-Key ya fue utilizada para otro expediente")
+        if decision == "observed" and not conditions:
+            raise ConfiguracionPMV1Error("El dictamen 'observed' requiere especificar condiciones u observaciones")
+        return {
+            "approval_id": APPROVAL_ID,
+            "project_id": project_id,
+            "project_version_id": VERSION_ID,
+            "decision": decision,
+            "justification": justification,
+            "conditions": conditions,
+            "decided_by_user_id": actor_id,
+            "idempotency_key": idempotency_key,
+            "decided_at": datetime.now(timezone.utc),
+            "duplicated": idempotency_key == "approval-repeat",
+        }
+
+    def get_human_approval(self, project_id: UUID) -> dict[str, Any]:
+        return {
+            "project_id": project_id,
+            "project_version_id": VERSION_ID,
+            "project_status": "evaluated",
+            "is_evaluated": True,
+            "requires_human_approval": True,
+            "current_approval": None,
+        }
 
 
 
@@ -479,3 +517,143 @@ def test_hu21_motor_ponderacion_scoring() -> None:
 
     score = NormativeSearchEngine.score_chunk(chunk, "uso de suelo incompatible", kw)
     assert score > 50.0  # Coincide en topic, content y alerta
+
+
+def test_human_approval_exige_autenticacion(client: TestClient) -> None:
+    response = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/approval",
+        json={"decision": "approved", "justification": "Aprobado"},
+    )
+    assert response.status_code == 401
+
+
+def test_human_approval_prohibido_para_planner_y_legal(client: TestClient) -> None:
+    # Planner no tiene permiso de aprobacion formal
+    res_planner = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/approval",
+        headers={
+            "Authorization": "Bearer token-prueba",
+            "Idempotency-Key": "appr-planner",
+        },
+        json={"decision": "approved", "justification": "Intento planificador"},
+    )
+    assert res_planner.status_code == 403
+    assert "ADMIN" in res_planner.json()["detail"]
+
+    # Legal advisor tampoco emite la aprobacion ejecutiva
+    res_legal = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/approval",
+        headers={
+            "Authorization": "Bearer token-legal",
+            "Idempotency-Key": "appr-legal",
+        },
+        json={"decision": "approved", "justification": "Intento asesor legal"},
+    )
+    assert res_legal.status_code == 403
+    assert "ADMIN" in res_legal.json()["detail"]
+
+
+def test_human_approval_requiere_idempotency_key(client: TestClient) -> None:
+    response = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/approval",
+        headers={"Authorization": "Bearer token-admin"},
+        json={"decision": "approved", "justification": "Aprobado por el Administrador"},
+    )
+    assert response.status_code == 422
+
+
+def test_human_approval_requiere_condiciones_cuando_observed(client: TestClient) -> None:
+    response = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/approval",
+        headers={
+            "Authorization": "Bearer token-admin",
+            "Idempotency-Key": "appr-obs-missing",
+        },
+        json={"decision": "observed", "justification": "Se observan faltantes tecnicos"},
+    )
+    assert response.status_code == 422
+
+
+def test_human_approval_exitoso_para_admin(client: TestClient) -> None:
+    response = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/approval",
+        headers={
+            "Authorization": "Bearer token-admin",
+            "Idempotency-Key": "appr-admin-ok",
+        },
+        json={
+            "decision": "approved",
+            "justification": "Proyecto social y tecnicamente viable segun evaluacion economica.",
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["decision"] == "approved"
+    assert body["approval_id"] == str(APPROVAL_ID)
+    assert body["project_id"] == str(PROJECT_ID)
+    assert body["project_version_id"] == str(VERSION_ID)
+    assert body["duplicated"] is False
+
+
+def test_human_approval_observado_con_condiciones(client: TestClient) -> None:
+    response = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/approval",
+        headers={
+            "Authorization": "Bearer token-admin",
+            "Idempotency-Key": "appr-admin-obs",
+        },
+        json={
+            "decision": "observed",
+            "justification": "Requiere mayor detalle en el cronograma.",
+            "conditions": "Presentar informe geotécnico complementario antes de licitación.",
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["decision"] == "observed"
+    assert body["conditions"] == "Presentar informe geotécnico complementario antes de licitación."
+
+
+def test_human_approval_idempotencia(client: TestClient) -> None:
+    response = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/approval",
+        headers={
+            "Authorization": "Bearer token-admin",
+            "Idempotency-Key": "approval-repeat",
+        },
+        json={
+            "decision": "approved",
+            "justification": "Dictamen repetido",
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["duplicated"] is True
+
+
+def test_human_approval_conflicto_idempotencia(client: TestClient) -> None:
+    response = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/approval",
+        headers={
+            "Authorization": "Bearer token-admin",
+            "Idempotency-Key": "used-by-other-project",
+        },
+        json={
+            "decision": "approved",
+            "justification": "Dictamen en conflicto",
+        },
+    )
+    assert response.status_code == 409
+    assert "otro expediente" in response.json()["detail"]
+
+
+def test_get_human_approval_status(client: TestClient) -> None:
+    response = client.get(
+        f"/api/v1/projects/{PROJECT_ID}/approval",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["project_id"] == str(PROJECT_ID)
+    assert body["project_status"] == "evaluated"
+    assert body["is_evaluated"] is True
+    assert body["requires_human_approval"] is True

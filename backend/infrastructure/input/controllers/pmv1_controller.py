@@ -7,6 +7,9 @@ from backend.application.dto.pmv1_dto import (
     EvaluationAccepted,
     EvaluationCreate,
     EvaluationResponse,
+    HumanApprovalCreate,
+    HumanApprovalResponse,
+    HumanApprovalStatusResponse,
     LegalPrecheckResponse,
     LoginRequest,
     LoginResponse,
@@ -22,6 +25,7 @@ from backend.application.services.pmv1_services import AuthService, PlatformServ
 from backend.infrastructure.config.dependencies import (
     get_auth_service,
     get_platform_service,
+    require_admin,
     require_legal_advisor,
     require_planner,
 )
@@ -156,3 +160,39 @@ def list_normative_documents(
             "Las fuentes activas son referenciales y requieren verificacion humana."
         ),
     }
+
+
+@router.post(
+    "/projects/{project_id}/approval",
+    response_model=HumanApprovalResponse,
+    status_code=status.HTTP_200_OK,
+)
+def submit_human_approval(
+    project_id: Annotated[UUID, Path()],
+    data: HumanApprovalCreate,
+    user: Annotated[dict[str, Any], Depends(require_admin)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+    idempotency_key: Annotated[
+        str, Header(alias="Idempotency-Key", min_length=1, max_length=120)
+    ],
+) -> dict[str, Any]:
+    return service.submit_human_approval(
+        project_id=project_id,
+        actor_id=UUID(user["sub"]),
+        decision=data.decision,
+        justification=data.justification,
+        conditions=data.conditions,
+        idempotency_key=idempotency_key,
+    )
+
+
+@router.get(
+    "/projects/{project_id}/approval",
+    response_model=HumanApprovalStatusResponse,
+)
+def get_human_approval(
+    project_id: Annotated[UUID, Path()],
+    _: Annotated[dict[str, Any], Depends(require_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+) -> dict[str, Any]:
+    return service.get_human_approval(project_id)

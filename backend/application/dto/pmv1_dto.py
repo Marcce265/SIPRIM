@@ -1,7 +1,9 @@
+from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class LoginRequest(BaseModel):
@@ -203,3 +205,46 @@ class NormativeDocumentListResponse(BaseModel):
     total_documents: int
     documents: list[NormativeDocumentItem]
     disclaimer: str
+
+
+class HumanApprovalCreate(BaseModel):
+    """Solicitud de dictamen humano formal (aprobacion, rechazo u observacion)."""
+
+    model_config = ConfigDict(extra="forbid")
+    decision: Literal["approved", "rejected", "observed"]
+    justification: str = Field(min_length=5, max_length=2000)
+    conditions: str | None = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def validate_conditions_when_observed(self) -> "HumanApprovalCreate":
+        if self.decision == "observed" and (self.conditions is None or not self.conditions.strip()):
+            raise ValueError("El dictamen 'observed' requiere especificar condiciones u observaciones")
+        if self.conditions is not None:
+            self.conditions = self.conditions.strip() if self.conditions.strip() else None
+        return self
+
+
+class HumanApprovalResponse(BaseModel):
+    """Dictamen humano formal registrado para un proyecto."""
+
+    approval_id: UUID
+    project_id: UUID
+    project_version_id: UUID
+    decision: str
+    justification: str
+    conditions: str | None = None
+    decided_by_user_id: UUID
+    idempotency_key: str
+    decided_at: datetime
+    duplicated: bool = False
+
+
+class HumanApprovalStatusResponse(BaseModel):
+    """Estado de compuerta humana formal y dictamen actual del proyecto."""
+
+    project_id: UUID
+    project_version_id: UUID
+    project_status: str
+    is_evaluated: bool
+    requires_human_approval: bool
+    current_approval: HumanApprovalResponse | None = None

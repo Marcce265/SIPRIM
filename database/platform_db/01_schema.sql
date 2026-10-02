@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS projects (
     status VARCHAR(24) NOT NULL DEFAULT 'draft',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT projects_status_check CHECK (status IN ('draft','ready','evaluating','evaluated','error'))
+    CONSTRAINT projects_status_check CHECK (status IN ('draft','ready','evaluating','evaluated','approved','rejected','observed','error'))
 );
 
 -- Migracion idempotente para instalaciones creadas antes de HU1.11.
@@ -19,6 +19,13 @@ ALTER TABLE IF EXISTS project_versions
     ADD COLUMN IF NOT EXISTS location_description VARCHAR(300),
     ADD COLUMN IF NOT EXISTS proposed_land_use VARCHAR(150),
     ADD COLUMN IF NOT EXISTS territorial_data_origin VARCHAR(16) NOT NULL DEFAULT 'declared';
+
+DO $$
+BEGIN
+    ALTER TABLE projects DROP CONSTRAINT IF EXISTS projects_status_check;
+    ALTER TABLE projects ADD CONSTRAINT projects_status_check
+        CHECK (status IN ('draft','ready','evaluating','evaluated','approved','rejected','observed','error'));
+END $$;
 
 CREATE TABLE IF NOT EXISTS project_versions (
     id UUID PRIMARY KEY,
@@ -190,3 +197,29 @@ CREATE INDEX IF NOT EXISTS normative_docs_lookup_idx ON normative_documents(docu
 CREATE INDEX IF NOT EXISTS normative_docs_short_code_idx ON normative_documents(short_code);
 CREATE INDEX IF NOT EXISTS normative_docs_topic_idx ON normative_documents(topic);
 CREATE INDEX IF NOT EXISTS normative_search_actor_idx ON normative_search_logs(actor_user_id, created_at DESC);
+
+-- =========================================================
+-- Aprobacion humana formal (compuerta final del PMV1)
+-- Solo un ADMIN puede emitir el dictamen final sobre un proyecto
+-- despues de que se hayan procesado las evaluaciones automaticas.
+-- =========================================================
+CREATE TABLE IF NOT EXISTS human_approvals (
+    id UUID PRIMARY KEY,
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,
+    project_version_id UUID NOT NULL REFERENCES project_versions(id) ON DELETE RESTRICT,
+    decision VARCHAR(24) NOT NULL
+        CHECK (decision IN ('approved', 'rejected', 'observed')),
+    justification TEXT NOT NULL CHECK (length(btrim(justification)) > 0),
+    conditions TEXT,
+    decided_by_user_id UUID NOT NULL,
+    idempotency_key VARCHAR(120) NOT NULL UNIQUE,
+    decided_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT approval_observed_requires_conditions CHECK (
+        decision <> 'observed' OR (
+            NULLIF(btrim(conditions), '') IS NOT NULL
+        )
+    )
+);
+
+CREATE INDEX IF NOT EXISTS approvals_project_idx ON human_approvals(project_id, decided_at DESC);
+CREATE INDEX IF NOT EXISTS approvals_decision_idx ON human_approvals(decision, decided_at DESC);

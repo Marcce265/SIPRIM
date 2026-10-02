@@ -211,9 +211,10 @@ with (
     normativos = plat.execute(
         """SELECT count(*),
                   count(*) FILTER (WHERE has_alert = TRUE),
-                  count(DISTINCT short_code)
+                  count(DISTINCT short_code),
+                  count(*) FILTER (WHERE data_origin = 'public')
         FROM normative_documents
-        WHERE in_force = TRUE AND data_origin = 'simulated'"""
+        WHERE in_force = TRUE"""
     ).fetchone()
 
     origen_invalido = rechaza(
@@ -228,14 +229,65 @@ with (
         and normativos[0] >= 24
         and normativos[1] >= 2
         and normativos[2] >= 4
+        and normativos[3] >= 24
         and origen_invalido
     )
 
     caso(
         10,
-        "HU2.1 rol LEGAL_ADVISOR, 24 fragmentos normativos con alertas y origen restringido",
+        "HU2.1 rol LEGAL_ADVISOR, 24 fragmentos normativos reales (public) con alertas y origen restringido",
         p10_ok,
-        f"legal={legal_role}, fragmentos={normativos[0]}, alertas={normativos[1]}, grupos={normativos[2]}, rechazo={origen_invalido}",
+        f"legal={legal_role}, fragmentos={normativos[0]}, alertas={normativos[1]}, grupos={normativos[2]}, publicos={normativos[3]}, rechazo={origen_invalido}",
+    )
+
+    # 11. Compuerta formal de aprobacion humana: restricciones e integridad
+    obs_sin_cond = rechaza(
+        plat,
+        """INSERT INTO human_approvals
+        (id, project_id, project_version_id, decision, justification, conditions,
+         decided_by_user_id, idempotency_key)
+        SELECT gen_random_uuid(), p.id, pv.id, 'observed', 'Sin condiciones requeridas', NULL,
+               p.created_by_user_id, 'appr-err-obs'
+        FROM projects p JOIN project_versions pv ON pv.project_id=p.id
+        WHERE p.code='PRY-A' AND pv.version_number=1""",
+    )
+    decision_invalida = rechaza(
+        plat,
+        """INSERT INTO human_approvals
+        (id, project_id, project_version_id, decision, justification, conditions,
+         decided_by_user_id, idempotency_key)
+        SELECT gen_random_uuid(), p.id, pv.id, 'decision_falsa', 'Justificacion de prueba', NULL,
+               p.created_by_user_id, 'appr-err-dec'
+        FROM projects p JOIN project_versions pv ON pv.project_id=p.id
+        WHERE p.code='PRY-A' AND pv.version_number=1""",
+    )
+
+    vista_aprob_ok = False
+    vista_proy_ok = False
+    try:
+        with plat.transaction():
+            plat.execute(
+                """INSERT INTO human_approvals
+                (id, project_id, project_version_id, decision, justification, conditions,
+                 decided_by_user_id, idempotency_key)
+                SELECT gen_random_uuid(), p.id, pv.id, 'approved', 'Aprobado formalmente por Administrador', NULL,
+                       p.created_by_user_id, 'appr-prueba-transaccion'
+                FROM projects p JOIN project_versions pv ON pv.project_id=p.id
+                WHERE p.code='PRY-A' AND pv.version_number=1"""
+            )
+            plat.execute("UPDATE projects SET status='approved' WHERE code='PRY-A'")
+            vista_aprob_ok = plat.execute("SELECT count(*) FROM vista_aprobaciones_humanas").fetchone()[0] >= 1
+            vista_proy_ok = plat.execute("SELECT estado FROM vista_proyectos WHERE codigo='PRY-A'").fetchone()[0] == "Aprobado"
+            raise psycopg.Rollback()
+    except psycopg.Rollback:
+        pass
+
+    p11_ok = bool(obs_sin_cond and decision_invalida and vista_aprob_ok and vista_proy_ok)
+    caso(
+        11,
+        "Compuerta de aprobacion humana: rechaza observed sin condiciones, valida decisiones y proyecta estado",
+        p11_ok,
+        f"rechazo_obs_invalido={obs_sin_cond}, rechazo_decision={decision_invalida}, vistas_ok={vista_aprob_ok and vista_proy_ok}",
     )
 
     print(f"\nResultado: {sum(resultados)} de {len(resultados)} pruebas pasaron")

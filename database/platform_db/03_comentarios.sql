@@ -108,3 +108,14 @@ COMMENT ON COLUMN normative_search_logs.document_filter IS 'Filtro por documento
 COMMENT ON COLUMN normative_search_logs.results_count IS 'Cantidad de fragmentos devueltos';
 COMMENT ON COLUMN normative_search_logs.idempotency_key IS 'Clave de idempotencia para evitar duplicar el registro de busqueda';
 COMMENT ON COLUMN normative_search_logs.created_at IS 'Fecha y hora de la consulta';
+
+COMMENT ON TABLE human_approvals IS 'Dictamen humano formal: compuerta final antes de cerrar un expediente del PMV1';
+COMMENT ON COLUMN human_approvals.id IS 'Identificador unico de la aprobacion';
+COMMENT ON COLUMN human_approvals.project_id IS 'Proyecto evaluado';
+COMMENT ON COLUMN human_approvals.project_version_id IS 'Version exacta del expediente sobre la que se emite el dictamen';
+COMMENT ON COLUMN human_approvals.decision IS 'Dictamen: approved=aprobado, rejected=rechazado, observed=observado';
+COMMENT ON COLUMN human_approvals.justification IS 'Justificacion obligatoria del dictamen humano';
+COMMENT ON COLUMN human_approvals.conditions IS 'Condiciones de la aprobacion u observaciones pendientes (obligatorio si decision=observed)';
+COMMENT ON COLUMN human_approvals.decided_by_user_id IS 'Administrador que emitio el dictamen (referencia a auth_db)';
+COMMENT ON COLUMN human_approvals.idempotency_key IS 'Clave para no duplicar el mismo dictamen';
+COMMENT ON COLUMN human_approvals.decided_at IS 'Fecha y hora del dictamen';

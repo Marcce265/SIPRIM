@@ -49,18 +49,41 @@ La tabla es una solicitud/proyección de plataforma, no un agente jurídico ni u
 GIS. El corpus PDU/PDM y el servicio RAG pertenecen al incremento posterior
 descrito por el documento maestro.
 
-## Extensión HU2.1
+## Extensión HU2.1 y Corpus Legal Real
 
 `auth_db` añade el rol `LEGAL_ADVISOR` (`00000000-0000-4000-a000-000000000003`)
 y el usuario de prueba `legal@siprim.test`.
 
-`platform_db` incorpora el catálogo `normative_documents` con los 24 fragmentos
-versionados de la Prueba de Concepto correspondientes a cuatro normas base (Ley 27972,
-D.L. 1252, Ley 32069 y PDU/PDM Huancayo-El Tambo). Solo los fragmentos `PDUPDM-02`
-y `PDUPDM-04` activan alertas normativas (`has_alert=TRUE`), obligando a marcar
-`requires_human_review=TRUE`.
+`platform_db` incorpora el catálogo `normative_documents` con 24 fragmentos normativos
+con texto legal real y verificable (`data_origin='public'`) extraídos de fuentes oficiales
+peruanas (leyes.congreso.gob.pe, busquedas.elperuano.pe, spij.minjus.gob.pe, munihuancayo.gob.pe):
+- **Ley N.° 27972** (Ley Orgánica de Municipalidades): Arts. 5, 6, 9, 20, 53, 73, 79, 80, 97.
+- **D. L. N.° 1252** (Invierte.pe / TUO D.S. 242-2018-EF): Arts. 1, 3, 4, 5, 8.
+- **Ley N.° 32069** (Ley General de Contrataciones Públicas): Arts. 5, 41, 46, 53, 54, 63, 64, 76, 84.
+- **PDM Huancayo 2017-2037** (O.M. N.° 636-2020-MPH/CM): Zonificación, incompatibilidad, aportes RNE TH.010, riesgos SINAGERD, sistema vial y Ley DUS 31313.
+
+Los fragmentos `PDUPDM-02` y `PDUPDM-04` activan alertas normativas (`has_alert=TRUE`),
+obligando a marcar `requires_human_review=TRUE`.
 
 Las consultas realizadas se auditan de forma idempotente en `normative_search_logs`
 (con clave única `idempotency_key`), vinculándose con `audit_events` bajo el evento
-`NORMATIVE_SEARCH_PERFORMED`. Se agregan además las vistas en español
-`vista_fuentes_normativas` y `vista_busquedas_normativas`.
+`NORMATIVE_SEARCH_PERFORMED`. Se agregan las vistas `vista_fuentes_normativas` y
+`vista_busquedas_normativas`.
+
+## Compuerta Formal de Aprobación Humana (Cierre del PMV1)
+
+Para garantizar la supervisión humana (*Human-in-the-Loop*), el resultado técnico de
+los agentes y prevalidaciones no cierra automáticamente el expediente. Se incorpora la
+tabla `human_approvals` en `platform_db`:
+
+- **Restricción de flujo:** Solo proyectos con evaluación técnica finalizada (`status = 'evaluated'`)
+  pueden recibir un dictamen humano formal.
+- **Decisiones permitidas:** `approved`, `rejected` u `observed`.
+- **Condiciones obligatorias:** Si el dictamen es `observed`, la base exige registrar
+  condiciones/observaciones pendientes (`CHECK approval_observed_requires_conditions`).
+- **Rol exclusivo:** Solo el rol `ADMIN` puede emitir el dictamen formal.
+- **Idempotencia y trazabilidad:** Toda decisión usa `Idempotency-Key` único y registra
+  evento de auditoría `PROJECT_HUMAN_APPROVAL_RECORDED`.
+- **Actualización de ciclo de vida:** Al emitirse el dictamen, `projects.status` se actualiza
+  a `approved`, `rejected` u `observed`.
+- **Vistas en español:** `vista_aprobaciones_humanas` y actualización de `vista_proyectos`.
