@@ -3,7 +3,7 @@ import { PMV1_ROADMAP } from './constants'
 export function RoadmapPanel() {
   return (
     <aside className="roadmap-panel" aria-labelledby="roadmap-title">
-      <h2 id="roadmap-title">Hoja de ruta PMV1</h2>
+      <h2 id="roadmap-title">Funciones del sistema</h2>
       <p className="roadmap-intro">
         Esta interfaz implementa la carga única del expediente para distribuirlo luego entre
         los agentes especialistas. Las siguientes capacidades dependen del backend y de

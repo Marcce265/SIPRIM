@@ -3,7 +3,7 @@ import { apiFetch } from './client'
 
 export async function checkHealth(): Promise<boolean> {
   try {
-    const data = await apiFetch<{ status?: string }>('/health')
+    const data = await apiFetch<{ status?: string }>('/health', { timeoutMs: 8000 })
     return data.status === 'ok'
   } catch {
     return false

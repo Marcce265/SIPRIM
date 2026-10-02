@@ -23,7 +23,7 @@ export function HomePage() {
             Cargar expediente
           </Link>
           <Link to="/consultar" className="btn btn-secondary">
-            Consultar por ID
+            Consultar por UUID
           </Link>
         </div>
         <ul className="hero-stats" aria-label="Beneficios clave">
@@ -49,8 +49,7 @@ export function HomePage() {
           <section className="recientes" aria-labelledby="recientes-title">
             <h2 id="recientes-title">Expedientes recientes en este navegador</h2>
             <p className="recientes-note">
-              El backend aún no expone un listado general; aquí se muestran los proyectos
-              registrados o consultados desde esta computadora.
+              Expedientes consultados recientemente en este equipo.
             </p>
             <div className="recientes-list">
               {recientes.map((p) => (

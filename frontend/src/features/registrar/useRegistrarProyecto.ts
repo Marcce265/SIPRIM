@@ -1,14 +1,23 @@
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { registrarProyecto } from '../../api/proyectos.api'
+import { createProject } from '../../api/pmv1.api'
 import type { ProyectoCreate } from '../../types/proyecto'
-import { rememberProject } from '../../utils/recentProjects'
 import { EMPTY_PROYECTO_FORM } from './constants'
 import {
   normalizeProyectoForm,
   validateProyecto,
   type ProyectoFieldErrors,
 } from './validateProyecto'
+
+function toProjectCode(title: string): string {
+  const base = title
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 24)
+  return base || `PROY-${Date.now().toString(36).toUpperCase()}`
+}
 
 export function useRegistrarProyecto() {
   const navigate = useNavigate()
@@ -41,10 +50,18 @@ export function useRegistrarProyecto() {
     setLoading(true)
     try {
       const payload = normalizeProyectoForm(form)
-      const res = await registrarProyecto(payload)
-      rememberProject(res.proyecto)
-      navigate(`/consultar?id=${res.proyecto.id}`, {
-        state: { mensaje: res.mensaje, proyecto: res.proyecto },
+      const project = await createProject({
+        code: toProjectCode(payload.nombre),
+        title: payload.nombre,
+        description: payload.descripcion,
+        location: payload.ubicacion,
+        proposed_land_use: payload.tipo_proyecto,
+        estimated_budget_pen: payload.presupuesto,
+        beneficiaries_count: payload.beneficiarios,
+      })
+
+      navigate(`/proyectos/${project.project_id}`, {
+        state: { mensaje: 'Expediente registrado correctamente.' },
       })
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'No se pudo registrar el proyecto.')

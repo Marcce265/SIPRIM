@@ -8,7 +8,9 @@ export interface ProyectoCreate {
 }
 
 export interface Proyecto extends ProyectoCreate {
-  id: number
+  id: string
+  project_version_id?: string
+  codigo?: string
   estado: string
   fecha_creacion: string
 }

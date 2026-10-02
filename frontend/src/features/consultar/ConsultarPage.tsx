@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { ProyectoCard } from '../../components/proyecto/ProyectoCard'
 import { Alert } from '../../components/ui/Alert'
 import { PageHeader } from '../../components/ui/PageHeader'
@@ -17,20 +18,20 @@ export function ConsultarPage() {
     <div className="form-page">
       <PageHeader
         title="Consultar expediente"
-        description="Busque un proyecto registrado por su identificador. RF-01 · consulta individual."
+        description="Ingrese el identificador del expediente entregado al registrar el proyecto."
       />
 
       <form className="lookup-form" onSubmit={onSubmit}>
         <label className="form-field">
-          <span className="form-field-label">ID del expediente</span>
+          <span className="form-field-label">Identificador del expediente</span>
           <div className="lookup-row">
             <input
               className="form-field-input"
-              type="number"
-              min={1}
+              type="text"
               value={inputId}
               onChange={(e) => setInputId(e.target.value)}
-              placeholder="Ej. 1"
+              placeholder="Ej. 550e8400-e29b-41d4-a716-446655440000"
+              spellCheck={false}
             />
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? 'Buscando…' : 'Consultar'}
@@ -46,12 +47,14 @@ export function ConsultarPage() {
         <section className="result-section" aria-live="polite">
           <ProyectoCard proyecto={proyecto} />
           <div className="next-steps">
-            <h2>Próximos pasos (backend pendiente)</h2>
-            <ul>
-              <li>Disparo de evaluación por agentes (RF-03 a RF-07)</li>
-              <li>Consolidación y ranking de priorización (RF-08, RF-09)</li>
-              <li>Panel de expedientes en revisión y validación humana</li>
-            </ul>
+            <h2>Flujo principal</h2>
+            <p>
+              Desde el detalle puede validar, encolar evaluación económica, ejecutar prechecks y
+              (según rol) normativa RAG o aprobación humana.
+            </p>
+            <Link to={`/proyectos/${proyecto.id}`} className="btn btn-primary">
+              Continuar evaluación
+            </Link>
           </div>
         </section>
       )}

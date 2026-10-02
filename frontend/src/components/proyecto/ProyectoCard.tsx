@@ -7,16 +7,24 @@ interface ProyectoCardProps {
   compact?: boolean
 }
 
+function displayProjectId(proyecto: Proyecto): string {
+  if (proyecto.codigo) return `Código ${proyecto.codigo}`
+  const id = String(proyecto.id)
+  return id.length > 8 ? `ID ${id.slice(0, 8)}…` : `ID ${id}`
+}
+
 export function ProyectoCard({ proyecto, compact = false }: ProyectoCardProps) {
+  const estado = String(proyecto.estado ?? 'unknown')
+
   return (
     <article className={`proyecto-card ${compact ? 'compact' : ''}`}>
       <header className="proyecto-card-header">
         <div>
-          <p className="proyecto-id">Expediente #{proyecto.id}</p>
+          <p className="proyecto-id">{displayProjectId(proyecto)}</p>
           <h2 className="proyecto-nombre">{proyecto.nombre}</h2>
         </div>
-        <span className={`estado-badge estado-${proyecto.estado.toLowerCase()}`}>
-          {proyecto.estado.replace('_', ' ')}
+        <span className={`estado-badge estado-${estado.toLowerCase()}`}>
+          {estado.replace('_', ' ')}
         </span>
       </header>
 
@@ -39,15 +47,17 @@ export function ProyectoCard({ proyecto, compact = false }: ProyectoCardProps) {
           <dt>Beneficiarios</dt>
           <dd>{formatNumber(proyecto.beneficiarios)}</dd>
         </div>
-        <div className="span-full">
-          <dt>Registrado</dt>
-          <dd>{formatDate(proyecto.fecha_creacion)}</dd>
-        </div>
+        {proyecto.fecha_creacion && (
+          <div className="span-full">
+            <dt>Registrado</dt>
+            <dd>{formatDate(proyecto.fecha_creacion)}</dd>
+          </div>
+        )}
       </dl>
 
       <footer className="proyecto-card-footer">
-        <Link to={`/consultar?id=${proyecto.id}`} className="link-button">
-          Ver detalle
+        <Link to={`/proyectos/${proyecto.id}`} className="link-button">
+          Ver expediente
         </Link>
       </footer>
     </article>

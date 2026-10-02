@@ -155,9 +155,9 @@ Copy-Item .env.example .env   # si aún no tiene .env
 python database/verificar.py
 ```
 
-Con Docker, la API queda en `http://127.0.0.1:8001` por defecto para evitar
-conflictos con servidores locales que usan `8000`. Puede cambiarse mediante
-`API_PORT` en `.env`. La ejecución directa con Uvicorn conserva el puerto 8000.
+Con Docker, la API queda en `http://127.0.0.1:8000` (`API_PORT` en `.env`).
+Use **solo una** forma de levantar la API a la vez (Uvicorn local **o** contenedor
+`siprim-api`), para no ocupar el mismo puerto dos veces.
 
 En `.env`:
 

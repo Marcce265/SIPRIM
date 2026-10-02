@@ -6,9 +6,18 @@ import { ApiStatusPill } from './ApiStatusPill'
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   isActive ? 'nav-link active' : 'nav-link'
 
+function formatRoles(roles: string[]): string {
+  const labels: Record<string, string> = {
+    PLANNER: 'Planificador',
+    LEGAL_ADVISOR: 'Asesor jurídico',
+    ADMIN: 'Administrador',
+  }
+  return roles.map((r) => labels[r] ?? r).join(' · ')
+}
+
 export function Layout() {
   const apiOnline = useApiHealth()
-  const { user, logout } = useAuth()
+  const { user, logout, hasRole } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -41,6 +50,11 @@ export function Layout() {
             <NavLink to="/consultar" className={navLinkClass}>
               Consultar
             </NavLink>
+            {hasRole('LEGAL_ADVISOR') && (
+              <NavLink to="/normativa" className={navLinkClass}>
+                Normativa
+              </NavLink>
+            )}
           </nav>
           <div className="user-menu">
             <ApiStatusPill apiOnline={apiOnline} />
@@ -48,7 +62,7 @@ export function Layout() {
               <>
                 <div className="user-info">
                   <p className="user-name">{user.nombre}</p>
-                  <p className="user-role">{user.rol}</p>
+                  <p className="user-role">{formatRoles(user.roles ?? [])}</p>
                 </div>
                 <button type="button" className="btn-logout" onClick={handleLogout}>
                   Cerrar sesión
@@ -65,8 +79,8 @@ export function Layout() {
 
       <footer className="app-footer">
         <p>
-          PMV1 · Municipalidad Distrital de El Tambo · Soporte a la preevaluación
-          multidimensional (Invierte.pe)
+          Municipalidad Distrital de El Tambo · Soporte a la preevaluación de inversiones
+          (Invierte.pe)
         </p>
         <p className="footer-muted">
           Las decisiones finales permanecen en manos de las autoridades y especialistas

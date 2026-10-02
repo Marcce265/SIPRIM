@@ -2,12 +2,14 @@ import { useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Alert } from '../../components/ui/Alert'
 import { FormField } from '../../components/ui/FormField'
+import { useApiHealth } from '../../hooks/useApiHealth'
 import { useAuth } from './AuthContext'
 
 export function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const apiOnline = useApiHealth()
   const from = (location.state as { from?: string } | null)?.from ?? '/'
 
   const [email, setEmail] = useState('')
@@ -20,15 +22,16 @@ export function LoginPage() {
     setError(null)
     setLoading(true)
 
-    const message = await login({ email, password })
-    setLoading(false)
-
-    if (message) {
-      setError(message)
-      return
+    try {
+      const message = await login({ email, password })
+      if (message) {
+        setError(message)
+        return
+      }
+      navigate(from, { replace: true })
+    } finally {
+      setLoading(false)
     }
-
-    navigate(from, { replace: true })
   }
 
   return (
@@ -40,13 +43,18 @@ export function LoginPage() {
           </span>
           <div>
             <h1>SIPRIM</h1>
-            <p>Acceso al sistema de priorización municipal</p>
+            <p>Sistema de priorización de inversiones municipales</p>
           </div>
         </header>
 
-        <p className="login-context">
-          Municipalidad Distrital de El Tambo · PMV1
-        </p>
+        <p className="login-context">Municipalidad Distrital de El Tambo · Junín</p>
+
+        {apiOnline === false && (
+          <Alert variant="error">
+            El servicio no está disponible en este momento. Intente más tarde o contacte a
+            informática municipal.
+          </Alert>
+        )}
 
         <form className="login-form" onSubmit={onSubmit} noValidate>
           {error && <Alert variant="error">{error}</Alert>}
@@ -56,8 +64,8 @@ export function LoginPage() {
             type="email"
             autoComplete="username"
             value={email}
-            placeholder="planificador@eltambo.gob.pe"
             onChange={(e) => setEmail(e.target.value)}
+            placeholder="usuario@eltambo.gob.pe"
             required
           />
 
@@ -70,16 +78,20 @@ export function LoginPage() {
             required
           />
 
-          <button type="submit" className="btn btn-primary login-submit" disabled={loading}>
+          <button
+            type="submit"
+            className="btn btn-primary login-submit"
+            disabled={loading || apiOnline === false}
+          >
             {loading ? 'Ingresando…' : 'Ingresar al sistema'}
           </button>
         </form>
 
         <footer className="login-footer">
-          <p className="login-demo-hint">
-            Demo PMV1: <code>planificador@eltambo.gob.pe</code> / <code>siprim2026</code>
+          <p>
+            Acceso restringido al personal autorizado. Las credenciales las entrega la
+            municipalidad.
           </p>
-          <p>Las credenciales reales se integrarán con el backend (RNF-03).</p>
         </footer>
       </div>
     </div>

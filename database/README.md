@@ -17,6 +17,14 @@ docker compose up -d postgres redis
 Copy-Item database/.env.example .env
 ```
 
+Si Postgres ya existía con el esquema antiguo (`siprim` sin `auth_db`), inicialice PMV1 sin borrar el volumen:
+
+```powershell
+docker compose up -d postgres
+python database/ensure_pm_v1.py
+python database/verificar.py
+```
+
 La primera inicializacion aplica, en orden, los archivos `01_schema.sql`,
 `02_seed.sql`, `03_comentarios.sql` y `04_vistas_es.sql` de cada base. Para
 reaplicar de forma idempotente sobre bases ya existentes:

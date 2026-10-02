@@ -95,6 +95,30 @@
   border-radius: 0.25rem;
 }
 
+.login-accounts {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.login-account-btn {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+  padding: 0.35rem 0.5rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.login-account-btn:hover {
+  border-color: var(--color-primary);
+}
+
 .user-menu {
   display: flex;
   align-items: center;

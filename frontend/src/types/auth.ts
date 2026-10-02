@@ -1,10 +1,8 @@
-export type UserRole = 'planificador' | 'evaluador' | 'administrador'
-
 export interface AuthUser {
   id: string
   nombre: string
   email: string
-  rol: UserRole
+  roles: string[]
 }
 
 export interface AuthSession {
