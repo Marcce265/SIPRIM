@@ -41,7 +41,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET: ${JWT_SECRET:-solo-desarrollo-cambiar-en-produccion}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      AI_MODEL: ${AI_MODEL:-gemini-2.5-flash}
+      AI_MODEL: ${AI_MODEL:-gemini-3.1-flash-lite}
       AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-45}
     ports:
       - "${API_PORT:-8000}:8000"
