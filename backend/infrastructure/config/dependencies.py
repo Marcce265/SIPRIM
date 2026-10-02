@@ -1,17 +1,21 @@
 from functools import lru_cache
+from typing import Annotated, Any
 
 from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from backend.application.services.pmv1_services import AuthService, PlatformService
+from backend.application.use_cases.evaluar_cumplimiento_legal import (
+    EvaluarCumplimientoLegalUseCase,
+)
 from backend.application.use_cases.evaluar_economia_proyecto import (
     EvaluarEconomiaProyectoUseCase,
 )
 from backend.application.use_cases.evaluar_proyecto_ia import EvaluarProyectoIAUseCase
-from backend.application.use_cases.evaluar_cumplimiento_legal import (
-    EvaluarCumplimientoLegalUseCase,
-)
 from backend.application.use_cases.obtener_proyecto import ObtenerProyectoUseCase
 from backend.application.use_cases.registrar_proyecto import RegistrarProyectoUseCase
 from backend.application.use_cases.validar_proyecto import ValidarProyectoUseCase
+from backend.domain.exceptions.pmv1_exceptions import AccesoDenegadoError
 from backend.domain.ports.evaluacion_economica_repository_port import (
     EvaluacionEconomicaRepositoryPort,
 )
@@ -19,14 +23,15 @@ from backend.domain.ports.evaluacion_juridica_port import EvaluacionJuridicaPort
 from backend.domain.ports.evaluacion_juridica_repository_port import (
     EvaluacionJuridicaRepositoryPort,
 )
-from backend.domain.ports.proyecto_repository_port import ProyectoRepositoryPort
 from backend.domain.ports.ia_service_port import IAServicePort
+from backend.domain.ports.proyecto_repository_port import ProyectoRepositoryPort
 from backend.infrastructure.config.settings import get_settings
-from backend.infrastructure.output.repositories.in_memory_evaluacion_economica_repository import (
-    InMemoryEvaluacionEconomicaRepository,
-)
+from backend.infrastructure.output.broker.celery_app import CeleryTaskDispatcher
 from backend.infrastructure.output.legal.evaluacion_juridica_provisional_adapter import (
     EvaluacionJuridicaProvisionalAdapter,
+)
+from backend.infrastructure.output.repositories.in_memory_evaluacion_economica_repository import (
+    InMemoryEvaluacionEconomicaRepository,
 )
 from backend.infrastructure.output.repositories.in_memory_evaluacion_juridica_repository import (
     InMemoryEvaluacionJuridicaRepository,
@@ -154,3 +159,43 @@ def get_evaluar_proyecto_ia_use_case(
         proyecto_repository=proyecto_repository,
         ia_service=ia_service,
     )
+
+
+@lru_cache
+def get_auth_service() -> AuthService:
+    settings = get_settings()
+    return AuthService(
+        settings.auth_db_url,
+        settings.jwt_secret.get_secret_value(),
+        settings.jwt_issuer,
+        settings.jwt_audience,
+        settings.jwt_expiration_minutes,
+    )
+
+
+@lru_cache
+def get_platform_service() -> PlatformService:
+    settings = get_settings()
+    return PlatformService(settings.platform_db_url, CeleryTaskDispatcher())
+
+
+bearer = HTTPBearer(auto_error=False)
+
+
+def get_current_user(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+    auth: Annotated[AuthService, Depends(get_auth_service)],
+) -> dict[str, Any]:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        from backend.domain.exceptions.pmv1_exceptions import CredencialesInvalidasError
+
+        raise CredencialesInvalidasError("Autenticacion requerida")
+    return auth.decode(credentials.credentials)
+
+
+def require_planner(
+    user: Annotated[dict[str, Any], Depends(get_current_user)],
+) -> dict[str, Any]:
+    if "PLANNER" not in user.get("roles", []):
+        raise AccesoDenegadoError("Se requiere el rol PLANNER")
+    return user

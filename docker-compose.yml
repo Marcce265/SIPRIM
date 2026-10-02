@@ -31,5 +31,50 @@ services:
       timeout: 3s
       retries: 15
 
+  api:
+    build: .
+    container_name: siprim-api
+    restart: unless-stopped
+    environment:
+      AUTH_DB_URL: postgresql+psycopg://auth_app:auth_dev_only@postgres:5432/auth_db
+      PLATFORM_DB_URL: postgresql+psycopg://platform_app:platform_dev_only@postgres:5432/platform_db
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-solo-desarrollo-cambiar-en-produccion}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  economic-worker:
+    build: .
+    container_name: siprim-economic-worker
+    restart: unless-stopped
+    command: celery -A backend.infrastructure.output.broker.tasks:celery_app worker -Q economic --loglevel=INFO
+    environment:
+      ECONOMIC_DB_URL: postgresql+psycopg://economic_app:economic_dev_only@postgres:5432/economic_db
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  platform-worker:
+    build: .
+    container_name: siprim-platform-worker
+    restart: unless-stopped
+    command: celery -A backend.infrastructure.output.broker.tasks:celery_app worker -Q platform --beat --loglevel=INFO
+    environment:
+      PLATFORM_DB_URL: postgresql+psycopg://platform_app:platform_dev_only@postgres:5432/platform_db
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 volumes:
   siprim_pgdata:

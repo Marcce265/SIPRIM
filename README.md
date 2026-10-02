@@ -12,14 +12,15 @@ Se usa arquitectura hexagonal (puertos y adaptadores):
 
 - `domain`: entidad `Proyecto`, estado, reglas y puerto del repositorio. No depende
   de FastAPI, Pydantic ni SQLAlchemy.
-- `application`: DTOs y casos de uso para registrar y consultar proyectos.
+- `application`: DTOs, casos de uso y servicios de aplicacion del PMV1.
 - `infrastructure/input`: controladores REST de FastAPI.
 - `infrastructure/output`: repositorio en memoria y adaptador SQLAlchemy.
 - `infrastructure/config`: configuracion e inyeccion de dependencias.
 
-El flujo es `HTTP -> Controller -> Caso de uso -> Puerto -> Adaptador`. El adaptador
-en memoria es el predeterminado. PostgreSQL puede activarse sin cambiar el dominio
-ni los casos de uso.
+El flujo oficial es `HTTP -> servicio de aplicacion -> platform_db/outbox ->
+Celery/Redis -> worker economico -> economic_db -> evento completado ->
+platform_db`. Los endpoints heredados en espanol siguen disponibles para no
+romper el frontend existente, pero la ruta oficial usa UUID y las tres bases.
 
 ## Requisitos
 
@@ -145,11 +146,9 @@ tres bases logicas con propietarios separados dentro de una instancia PostgreSQL
 mas Redis como broker. Conexion rapida con Docker:
 
 ```powershell
-docker compose up -d postgres redis
+docker compose up -d --build
 Copy-Item .env.example .env   # si aún no tiene .env
-python database/simular_flujo.py
 python database/verificar.py
-uvicorn backend.main:app --reload
 ```
 
 En `.env`:
@@ -164,8 +163,18 @@ ECONOMIC_DB_URL=postgresql+psycopg://economic_app:economic_dev_only@localhost:54
 `database/schema.sql` pertenece al adaptador heredado y no sustituye los esquemas
 oficiales de `auth_db`, `platform_db` y `economic_db`.
 
-`ProyectoRepositoryPort` desacopla la aplicacion de la base de datos. El frontend
-solo consume la API; no necesita acceso directo a PostgreSQL.
+Las cuentas ficticias locales son `planner@siprim.test` y `admin@siprim.test`,
+ambas con `Prueba2026!`. No deben utilizarse fuera de desarrollo.
+
+Recorrido principal:
+
+1. `POST /api/v1/auth/login` obtiene el token del planificador.
+2. `POST /api/v1/projects` registra proyecto y version en `platform_db`.
+3. `POST /api/v1/evaluations` requiere `Idempotency-Key` y responde `202 queued`.
+4. `GET /api/v1/evaluations/{id}` expone el avance y el resultado explicable.
+
+El frontend solo consume la API; no necesita ni debe tener acceso directo a
+PostgreSQL.
 
 ## Frontend (React + Vite)
 
