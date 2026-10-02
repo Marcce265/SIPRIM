@@ -1,3 +1,4 @@
+/* oxlint-disable react/only-export-components -- el proveedor y su hook forman una API unica */
 import {
   createContext,
   useCallback,
@@ -51,15 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (message.includes('no respondió a tiempo')) {
         return (
           'El servicio de autenticación no respondió. Compruebe que la API esté en ' +
-          'http://127.0.0.1:8000/health y que PostgreSQL (auth_db) esté disponible ' +
-          'según la guía del backend; el frontend solo consume la API oficial.'
+          'http://127.0.0.1:8000/health y que PostgreSQL (auth_db) esté disponible.'
         )
       }
       if (message.includes('No se pudo conectar')) {
-        return (
-          'No hay conexión con la API en el puerto 8000. Inicie el backend (Docker o uvicorn) ' +
-          'antes de iniciar sesión.'
-        )
+        return 'No hay conexión con la API en el puerto 8000. Inicie el backend antes de iniciar sesión.'
       }
       return message
     }

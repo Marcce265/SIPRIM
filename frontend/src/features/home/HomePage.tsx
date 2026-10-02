@@ -29,11 +29,11 @@ export function HomePage() {
         <ul className="hero-stats" aria-label="Beneficios clave">
           <li>
             <strong>Una sola carga</strong>
-            <span>HU1.1 · RF-01</span>
+            <span>Registro único del expediente</span>
           </li>
           <li>
-            <strong>5 dimensiones</strong>
-            <span>Agentes especialistas (roadmap)</span>
+            <strong>Evaluación conectada</strong>
+            <span>API PMV1 en puerto 8000</span>
           </li>
           <li>
             <strong>Human-in-the-loop</strong>

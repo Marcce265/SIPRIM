@@ -1,3 +1,5 @@
+export type UserRole = 'ADMIN' | 'PLANNER' | 'LEGAL_ADVISOR'
+
 export interface AuthUser {
   id: string
   nombre: string

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createProject } from '../../api/pmv1.api'
-import type { ProyectoCreate } from '../../types/proyecto'
+import type { ProjectInput } from '../../types/proyecto'
 import { EMPTY_PROYECTO_FORM } from './constants'
 import {
   normalizeProyectoForm,
@@ -21,12 +21,12 @@ function toProjectCode(title: string): string {
 
 export function useRegistrarProyecto() {
   const navigate = useNavigate()
-  const [form, setForm] = useState<ProyectoCreate>(EMPTY_PROYECTO_FORM)
+  const [form, setForm] = useState<ProjectInput>(EMPTY_PROYECTO_FORM)
   const [fieldErrors, setFieldErrors] = useState<ProyectoFieldErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const updateField = useCallback(<K extends keyof ProyectoCreate>(key: K, value: ProyectoCreate[K]) => {
+  const updateField = useCallback(<K extends keyof ProjectInput>(key: K, value: ProjectInput[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
     setFieldErrors((prev) => {
       const next = { ...prev }
@@ -54,8 +54,8 @@ export function useRegistrarProyecto() {
         code: toProjectCode(payload.nombre),
         title: payload.nombre,
         description: payload.descripcion,
-        location: payload.ubicacion,
-        proposed_land_use: payload.tipo_proyecto,
+        location: 'El Tambo - Huancayo',
+        proposed_land_use: 'Infraestructura urbana',
         estimated_budget_pen: payload.presupuesto,
         beneficiaries_count: payload.beneficiarios,
       })

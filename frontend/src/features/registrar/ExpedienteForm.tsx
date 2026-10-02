@@ -1,18 +1,19 @@
 import type { FormEvent } from 'react'
 import { Alert } from '../../components/ui/Alert'
 import { FormField } from '../../components/ui/FormField'
-import type { ProyectoCreate } from '../../types/proyecto'
-import { TIPOS_PROYECTO_SUGERIDOS } from './constants'
+import type { ProjectInput } from '../../types/proyecto'
 import type { ProyectoFieldErrors } from './validateProyecto'
 
 interface ExpedienteFormProps {
-  form: ProyectoCreate
+  form: ProjectInput
   fieldErrors: ProyectoFieldErrors
   submitError: string | null
   loading: boolean
-  onFieldChange: <K extends keyof ProyectoCreate>(key: K, value: ProyectoCreate[K]) => void
+  onFieldChange: <K extends keyof ProjectInput>(key: K, value: ProjectInput[K]) => void
   onSubmit: () => void
   onReset: () => void
+  submitLabel?: string
+  resetLabel?: string
 }
 
 export function ExpedienteForm({
@@ -23,6 +24,8 @@ export function ExpedienteForm({
   onFieldChange,
   onSubmit,
   onReset,
+  submitLabel = 'Guardar proyecto',
+  resetLabel = 'Limpiar formulario',
 }: ExpedienteFormProps) {
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
@@ -57,29 +60,6 @@ export function ExpedienteForm({
         />
 
         <FormField
-          label="Ubicación territorial *"
-          value={form.ubicacion}
-          maxLength={300}
-          placeholder="Ej. El Tambo - Huancayo"
-          error={fieldErrors.ubicacion}
-          onChange={(e) => onFieldChange('ubicacion', e.target.value)}
-        />
-
-        <FormField
-          label="Tipo de proyecto *"
-          list="tipos-proyecto"
-          value={form.tipo_proyecto}
-          maxLength={150}
-          error={fieldErrors.tipo_proyecto}
-          onChange={(e) => onFieldChange('tipo_proyecto', e.target.value)}
-        />
-        <datalist id="tipos-proyecto">
-          {TIPOS_PROYECTO_SUGERIDOS.map((tipo) => (
-            <option key={tipo} value={tipo} />
-          ))}
-        </datalist>
-
-        <FormField
           label="Presupuesto estimado (S/) *"
           type="number"
           min={0}
@@ -108,10 +88,10 @@ export function ExpedienteForm({
 
       <div className="form-actions">
         <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? 'Registrando…' : 'Registrar expediente'}
+          {loading ? 'Guardando…' : submitLabel}
         </button>
         <button type="button" className="btn btn-ghost" onClick={onReset}>
-          Limpiar formulario
+          {resetLabel}
         </button>
       </div>
     </form>

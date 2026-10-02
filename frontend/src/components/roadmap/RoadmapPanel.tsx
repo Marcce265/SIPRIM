@@ -5,9 +5,8 @@ export function RoadmapPanel() {
     <aside className="roadmap-panel" aria-labelledby="roadmap-title">
       <h2 id="roadmap-title">Funciones del sistema</h2>
       <p className="roadmap-intro">
-        Esta interfaz implementa la carga única del expediente para distribuirlo luego entre
-        los agentes especialistas. Las siguientes capacidades dependen del backend y de
-        historias posteriores.
+        Capacidades conectadas a la API PMV1. Las marcadas como posteriores corresponden al
+        roadmap del producto completo.
       </p>
       <ul className="roadmap-list">
         {PMV1_ROADMAP.map((item) => (

@@ -2,9 +2,8 @@
 
 Interfaz web del PMV1 (React 19 + Vite + TypeScript).
 
-**Enfoque del equipo:** el contrato y la lógica viven en el **backend** (`/api/v1`, auth_db, etc.).
+**Enfoque:** el contrato y la lógica viven en el **backend** (`/api/v1`, auth_db, etc.).
 Este frontend **solo se adapta** a esa API (proxy, JWT, roles, timeouts y mensajes al usuario).
-No se modifican servicios Python salvo acuerdo explícito con backend.
 
 API de desarrollo: **http://127.0.0.1:8000**
 
@@ -19,27 +18,30 @@ Abrir `http://localhost:5173`. Vite envía `/api` y `/health` a `http://127.0.0.
 
 ### Backend requerido (puerto 8000)
 
-Opción A — API local:
-
 ```powershell
 cd ..   # raíz del repo
-docker compose up -d postgres redis
-.\.venv\Scripts\activate
-python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
+docker compose up -d postgres redis api
+# o: uvicorn local (ver README raíz)
 ```
 
-Opción B — API en Docker (mismo puerto 8000 en el host):
+Compruebe: `http://127.0.0.1:8000/health` → `{"status":"ok"}`.
 
-```powershell
-cd ..   # raíz del repo
-docker compose up -d --build
-```
+Si el login devuelve **500**, ejecute en la raíz: `python database/ensure_pm_v1.py` y reinicie la API.
 
-Compruebe: `http://127.0.0.1:8000/health` debe responder `{"status":"ok"}`.
+No defina `VITE_API_BASE_URL` en desarrollo salvo despliegue separado.
 
-Si el login devuelve **500**, suele faltar `auth_db` en Postgres (contenedor antiguo). Desde la raíz del repo: `python database/ensure_pm_v1.py` y reinicie la API.
+## Rutas principales
 
-No defina `VITE_API_BASE_URL` en desarrollo salvo despliegue separado; el proxy de Vite ya apunta a 8000.
+| Ruta | Descripción |
+|------|-------------|
+| `/login` | Autenticación JWT |
+| `/registrar` | `POST /api/v1/projects` |
+| `/consultar` | `GET /api/v1/projects/{uuid}` |
+| `/proyectos/:id` | Validación, evaluación, prechecks |
+| `/normativa` | Búsqueda RAG (rol `LEGAL_ADVISOR`) |
+| `/proyectos/:id/aprobacion` | Dictamen humano (rol `ADMIN`) |
+
+La carpeta `src/simulation/` queda del merge con demo local; el flujo oficial usa la API anterior.
 
 ## Scripts
 

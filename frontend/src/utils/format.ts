@@ -6,6 +6,15 @@ export function formatCurrency(value: number): string {
   }).format(value)
 }
 
+export function formatCurrencyPrecise(value: number): string {
+  return new Intl.NumberFormat('es-PE', {
+    style: 'currency',
+    currency: 'PEN',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
 export function formatDate(iso: string): string {
   return new Intl.DateTimeFormat('es-PE', {
     dateStyle: 'medium',

@@ -9,15 +9,12 @@ export function loadAuthSession(): AuthSession | null {
     const parsed = JSON.parse(raw) as AuthSession
     const user = parsed?.user
     if (!user?.email || !Array.isArray(user.roles)) {
-      // Sesión demo antigua (campo "rol") o datos corruptos — forzar login de nuevo
       clearAuthSession()
-      clearAccessToken()
       return null
     }
     return parsed
   } catch {
     clearAuthSession()
-    clearAccessToken()
     return null
   }
 }
