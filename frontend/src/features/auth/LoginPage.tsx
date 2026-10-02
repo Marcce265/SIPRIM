@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Alert } from '../../components/ui/Alert'
 import { FormField } from '../../components/ui/FormField'
+import { getDemoCredentials } from '../../simulation/demoUsers'
+import type { UserRole } from '../../types/auth'
 import { useAuth } from './AuthContext'
 
 export function LoginPage() {
@@ -31,6 +33,19 @@ export function LoginPage() {
     navigate(from, { replace: true })
   }
 
+  const accessAs = async (role: UserRole) => {
+    setError(null)
+    setLoading(true)
+    const credentials = getDemoCredentials(role)
+    const message = await login(credentials)
+    setLoading(false)
+    if (message) {
+      setError(message)
+      return
+    }
+    navigate(from, { replace: true })
+  }
+
   return (
     <div className="login-page">
       <div className="login-card">
@@ -45,8 +60,26 @@ export function LoginPage() {
         </header>
 
         <p className="login-context">
-          Municipalidad Distrital de El Tambo · PMV1
+          Taller de Proyectos · PMV 1
         </p>
+
+        <div className="demo-mode-callout">
+          <strong>Modo demostración</strong>
+          <span>Seleccione un perfil para recorrer la simulación sin backend.</span>
+        </div>
+
+        <div className="profile-buttons" aria-label="Perfiles de demostración">
+          <button type="button" onClick={() => accessAs('PLANNER')} disabled={loading}>
+            <strong>Planificador</strong>
+            <span>Registra, edita y evalúa proyectos</span>
+          </button>
+          <button type="button" onClick={() => accessAs('ADMIN')} disabled={loading}>
+            <strong>Administrador</strong>
+            <span>Configura umbrales económicos</span>
+          </button>
+        </div>
+
+        <div className="login-divider"><span>o ingrese las credenciales demo</span></div>
 
         <form className="login-form" onSubmit={onSubmit} noValidate>
           {error && <Alert variant="error">{error}</Alert>}
@@ -56,7 +89,7 @@ export function LoginPage() {
             type="email"
             autoComplete="username"
             value={email}
-            placeholder="planificador@eltambo.gob.pe"
+            placeholder="planificador@siprim.demo"
             onChange={(e) => setEmail(e.target.value)}
             required
           />
@@ -76,10 +109,8 @@ export function LoginPage() {
         </form>
 
         <footer className="login-footer">
-          <p className="login-demo-hint">
-            Demo PMV1: <code>planificador@eltambo.gob.pe</code> / <code>siprim2026</code>
-          </p>
-          <p>Las credenciales reales se integrarán con el backend (RNF-03).</p>
+          <p className="login-demo-hint">Contraseña de ambos perfiles: <code>demo2026</code></p>
+          <p>No se almacenan contraseñas ni tokens en <code>localStorage</code>. Esto no representa autenticación real del servidor.</p>
         </footer>
       </div>
     </div>

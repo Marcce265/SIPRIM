@@ -1,4 +1,4 @@
-export type UserRole = 'planificador' | 'evaluador' | 'administrador'
+export type UserRole = 'ADMIN' | 'PLANNER'
 
 export interface AuthUser {
   id: string
@@ -8,7 +8,8 @@ export interface AuthUser {
 }
 
 export interface AuthSession {
-  user: AuthUser
+  schemaVersion: 1
+  userId: string
   loggedInAt: string
 }
 

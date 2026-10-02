@@ -1,12 +1,13 @@
+/* oxlint-disable react/set-state-in-effect -- adaptador HTTP heredado, fuera del flujo PMV 1 */
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { obtenerProyecto } from '../../api/proyectos.api'
-import type { Proyecto } from '../../types/proyecto'
+import type { LegacyProyecto } from '../../types/proyecto'
 import { rememberProject } from '../../utils/recentProjects'
 
 export interface ConsultarLocationState {
   mensaje?: string
-  proyecto?: Proyecto
+  proyecto?: LegacyProyecto
 }
 
 export function useConsultarProyecto() {
@@ -16,7 +17,7 @@ export function useConsultarProyecto() {
 
   const idFromUrl = searchParams.get('id')
   const [inputId, setInputId] = useState(idFromUrl ?? '')
-  const [proyecto, setProyecto] = useState<Proyecto | null>(state.proyecto ?? null)
+  const [proyecto, setProyecto] = useState<LegacyProyecto | null>(state.proyecto ?? null)
   const [successMsg, setSuccessMsg] = useState<string | null>(state.mensaje ?? null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)

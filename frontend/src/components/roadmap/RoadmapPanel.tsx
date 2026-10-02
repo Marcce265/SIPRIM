@@ -3,11 +3,11 @@ import { PMV1_ROADMAP } from './constants'
 export function RoadmapPanel() {
   return (
     <aside className="roadmap-panel" aria-labelledby="roadmap-title">
-      <h2 id="roadmap-title">Hoja de ruta PMV1</h2>
+      <h2 id="roadmap-title">Alcance de la demostración</h2>
       <p className="roadmap-intro">
-        Esta interfaz implementa la carga única del expediente para distribuirlo luego entre
-        los agentes especialistas. Las siguientes capacidades dependen del backend y de
-        historias posteriores.
+        El PMV 1 ejecuta un cálculo económico real dentro del navegador. Las capacidades
+        marcadas como posteriores pertenecen a la arquitectura objetivo y no generan
+        resultados en esta demostración.
       </p>
       <ul className="roadmap-list">
         {PMV1_ROADMAP.map((item) => (

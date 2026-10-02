@@ -1,20 +1,22 @@
-# Modelo completo de bases de datos — PMV 1
+# Modelo de bases separadas — arquitectura objetivo e integración experimental
 
 **Proyecto:** Sistema multiagente para la priorización de proyectos de inversión municipal  
-**Versión:** 1.0 · **Fecha:** 25/09/2026 · **Motor:** PostgreSQL 16+ · **Ámbito:** datos de prueba  
+**Versión:** 1.1 · **Fecha:** 02/10/2026 · **Motor:** PostgreSQL 16+ · **Ámbito:** datos de prueba
 **Referencia visual:** diagrama de bases separadas por microservicio aportado por el equipo (sistema clínico). Esta propuesta modela el proyecto municipal, no reutiliza sus entidades clínicas.
 
-## 1. Decisión de arquitectura
+> **Decisión de alcance vigente:** el PMV 1 del curso se demuestra íntegramente en el frontend con persistencia local y un agente económico simulado que ejecuta cálculos reales. Este documento conserva el diseño de bases separadas y describe la integración backend ya presente en el repositorio, pero levantarla no es requisito para terminar ni presentar la simulación.
 
-Para cumplir el PMV 1 con **un agente económico funcionando realmente**, se despliegan tres microservicios. Cada uno es dueño exclusivo de una base lógica. Las tres bases pueden alojarse en **un solo contenedor PostgreSQL** con tres usuarios propietarios distintos. Esto evita confundir separación de datos con compra de tres servidores.
+## 1. Arquitectura objetivo
 
-| Servicio | Responsabilidad PMV 1 | Base exclusiva | Tablas |
+Para una integración posterior con **un agente económico desplegado como proceso**, se proponen tres responsabilidades y tres bases lógicas. Las tres bases pueden alojarse en **un solo contenedor PostgreSQL** con propietarios distintos. Esto evita confundir separación de datos con compra de tres servidores.
+
+| Servicio objetivo | Responsabilidad de integración | Base exclusiva | Tablas |
 |---|---|---|---|
 | `ms-auth` | Login, roles, tokens y cuentas de prueba. | `auth_db` | `users`, `roles`, `user_roles`, `refresh_sessions` |
 | `ms-platform` | Proyectos y versiones, criterios, evaluaciones, estados, proyección del resultado, auditoría, publicación fiable. Orquesta **un** agente. | `platform_db` | `projects`, `project_versions`, `criteria_versions`, `criterion_weights`, `evaluations`, `economic_result_projections`, `audit_events`, `outbox_events`, `inbox_events` |
 | `ms-economic` | Procesar una solicitud económica, validar entradas, calcular costo por beneficiario y puntuación explicable. | `economic_db` | `economic_assessments`, `assessment_metrics`, `processed_requests` |
 
-**Componentes sin base relacional propia:** `web` es interfaz; Redis es broker Celery y no fuente de verdad. El gateway, si se usa, es proxy y no necesita base. LangGraph/HITL, RAG/Qdrant y los otros cuatro agentes corresponden a entregas posteriores. En este PMV 1, `ms-platform` realiza una orquestación simple por estados. Una entidad `evaluation` **no implica** que LangGraph ya esté implementado.
+**PMV 1 frontend:** `web` usa un repositorio de simulación con esquema versionado en `localStorage`. Redis no participa y no se simula como fuente de verdad. **Integración experimental existente:** el repositorio también contiene FastAPI, tres bases lógicas, Redis/Celery, un worker económico y un worker de plataforma. `ms-auth` no está desplegado como proceso independiente: la API actual contiene autenticación y plataforma. LangGraph/HITL, RAG/Qdrant y los otros agentes no forman parte del PMV 1.
 
 **Regla de propiedad:** solo `ms-auth` escribe `auth_db`; solo `ms-platform` escribe `platform_db`; solo `ms-economic` escribe `economic_db`. Los servicios no realizan `JOIN` ni `FOREIGN KEY` entre bases y no comparten credenciales de escritura. Los identificadores ajenos viajan en contratos de API/eventos y se guardan como UUID con nombre explícito.
 
@@ -75,7 +77,7 @@ erDiagram
     }
 ```
 
-**Permisos PMV 1:** `ADMIN` configura pesos y usuarios; `PLANNER` crea proyectos e inicia evaluaciones. Un futuro rol `AUDITOR` se agregará cuando exista pantalla de consulta histórica. En PMV 1 hay auditoría técnica de acciones aun sin rol dedicado.
+**Simulación PMV 1:** `ADMIN` edita y activa umbrales económicos; `PLANNER` crea y versiona proyectos e inicia evaluaciones. Son permisos de interfaz, no autorización real de servidor. La administración de usuarios, pesos multidimensionales y el rol `AUDITOR` pertenecen a la arquitectura objetivo.
 
 ## 4. Diagrama ER — `ms-platform` / `platform_db`
 
@@ -215,7 +217,7 @@ Los UUID de `evaluation_id`, `project_version_id` y `criteria_version_id` provie
 3. `POST /evaluations` valida presupuesto `> 0`, beneficiarios `> 0` y configuración activa. En **una transacción local** inserta `evaluations(status=queued)` y `outbox_events(event_type=EconomicEvaluationRequested)` con ID de evento estable.
 4. Publicador de `ms-platform` lee outbox no publicado y envía a Redis/Celery; marca `published_at` tras confirmar publicación. Puede publicar dos veces si cae entre ambos pasos: el consumidor debe tolerarlo.
 5. `ms-economic` recibe mensaje, verifica `event_id` en `processed_requests` y `evaluation_id` único, calcula y en **su propia transacción** escribe `economic_assessments`, `assessment_metrics`, `processed_requests`. Si es repetido, devuelve el resultado existente.
-6. `ms-economic` publica `EconomicEvaluationCompleted` con `event_id`, `evaluation_id`, `economic_assessment_id`, costo por beneficiario, puntuación, explicación y versión de algoritmo. Para este PMV 1 el evento puede enviarse tras confirmar su transacción con reintento idempotente; para garantía ante caída exacta de publicación, añadir **outbox propia** al agente antes de afirmar entrega garantizada.
+6. `ms-economic` publica `EconomicEvaluationCompleted` con `event_id`, `evaluation_id`, `economic_assessment_id`, costo por beneficiario, puntuación, explicación y versión de algoritmo. En la integración experimental actual el evento puede enviarse tras confirmar su transacción con reintento idempotente; para garantía ante caída exacta de publicación, añadir **outbox propia** al agente antes de afirmar entrega garantizada.
 7. `ms-platform` usa `inbox_events(event_id)` e inserta o actualiza `economic_result_projections`, `evaluations(status=completed)` y `audit_events` en una transacción. Un evento duplicado no repite el cambio.
 
 **Contrato de solicitud (JSON de ejemplo):**
@@ -480,9 +482,9 @@ flowchart TB
     end
 ```
 
-`DB1`, `DB2` y `DB3` son **bases lógicas dentro de un mismo PostgreSQL** en PMV 1. No son tres servidores. Para impedir lectura cruzada, crear propietarios y permisos reales: el aislamiento no se cumple si todos reciben la contraseña `postgres`.
+`DB1`, `DB2` y `DB3` son **bases lógicas dentro de un mismo PostgreSQL** en la integración experimental. No son tres servidores ni se requieren para la simulación PMV 1. Para impedir lectura cruzada, crear propietarios y permisos reales: el aislamiento no se cumple si todos reciben la contraseña `postgres`.
 
-## 11. Pruebas de aceptación del modelo
+## 11. Pruebas de aceptación de la integración objetivo
 
 1. Login `ADMIN` permite configurar criterios; `PLANNER` obtiene 403 al intentarlo.
 2. Se crean proyecto A y B, cada uno con versión 1. A: S/ 120 000 y 600 personas; B: S/ 90 000 y 300 personas.
@@ -495,8 +497,10 @@ flowchart TB
 9. Reiniciar los tres servicios y Redis conserva proyectos, evaluaciones y resultados; publicar un evento pendiente de outbox completa el flujo.
 10. Credenciales de `ms-economic` no permiten leer `platform_db` ni `auth_db`; el worker funciona solo con el mensaje y su base.
 
-## 12. Relación con el documento maestro y próximos incrementos
+## 12. Relación con el PMV 1 y próximos incrementos
 
-Este diseño desarrolla exclusivamente el **PMV 1** del documento maestro. Mantiene RF01, RF02, RF04, RF05, RF06, RF07, RF17 y RF18 en el grado indicado por las historias HU01–HU03, HU05, HU07, HU09–HU11 y HU32. El resultado económico detallado vive en `ms-economic`; `ms-platform` conserva su proyección y auditoría. Esto **precisa** la decisión previa de usar inicialmente una sola base de plataforma: por solicitud actual, el PMV 1 tendrá bases separadas y propiedad estricta.
+La simulación PMV 1 cubre RF01 parcialmente mediante perfiles de interfaz; RF02 con criterios versionados; RF04–RF05 con proyectos y versiones; RF06–RF07/RF18 con estados y cálculo económico simulado; y RF17 parcialmente con historial local. Sus datos viven en el navegador y cada evaluación conserva snapshots.
+
+El backend existente implementa una parte importante de esta arquitectura objetivo: `auth_db`, `platform_db`, `economic_db`, outbox/inbox, tareas Celery y proyección del resultado. Se conserva como integración experimental. No debe afirmarse que sus tres responsabilidades ya sean tres microservicios independientes ni que las pruebas frontend dependan de esa infraestructura.
 
 En PMV 2, los agentes social, ambiental, técnico y jurídico pueden adoptar contratos equivalentes. **Crear una base por agente solo cuando ese agente sea servicio autónomo**; mientras sea módulo dentro de un worker compartido, mantener propiedad del worker. En HITL se añadirán revisiones y checkpoints a la base del dueño de la orquestación; Qdrant será índice de búsqueda, no base transaccional maestra. Antes de añadirlos, actualizar diagramas, migraciones y contratos de eventos.

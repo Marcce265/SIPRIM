@@ -9,8 +9,8 @@ export function RegistrarPage() {
   return (
     <div className="form-page">
       <PageHeader
-        title="Cargar expediente del proyecto"
-        description="Complete el expediente básico (HU1.1). Los datos se almacenan en el backend para futuras evaluaciones por agentes especialistas."
+        title="Registrar proyecto"
+        description="Complete los datos mínimos del PMV 1. Se guardarán localmente en este navegador. HU05, HU07."
       />
       <ExpedienteForm
         form={form}
@@ -20,6 +20,7 @@ export function RegistrarPage() {
         onFieldChange={updateField}
         onSubmit={submit}
         onReset={resetForm}
+        submitLabel="Registrar proyecto"
       />
     </div>
   )

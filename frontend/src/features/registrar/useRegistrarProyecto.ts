@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { registrarProyecto } from '../../api/proyectos.api'
-import type { ProyectoCreate } from '../../types/proyecto'
-import { rememberProject } from '../../utils/recentProjects'
+import { simulationRepository } from '../../simulation/repository'
+import type { ProjectInput } from '../../types/proyecto'
+import { useAuth } from '../auth/AuthContext'
 import { EMPTY_PROYECTO_FORM } from './constants'
 import {
   normalizeProyectoForm,
@@ -12,12 +12,13 @@ import {
 
 export function useRegistrarProyecto() {
   const navigate = useNavigate()
-  const [form, setForm] = useState<ProyectoCreate>(EMPTY_PROYECTO_FORM)
+  const { user } = useAuth()
+  const [form, setForm] = useState<ProjectInput>(EMPTY_PROYECTO_FORM)
   const [fieldErrors, setFieldErrors] = useState<ProyectoFieldErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const updateField = useCallback(<K extends keyof ProyectoCreate>(key: K, value: ProyectoCreate[K]) => {
+  const updateField = useCallback(<K extends keyof ProjectInput>(key: K, value: ProjectInput[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
     setFieldErrors((prev) => {
       const next = { ...prev }
@@ -41,17 +42,17 @@ export function useRegistrarProyecto() {
     setLoading(true)
     try {
       const payload = normalizeProyectoForm(form)
-      const res = await registrarProyecto(payload)
-      rememberProject(res.proyecto)
-      navigate(`/consultar?id=${res.proyecto.id}`, {
-        state: { mensaje: res.mensaje, proyecto: res.proyecto },
+      if (!user) throw new Error('Sesión de demostración no disponible.')
+      const project = simulationRepository.createProject(payload, user)
+      navigate(`/proyectos/${project.id}`, {
+        state: { mensaje: 'Proyecto registrado. Ya puede iniciar la evaluación económica.' },
       })
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'No se pudo registrar el proyecto.')
     } finally {
       setLoading(false)
     }
-  }, [form, navigate])
+  }, [form, navigate, user])
 
   return {
     form,

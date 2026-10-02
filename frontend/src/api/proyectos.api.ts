@@ -1,4 +1,8 @@
-import type { Proyecto, ProyectoCreate, RegistrarProyectoResponse } from '../types/proyecto'
+import type {
+  LegacyProyecto,
+  LegacyProyectoCreate,
+  LegacyRegistrarProyectoResponse,
+} from '../types/proyecto'
 import { apiFetch } from './client'
 
 export async function checkHealth(): Promise<boolean> {
@@ -11,15 +15,15 @@ export async function checkHealth(): Promise<boolean> {
 }
 
 export async function registrarProyecto(
-  payload: ProyectoCreate,
-): Promise<RegistrarProyectoResponse> {
-  return apiFetch<RegistrarProyectoResponse>('/api/v1/proyectos', {
+  payload: LegacyProyectoCreate,
+): Promise<LegacyRegistrarProyectoResponse> {
+  return apiFetch<LegacyRegistrarProyectoResponse>('/api/v1/proyectos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
 }
 
-export async function obtenerProyecto(id: number): Promise<Proyecto> {
-  return apiFetch<Proyecto>(`/api/v1/proyectos/${id}`)
+export async function obtenerProyecto(id: number): Promise<LegacyProyecto> {
+  return apiFetch<LegacyProyecto>(`/api/v1/proyectos/${id}`)
 }

@@ -1,8 +1,10 @@
 # Documento maestro — Sistema multiagente para la priorización de proyectos de inversión municipal
 
-**Versión:** 1.0 · **Fecha:** 25/09/2026 · **Curso:** Taller de Proyectos · **Ámbito de prueba:** El Tambo, Huancayo
+**Versión:** 1.1 · **Fecha:** 02/10/2026 · **Curso:** Taller de Proyectos · **Ámbito de prueba:** El Tambo, Huancayo
 
 > Documento de contexto para integrantes del equipo y agentes de desarrollo. Constituye la base de producto y arquitectura. Cuando un detalle aparezca como «por definir», no debe inventarse ni implementarse silenciosamente.
+
+> **Decisión de alcance vigente (02/10/2026):** el PMV 1 evaluado en el curso es una **simulación funcional centrada en el frontend**. Persiste datos ficticios en el navegador y simula la ejecución de un agente económico mediante cálculos deterministas reales. Los microservicios, bases separadas, Redis/Celery y proveedores externos son arquitectura objetivo e integración experimental existente; no son prerrequisitos para demostrar el PMV 1.
 
 ## 1. Propósito y alcance
 
@@ -26,7 +28,7 @@ Desarrollar un **prototipo académico funcional** que registre expedientes simul
 | Microservicios | Separación **entre** procesos con contratos, despliegue y propiedad de datos. Una colección de clases Agente no constituye microservicios. |
 | RAG | Recuperación de fragmentos identificables para fundamentar respuestas. El LLM no realiza los cálculos deterministas ni decide la aprobación humana. |
 | HITL | Pausa persistida, revisión por usuario autorizado y reanudación controlada. |
-| PMV 1 | Primera entrega vertical obligatoria: un expediente, **agente económico real**, resultado persistido y explicación visible. |
+| PMV 1 | Simulación frontend: proyectos versionados, **agente económico simulado con cálculo real**, resultado persistido localmente y explicación visible. |
 | Firma | Para este prototipo: aprobación autenticada con bitácora y hash de integridad; no se anuncia como firma digital de validez legal. |
 
 **Aclaración para el profesor:** se pueden presentar ambos estilos sin conflicto. El diagrama de microservicios explica procesos y conexiones. El diagrama hexagonal muestra la estructura interna de uno o varios de esos servicios. El diagrama de paquetes muestra módulos de código. El de despliegue muestra contenedores y nodos físicos o lógicos.
@@ -181,22 +183,22 @@ Formato: *Como [rol], quiero [acción], para [beneficio].* Las condiciones lista
 
 **Endpoints orientativos:** `POST /projects`, `GET /projects/{id}`, `POST /projects/{id}/versions`, `POST /evaluations`, `GET /evaluations/{id}`, `GET /evaluations/{id}/results`, `POST /reviews/{id}/decisions`, `POST /scenarios`, `GET /scenarios/{id}`, `GET /reports/{id}.pdf`, `GET /audit?project_id=...`. Toda operación protegida requiere autorización en servidor; OpenAPI describe entradas y salidas. Los detalles definitivos se fijan antes de programar cada módulo.
 
-## 8. Arquitectura de microservicios: propuesta viable
+## 8. Arquitectura objetivo e integración existente
 
-El dibujo original separa seis agentes, seis bases, un coordinador, gateway, outbox, RAG, telemetría y varios nodos. Es una **arquitectura objetivo**, demasiado costosa como requisito de PMV 1. Para este semestre se usarán **límites lógicos estables** y procesos desplegables incrementales. No se confundirá un módulo con un microservicio ni un contenedor con un servidor físico.
+El dibujo original separa seis agentes, seis bases, un coordinador, gateway, outbox, RAG, telemetría y varios nodos. Es una **arquitectura objetivo**, no el criterio de término de la simulación PMV 1. No se confundirá un módulo con un microservicio ni un contenedor con un servidor físico.
 
 | Servicio desplegable | Propiedad y responsabilidad | PMV 1 | Entrega final |
 |---|---|---|---|
-| Web | Formularios, estados, resultado y posteriormente mapa. | Sí | Sí |
-| API de plataforma | Autenticación, expedientes, criterios, escenarios, auditoría y adaptador de orquestación. | Sí | Sí |
-| Worker de evaluación | Agente económico y, después, otros agentes; cálculos y contratos uniformes. | Sí, proceso separado | Sí |
-| Orquestador | Flujo LangGraph, checkpoints y HITL. | Flujo simple en API/worker | Servicio separado si aporta a la integración |
+| Web | Formularios, estados y resultado económico. | **Sí; ejecución autónoma en navegador** | Sí |
+| API de plataforma | Autenticación, expedientes, criterios, escenarios, auditoría y adaptador de orquestación. | Integración experimental, no requerida | Sí |
+| Worker de evaluación | Agente económico y, después, otros agentes; cálculos y contratos uniformes. | Integración experimental, no requerida | Sí |
+| Orquestador | Flujo LangGraph, checkpoints y HITL. | No | Servicio separado si aporta a la integración |
 | RAG | Ingesta, búsqueda y citas en Qdrant. | No bloquea PMV 1 | Sí para agente jurídico |
 | Otros agentes | Social, ambiental, técnico, jurídico como módulos independientes con puertos. | No | Sí, separación en procesos solo si equipo y tiempo permiten |
 
-**Decisión técnica:** para PMV 1, API y worker son dos procesos con contrato de tarea, PostgreSQL y Redis. El agente económico es módulo hexagonal del worker. Para la entrega final se puede extraer agentes en servicios separados sin cambiar los contratos, pero **no se prometen cinco bases físicas** por el mero hecho de mostrar cinco agentes. Si el docente exige microservicios distinguibles, API/worker/RAG constituyen servicios desplegables; separar el agente jurídico como cuarto proceso es una ampliación justificada.
+**Decisión técnica vigente:** el PMV 1 usa React/TypeScript, una capa de repositorio de simulación y `localStorage` versionado. El agente económico es una función independiente de los componentes y conserva snapshots de entradas y criterios. Para la arquitectura objetivo, API y worker se comunican por contrato con PostgreSQL y Redis. El repositorio ya contiene una integración backend experimental de ese flujo, que se conserva pero no se presenta como necesaria para terminar la simulación.
 
-**Propiedad de datos:** PostgreSQL de plataforma es fuente de verdad de expedientes, puntuaciones consolidadas, revisiones y auditoría. Los agentes no escriben directamente sus tablas de otro servicio: entregan un resultado por contrato. Qdrant indexa copias de documentos y no es fuente jurídica maestra. Se pueden separar esquemas o bases al extraer servicios; no dibujar «database-per-service» hasta que exista propiedad independiente efectiva.
+**Propiedad de datos:** en la simulación, el repositorio del frontend es la única puerta de acceso al estado local. En la arquitectura objetivo, PostgreSQL de plataforma es fuente de verdad de expedientes y proyecciones; cada servicio posee su base y entrega resultados por contrato. Qdrant indexa copias y no es fuente jurídica maestra.
 
 ```mermaid
 flowchart TB
@@ -211,13 +213,13 @@ flowchart TB
   O --> P
 ```
 
-El diagrama representa el despliegue **final simplificado**. En PMV 1, RAG, Qdrant y LLM pueden no levantarse: el agente económico calcula y explica mediante reglas. No se necesita LLM para demostrar que un agente ejecuta una tarea especializada y devuelve un resultado.
+El diagrama representa la arquitectura objetivo simplificada, no el despliegue necesario para la demostración. El agente económico del PMV 1 calcula y explica mediante reglas en el navegador; no usa LLM.
 
 ### Comunicación y consistencia
 
 Web → API por HTTP/JSON; API → worker por tarea Celery/Redis; worker → API por persistencia controlada o endpoint interno de resultados (elegir una ruta, documentarla y evitar dobles escrituras). API ↔ orquestador por llamada interna cuando se separe. RAG expone búsqueda con evidencias. `evaluation_id` correlaciona logs y resultados.
 
-Para PMV 1, un `POST /evaluations` crea el registro y publica tarea. Si falla la publicación, marca error recuperable; la tarea es idempotente. **Transactional outbox** se reserva para cuando existan eventos entre servicios y una pérdida de publicación sea un riesgo real; no se añaden seis outboxes antes de contar con seis dueños de datos. Celery/Redis no garantiza por sí mismo exactamente una ejecución: el consumidor debe tolerar reintentos.
+En la simulación PMV 1, iniciar una evaluación crea un registro local, muestra estados observables y calcula desde snapshots. En la integración objetivo, `POST /evaluations` crea el registro y publica una tarea idempotente. Celery/Redis no garantiza por sí mismo exactamente una ejecución: el consumidor debe tolerar reintentos.
 
 ## 9. Arquitectura hexagonal y de paquetes
 
@@ -264,7 +266,7 @@ project/
 
 ## 10. Despliegue
 
-**PMV 1 local, una computadora:** contenedores `web`, `api`, `worker`, `postgres`, `redis`. Web expone puerto al navegador; API expone puerto de desarrollo; PostgreSQL y Redis quedan en red privada Compose. Volúmenes persistentes para PostgreSQL. Credenciales de desarrollo en `.env` no versionado y `.env.example` sin secretos. Migraciones y semillas crean dos cuentas y dos proyectos ficticios.
+**PMV 1 local, una computadora:** aplicación web Vite/React. No requiere API, PostgreSQL, Redis, Celery ni proveedor LLM. El navegador conserva datos ficticios en `localStorage`; una acción confirmada restaura las semillas. Los perfiles Administrador y Planificador demuestran permisos de interfaz y no se anuncian como seguridad de servidor.
 
 **Entrega final local:** añadir `rag` y `qdrant`; opcional `orchestrator` separado. El proveedor LLM será externo configurable o local si el equipo puede ejecutarlo. `compose.yaml` documenta perfiles para levantar PMV 1 y versión final. Nginx, HTTPS público, Prometheus/Grafana y LangSmith/Langfuse pueden mostrarse como extensión, pero no son necesarios para afirmar que el flujo académico funciona. Los «nodos» de los diagramas previos representan **grupos lógicos de contenedores**, no máquinas dedicadas adquiridas.
 
@@ -276,23 +278,25 @@ project/
 
 **Priorización mínima reproducible:** cada dimensión válida entrega 0–100. La puntuación ponderada es `Σ(peso_i × puntuación_i)/100`; pesos y escala son configurables. El ranking ordena descendente; para empates usar menor costo y luego código. El escenario incorpora proyectos elegibles en ese orden mientras alcance presupuesto; marca por qué excluye cada uno. Este algoritmo es una **heurística explícita**, no resuelve automáticamente RCMPSP ni prueba optimalidad global. Un optimizador puede añadirse y compararse con esta línea base.
 
-## 12. PMV 1 — obligatorio
+## 12. PMV 1 — simulación frontend obligatoria
 
-**Meta:** demostrar un agente especializado funcionando dentro de un flujo real, con persistencia y explicación. Elegimos el **agente económico** porque sus fórmulas son verificables y no depende inicialmente de un corpus normativo ni de LLM.
+**Meta:** demostrar en la interfaz un flujo académico reproducible, persistente y explicable. El **agente económico se simula**, pero la fórmula, validaciones y puntuación son cálculos reales realizados sobre los datos ingresados.
 
-**Incluye:** login de dos roles (administrador y planificador), alta de proyecto con presupuesto y beneficiarios, validación, criterios económicos versionados, `POST /evaluations`, tarea Celery en Redis, cálculo por el agente económico, resultado 0–100 conforme a una regla documentada, justificación con entradas/fórmula, estado visible, PostgreSQL y una entrada de auditoría. Dos proyectos semilla permiten una comparación simple. Docker Compose y README levantan el conjunto.
+**Incluye:** acceso con dos perfiles de demostración; listado, alta, consulta y edición de proyectos; versiones inmutables al modificar un proyecto evaluado; criterios económicos versionados; estados pendiente, procesando, completado y fallido; cálculo 0–100 documentado; snapshots de entradas y umbrales; persistencia y recuperación local; restauración confirmada; dos proyectos semilla comparables. Las acciones se presentan como simulación académica.
+
+**RF/HU cubiertos en este corte:** RF01 parcialmente mediante perfiles de interfaz (HU01, sin seguridad real); RF02 mediante umbrales versionados (HU03); RF04–RF05 mediante proyectos, versiones y validación (HU05, HU07, HU08); RF06–RF07 y RF18 mediante ejecución simulada, estados, reintento y resultado económico (HU09–HU11, HU32); RF17 parcialmente mediante historial local de versiones y evaluaciones. Los RF restantes pertenecen a incrementos posteriores.
 
 **Definición de terminado:**
 
 1. Un planificador ingresa proyecto A con presupuesto S/ 120 000 y 600 beneficiarios; el agente muestra costo S/ 200 por beneficiario.
 2. Un proyecto B con S/ 90 000 y 300 beneficiarios muestra S/ 300 por beneficiario.
-3. Se ve el estado `pendiente → procesando → completado`, ID, entradas y fórmula.
+3. Se ve el estado `pendiente → procesando → completado`, código legible, entradas y fórmula; un fallo controlado permite demostrar `fallido` y reintento.
 4. Beneficiarios 0 o presupuesto negativo producen validación y ninguna puntuación definitiva.
-5. Un planificador no cambia criterios; un administrador sí, sin alterar resultados anteriores.
-6. Reiniciar API/worker conserva proyectos y resultados. Reintentar la misma tarea no duplica el resultado.
-7. README permite reproducirlo en otra computadora. Tests unitarios verifican cálculos y un test de integración cubre API → cola → worker → DB.
+5. Un Planificador no cambia criterios; un Administrador sí, sin alterar resultados anteriores.
+6. Recargar la página conserva proyectos y resultados; restaurar semillas requiere confirmación.
+7. README permite reproducir la demostración solo con el frontend y las comprobaciones automatizadas verifican cálculo, validación, versiones y persistencia.
 
-**Corte PMV 1:** no requiere GIS, PDF, RAG, cinco agentes, aprobación jurídica ni múltiples bases de datos. Ese corte no redefine el alcance final; fija un primer incremento demostrable.
+**Corte PMV 1:** no requiere backend, GIS, PDF, RAG, cinco agentes, aprobación jurídica, múltiples bases ni proveedor LLM. La integración backend existente se conserva como avance técnico hacia la arquitectura objetivo, sin condicionar la demostración.
 
 ## 13. Evolución después del PMV 1
 
@@ -316,13 +320,13 @@ Preparar al menos: proyecto completo sin alerta; proyecto incompleto; proyecto c
 | Riesgo/decisión | Acción concreta |
 |---|---|
 | Falta de datos territoriales reales | Usar casos simulados identificados y explicitar límites de cada indicador. |
-| Ambición de cinco microservicios y bases | PMV 1 con API + worker; extraer solo por responsabilidad y capacidad real de operación. |
+| Ambición de cinco microservicios y bases | PMV 1 autónomo en frontend; extraer servicios después, solo por responsabilidad y capacidad real de operación. |
 | LangGraph + CrewAI duplican coordinación | LangGraph gobierna transiciones y pausas; CrewAI, si se utiliza, ejecuta roles de agente dentro de nodos. Un único dueño de estado. |
 | LLM alucina norma o cálculo | Cálculos deterministas, citas comprobables, abstención y revisión humana. |
 | Norma o plan desactualizado | Registrar versión, fuente y fecha; validar aplicabilidad antes de la demostración. |
 | Método económico sin datos de beneficios | Usar costo por beneficiario y otro indicador definido; no inventar retorno monetario. |
 
-**Por definir con el equipo:** lenguaje/framework web definitivo (React o Next.js); ponderaciones iniciales y normalización de cada dimensión; documentos públicos exactos y permisos de uso; campos mínimos por tipo de obra; fuente y formato GIS; límites de archivos; proveedor LLM y presupuesto; reparto de responsables. Las alternativas en los diagramas anteriores no constituyen decisiones cerradas.
+**Decidido para PMV 1:** React/TypeScript, criterio económico con peso 100 % y umbrales iniciales S/ 200–S/ 500 por beneficiario. **Por definir para incrementos posteriores:** ponderaciones y normalización de las demás dimensiones; documentos públicos exactos y permisos de uso; campos mínimos por tipo de obra; fuente y formato GIS; límites de archivos; proveedor LLM y presupuesto; reparto de responsables. Las alternativas en los diagramas anteriores no constituyen decisiones cerradas.
 
 ## 16. Instrucciones para un agente de desarrollo que reciba este archivo
 
@@ -339,4 +343,4 @@ Preparar al menos: proyecto completo sin alerta; proyecto incompleto; proyecto c
 - Diagramas preliminares de paquetes, microservicios, despliegue y hexágonos proporcionados por el equipo. Este documento corrige su mezcla de niveles de abstracción y propone una implementación incremental.
 - Requisitos y HU redactados en la conversación de trabajo del 25/09/2026, reorganizados aquí con RF globales e historias verificables.
 
-**Control de cambios:** v1.0 consolida el alcance académico y define PMV 1. Cualquier decisión posterior sobre stack, puntuación o fuentes debe actualizar esta versión y reflejarse en contratos, diagramas y pruebas.
+**Control de cambios:** v1.1 redefine PMV 1 como simulación frontend y reclasifica microservicios/bases/colas como arquitectura objetivo e integración experimental. Cualquier decisión posterior sobre stack, puntuación o fuentes debe actualizar esta versión y reflejarse en contratos, interfaz y pruebas.

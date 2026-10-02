@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
-import type { Proyecto } from '../../types/proyecto'
+import type { LegacyProyecto } from '../../types/proyecto'
 import { formatCurrency, formatDate, formatNumber } from '../../utils/format'
 
 interface ProyectoCardProps {
-  proyecto: Proyecto
+  proyecto: LegacyProyecto
   compact?: boolean
 }
 

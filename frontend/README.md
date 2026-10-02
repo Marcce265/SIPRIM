@@ -1,6 +1,7 @@
 # SIPRIM Frontend
 
-Interfaz web del PMV1 (React 19 + Vite + TypeScript).
+Simulación funcional del PMV 1 (React 19 + Vite + TypeScript). Ejecuta el agente
+económico en el navegador y persiste los datos ficticios en `localStorage`.
 
 ## Desarrollo
 
@@ -9,7 +10,7 @@ npm install
 npm run dev
 ```
 
-Requisito: backend FastAPI en `http://127.0.0.1:8000` (`uvicorn backend.main:app --reload` desde la raíz del repo).
+No requiere backend, base de datos, broker ni proveedor LLM.
 
 ## Estructura del código
 
@@ -18,18 +19,14 @@ src/
 ├── app/                    # Arranque y rutas
 │   ├── App.tsx
 │   └── routes.tsx
-├── api/                    # Capa HTTP
-│   ├── client.ts           # fetch base y errores
-│   └── proyectos.api.ts    # endpoints de proyectos
+├── api/                    # Adaptador HTTP heredado, aislado de la demo
 ├── components/
 │   ├── layout/             # Layout, ApiStatusPill
 │   ├── proyecto/           # ProyectoCard
 │   ├── roadmap/            # RoadmapPanel + constantes PMV1
 │   └── ui/                 # Alert, FormField, PageHeader
-├── features/               # Pantallas por historia de usuario
-│   ├── home/
-│   ├── registrar/          # HU1.1 — formulario, validación, hook
-│   └── consultar/
+├── features/               # Inicio, proyectos, registro, criterios y acceso
+├── simulation/             # Repositorio local y agente económico independiente
 ├── hooks/
 │   └── useApiHealth.ts
 ├── styles/                 # Tokens y estilos globales
@@ -48,29 +45,50 @@ src/
 
 - **Páginas delgadas** en `features/*/`: componen UI y delegan lógica a hooks.
 - **Validación** alineada con Pydantic del backend en `features/registrar/validateProyecto.ts`.
-- **API** centralizada: no usar `fetch` directo en componentes.
+- **Datos de demostración** centralizados: los componentes solo usan el repositorio de `simulation/`.
+- **Integración HTTP** aislada: no se mezcla con el estado local del PMV 1.
 - **Estilos**: tokens en `styles/tokens.css`; clases reutilizables en `global.css`, `forms.css`, etc.
 
 ## Pantallas
 
 | Ruta | Feature | Descripción |
 |------|---------|-------------|
-| `/login` | `auth` | Acceso al sistema (demo PMV1, sesión en localStorage) |
-| `/` | `home` | Inicio, hoja de ruta y expedientes recientes (localStorage) |
-| `/registrar` | `registrar` | Carga de expediente HU1.1 / RF-01 |
-| `/consultar` | `consultar` | Detalle por ID de expediente |
+| `/login` | `auth` | Selección de perfil de demostración |
+| `/` | `home` | Resumen de alcance y estado local |
+| `/proyectos` | `projects` | Listado persistente y adaptable |
+| `/proyectos/nuevo` | `registrar` | Alta con validación (Planificador) |
+| `/proyectos/:id` | `projects` | Detalle, evaluaciones y versiones |
+| `/proyectos/:id/editar` | `projects` | Edición/versionado (Planificador) |
+| `/criterios` | `criteria` | Umbrales versionados (Administrador) |
 
-### Login demo (hasta integrar RNF-03 en backend)
+### Perfiles de demostración
 
-- `planificador@eltambo.gob.pe` / `siprim2026`
-- `evaluador@eltambo.gob.pe` / `siprim2026`
-- `admin@eltambo.gob.pe` / `siprim2026`
+- `planificador@siprim.demo` / `demo2026`
+- `admin@siprim.demo` / `demo2026`
+
+Los perfiles sirven para demostrar visibilidad y acciones por rol. No son autorización
+de servidor. `localStorage` conserva solo el identificador de la sesión y los datos del
+proyecto; no guarda contraseñas ni tokens.
+
+## Recorrido de demostración
+
+1. Entre como Planificador y compruebe los proyectos A y B. Sus resultados son S/ 200
+   y 100 puntos; S/ 300 y 66,67 puntos, respectivamente.
+2. Registre un proyecto y valide presupuesto negativo o beneficiarios cero.
+3. Inicie la evaluación y observe `pendiente → procesando → completado`. Use “Simular
+   fallo técnico” para comprobar `fallido` y luego reintente.
+4. Edite un proyecto evaluado: se crea una versión nueva y el resultado previo permanece.
+5. Recargue el navegador y verifique que los datos continúan.
+6. Entre como Administrador, active otros umbrales y vuelva como Planificador. Una nueva
+   evaluación usa la configuración nueva sin modificar las anteriores.
+7. Use “Restaurar datos iniciales”; la aplicación pide confirmación antes de borrar cambios.
 
 ## Scripts
 
 | Comando | Descripción |
 |---------|-------------|
 | `npm run dev` | Servidor de desarrollo (puerto 5173, proxy al API) |
+| `npm run typecheck` | Comprobación estática de TypeScript |
 | `npm run build` | Compilación de producción |
 | `npm run lint` | Oxlint |
 | `npm run preview` | Vista previa del build |
