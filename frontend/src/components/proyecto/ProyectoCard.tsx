@@ -8,9 +8,9 @@ interface ProyectoCardProps {
 }
 
 function displayProjectId(proyecto: Proyecto): string {
-  if (proyecto.codigo) return `Código ${proyecto.codigo}`
+  if (proyecto.codigo) return proyecto.codigo
   const id = String(proyecto.id)
-  return id.length > 8 ? `ID ${id.slice(0, 8)}…` : `ID ${id}`
+  return id.length > 8 ? `${id.slice(0, 8)}…` : id
 }
 
 export function ProyectoCard({ proyecto, compact = false }: ProyectoCardProps) {
@@ -20,7 +20,10 @@ export function ProyectoCard({ proyecto, compact = false }: ProyectoCardProps) {
     <article className={`proyecto-card ${compact ? 'compact' : ''}`}>
       <header className="proyecto-card-header">
         <div>
-          <p className="proyecto-id">{displayProjectId(proyecto)}</p>
+          <p className="proyecto-id">
+            {proyecto.codigo ? 'Código expediente · ' : 'UUID · '}
+            {displayProjectId(proyecto)}
+          </p>
           <h2 className="proyecto-nombre">{proyecto.nombre}</h2>
         </div>
         <span className={`estado-badge estado-${estado.toLowerCase()}`}>

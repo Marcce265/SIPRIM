@@ -9,6 +9,7 @@ import type {
   PMV1ValidationResponse,
   ZoningPrecheckResponse,
 } from '../types/pmv1'
+import { isExpedienteUuid } from '../utils/expedienteRef'
 import { apiFetch } from './client'
 
 export function createProject(payload: PMV1ProjectCreate): Promise<PMV1ProjectResponse> {
@@ -21,6 +22,35 @@ export function createProject(payload: PMV1ProjectCreate): Promise<PMV1ProjectRe
 
 export function getProject(projectId: string): Promise<PMV1ProjectResponse> {
   return apiFetch<PMV1ProjectResponse>(`/api/v1/projects/${projectId}`, { auth: true })
+}
+
+export function getProjectByCode(code: string): Promise<PMV1ProjectResponse> {
+  const encoded = encodeURIComponent(code.trim())
+  return apiFetch<PMV1ProjectResponse>(`/api/v1/projects/by-code/${encoded}`, {
+    auth: true,
+  })
+}
+
+export async function resolveProject(ref: string): Promise<PMV1ProjectResponse> {
+  const query = ref.trim()
+  if (isExpedienteUuid(query)) {
+    return getProject(query)
+  }
+  return getProjectByCode(query)
+}
+
+export function evaluateProjectWithIA(projectId: string): Promise<{
+  puntaje: number
+  viabilidad: 'ALTA' | 'MEDIA' | 'BAJA'
+  justificacion: string
+  observaciones: string[]
+  recomendaciones: string[]
+}> {
+  return apiFetch(`/api/v1/projects/${projectId}/evaluacion-ia`, {
+    method: 'POST',
+    auth: true,
+    timeoutMs: 60_000,
+  })
 }
 
 export function validateProject(projectId: string): Promise<PMV1ValidationResponse> {

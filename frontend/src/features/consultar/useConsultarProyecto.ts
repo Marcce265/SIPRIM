@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
-import { getProject } from '../../api/pmv1.api'
+import { resolveProject } from '../../api/pmv1.api'
 import type { Proyecto } from '../../types/proyecto'
+import { isValidExpedienteLookup, normalizeExpedienteQuery } from '../../utils/expedienteRef'
 import { mapPmV1ToProyecto } from '../../utils/pmv1Mapper'
 import { rememberProject } from '../../utils/recentProjects'
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export interface ConsultarLocationState {
   mensaje?: string
@@ -27,9 +25,11 @@ export function useConsultarProyecto() {
 
   const fetchById = useCallback(
     async (rawId: string) => {
-      const id = rawId.trim()
-      if (!UUID_RE.test(id)) {
-        setError('Ingrese un identificador de expediente válido.')
+      const query = normalizeExpedienteQuery(rawId)
+      if (!isValidExpedienteLookup(query)) {
+        setError(
+          'Ingrese el código de expediente (ej. EXP-A1B2C3) o el UUID técnico del proyecto.',
+        )
         setProyecto(null)
         return
       }
@@ -39,11 +39,11 @@ export function useConsultarProyecto() {
       setSuccessMsg(null)
 
       try {
-        const data = await getProject(id)
+        const data = await resolveProject(query)
         const mapped = mapPmV1ToProyecto(data)
         setProyecto(mapped)
         rememberProject(mapped)
-        setSearchParams({ id }, { replace: true })
+        setSearchParams({ id: mapped.id }, { replace: true })
       } catch (err) {
         setProyecto(null)
         setError(err instanceof Error ? err.message : 'No se pudo consultar el proyecto.')

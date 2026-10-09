@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+import secrets
+import string
 from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, ClassVar, Protocol
@@ -24,6 +26,24 @@ from backend.domain.exceptions.pmv1_exceptions import (
 
 def _dsn(url: str) -> str:
     return url.replace("postgresql+psycopg://", "postgresql://", 1)
+
+
+_EXPEDIENTE_CODE_ALPHABET = string.ascii_uppercase + string.digits
+
+
+def _allocate_expediente_code(conn: psycopg.Connection[Any]) -> str:
+    """Código legible único para búsqueda rápida (EXP- + 6 caracteres)."""
+    for _ in range(12):
+        suffix = "".join(
+            secrets.choice(_EXPEDIENTE_CODE_ALPHABET) for _ in range(6)
+        )
+        code = f"EXP-{suffix}"
+        exists = conn.execute(
+            "SELECT 1 FROM projects WHERE upper(code) = upper(%s)", (code,)
+        ).fetchone()
+        if not exists:
+            return code
+    raise ConfiguracionPMV1Error("No se pudo generar un código de expediente único")
 
 
 class TaskDispatcher(Protocol):
@@ -186,8 +206,8 @@ class PlatformService:
         if missing:
             raise ExpedientePMV1IncompletoError(missing)
         project_id, version_id = uuid4(), uuid4()
-        code = data.code or f"PRY-{project_id.hex[:8].upper()}"
         with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
+                code = (data.code or "").strip() or _allocate_expediente_code(conn)
                 conn.execute(
                     "INSERT INTO projects (id, code, created_by_user_id, status) VALUES (%s,%s,%s,'ready')",
                     (project_id, code, actor_id),
@@ -241,6 +261,21 @@ class PlatformService:
         if not row:
             raise RecursoPMV1NoEncontradoError("Proyecto no encontrado")
         return dict(row)
+
+    def get_project_by_code(self, code: str) -> dict[str, Any]:
+        normalized = code.strip()
+        if len(normalized) < 3:
+            raise RecursoPMV1NoEncontradoError("Código de expediente no válido")
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            row = conn.execute(
+                "SELECT id FROM projects WHERE upper(code) = upper(%s)",
+                (normalized,),
+            ).fetchone()
+        if not row:
+            raise RecursoPMV1NoEncontradoError(
+                f"No existe expediente con código {normalized}"
+            )
+        return self.get_project(row["id"])
 
     def validate_project(self, project_id: UUID) -> dict[str, Any]:
         project = self.get_project(project_id)

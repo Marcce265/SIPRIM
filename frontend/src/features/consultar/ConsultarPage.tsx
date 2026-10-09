@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { ExpedienteCodeBadge } from '../../components/proyecto/ExpedienteCodeBadge'
 import { ProyectoCard } from '../../components/proyecto/ProyectoCard'
 import { Alert } from '../../components/ui/Alert'
 import { PageHeader } from '../../components/ui/PageHeader'
@@ -18,19 +19,19 @@ export function ConsultarPage() {
     <div className="form-page">
       <PageHeader
         title="Consultar expediente"
-        description="Ingrese el identificador del expediente entregado al registrar el proyecto."
+        description="Busque por código de expediente (EXP-…) generado al registrar, o por UUID técnico."
       />
 
       <form className="lookup-form" onSubmit={onSubmit}>
         <label className="form-field">
-          <span className="form-field-label">Identificador del expediente</span>
+          <span className="form-field-label">Código o UUID del expediente</span>
           <div className="lookup-row">
             <input
               className="form-field-input"
               type="text"
               value={inputId}
               onChange={(e) => setInputId(e.target.value)}
-              placeholder="Ej. 550e8400-e29b-41d4-a716-446655440000"
+              placeholder="Ej. EXP-K7M2P9"
               spellCheck={false}
             />
             <button type="submit" className="btn btn-primary" disabled={loading}>
@@ -45,6 +46,9 @@ export function ConsultarPage() {
 
       {proyecto && (
         <section className="result-section" aria-live="polite">
+          {proyecto.codigo && (
+            <ExpedienteCodeBadge code={proyecto.codigo} projectId={proyecto.id} compact />
+          )}
           <ProyectoCard proyecto={proyecto} />
           <div className="next-steps">
             <h2>Flujo principal</h2>

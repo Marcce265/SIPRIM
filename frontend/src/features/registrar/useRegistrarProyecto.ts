@@ -14,16 +14,6 @@ import {
   type ProyectoFieldErrors,
 } from './validateProyecto'
 
-function toProjectCode(title: string): string {
-  const base = title
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 24)
-  return base || `PROY-${Date.now().toString(36).toUpperCase()}`
-}
-
 export function useRegistrarProyecto() {
   const navigate = useNavigate()
   const [form, setForm] = useState<ProjectInput>(EMPTY_PROYECTO_FORM)
@@ -72,7 +62,6 @@ export function useRegistrarProyecto() {
     try {
       const payload = normalizeProyectoForm(form)
       const project = await createProject({
-        code: toProjectCode(payload.nombre),
         title: payload.nombre,
         description: payload.descripcion,
         location: 'El Tambo - Huancayo',
@@ -81,11 +70,11 @@ export function useRegistrarProyecto() {
         beneficiaries_count: payload.beneficiarios,
       })
 
-      let mensaje = 'Expediente registrado correctamente.'
+      let mensaje = `Expediente registrado. Código: ${project.code}. Guarde este código para consultas.`
       if (physicalFile) {
         try {
           await savePhysicalExpediente(project.project_id, physicalFile)
-          mensaje = `Expediente registrado. Archivo adjunto: ${physicalFile.name}.`
+          mensaje = `Expediente ${project.code} registrado. Archivo adjunto: ${physicalFile.name}.`
         } catch (fileErr) {
           mensaje =
             fileErr instanceof Error

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
+import { ExpedienteCodeBadge } from '../../components/proyecto/ExpedienteCodeBadge'
 import { ProyectoCard } from '../../components/proyecto/ProyectoCard'
 import { Alert } from '../../components/ui/Alert'
 import { PageHeader } from '../../components/ui/PageHeader'
@@ -170,6 +171,10 @@ export function ProyectoDetallePage() {
       {proyectoView && (
         <>
           <ProyectoCard proyecto={proyectoView} />
+
+          {project?.code && (
+            <ExpedienteCodeBadge code={project.code} projectId={project.project_id} />
+          )}
 
           {physicalExpediente && (
             <section className="flow-panel expediente-physical-panel">

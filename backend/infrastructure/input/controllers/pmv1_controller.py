@@ -1,8 +1,9 @@
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Path, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, status
 
+from backend.application.dto.evaluacion_ia_dto import DictamenIAResponse
 from backend.application.dto.pmv1_dto import (
     EvaluationAccepted,
     EvaluationCreate,
@@ -22,8 +23,19 @@ from backend.application.dto.pmv1_dto import (
     ZoningPrecheckResponse,
 )
 from backend.application.services.pmv1_services import AuthService, PlatformService
+from backend.domain.exceptions.ia_exceptions import (
+    IAAuthenticationError,
+    IAConfigurationError,
+    IAError,
+    IAGraphError,
+    IARateLimitError,
+    IATimeoutError,
+)
+from backend.domain.exceptions.pmv1_exceptions import ExpedientePMV1IncompletoError
+from backend.domain.ports.ia_service_port import IAServicePort
 from backend.infrastructure.config.dependencies import (
     get_auth_service,
+    get_ia_service,
     get_platform_service,
     require_admin,
     require_legal_advisor,
@@ -52,6 +64,15 @@ def create_project(
     return service.create_project(data, UUID(user["sub"]))
 
 
+@router.get("/projects/by-code/{code}", response_model=PMV1ProjectResponse)
+def get_project_by_code(
+    code: Annotated[str, Path(min_length=3, max_length=40)],
+    _: Annotated[dict[str, Any], Depends(require_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+) -> dict[str, Any]:
+    return service.get_project_by_code(code)
+
+
 @router.get("/projects/{project_id}", response_model=PMV1ProjectResponse)
 def get_project(
     project_id: Annotated[UUID, Path()],
@@ -68,6 +89,61 @@ def validate_project(
     service: Annotated[PlatformService, Depends(get_platform_service)],
 ) -> dict[str, Any]:
     return service.validate_project(project_id)
+
+
+@router.post(
+    "/projects/{project_id}/evaluacion-ia",
+    response_model=DictamenIAResponse,
+    summary="Dictamen preliminar Gemini sobre un expediente PMV1",
+)
+async def evaluar_proyecto_pmv1_ia(
+    project_id: Annotated[UUID, Path()],
+    _: Annotated[dict[str, Any], Depends(require_planner)],
+    platform: Annotated[PlatformService, Depends(get_platform_service)],
+    ia_service: Annotated[IAServicePort, Depends(get_ia_service)],
+) -> DictamenIAResponse:
+    project = platform.get_project(project_id)
+    missing = [
+        field
+        for field in (
+            "title",
+            "description",
+            "location",
+            "proposed_land_use",
+            "estimated_budget_pen",
+            "beneficiaries_count",
+        )
+        if project.get(field) in (None, "")
+    ]
+    if missing:
+        raise ExpedientePMV1IncompletoError(missing)
+    ficha = {
+        "id": str(project_id),
+        "codigo": project.get("code"),
+        "nombre": project["title"],
+        "descripcion": project["description"],
+        "ubicacion": project["location"],
+        "presupuesto": float(project["estimated_budget_pen"]),
+        "beneficiarios": project["beneficiaries_count"],
+        "tipo_proyecto": project["proposed_land_use"],
+    }
+    try:
+        dictamen = await ia_service.generar_dictamen(ficha)
+    except IAError as exc:
+        status_code = 502
+        if isinstance(exc, (IAConfigurationError, IAAuthenticationError)):
+            status_code = 503
+        elif isinstance(exc, IARateLimitError):
+            status_code = 429
+        elif isinstance(exc, IATimeoutError):
+            status_code = 504
+        elif isinstance(exc, IAGraphError):
+            status_code = 500
+        raise HTTPException(
+            status_code=status_code,
+            detail={"code": exc.code, "message": exc.message},
+        ) from None
+    return DictamenIAResponse.model_validate(dictamen)
 
 
 @router.post(
