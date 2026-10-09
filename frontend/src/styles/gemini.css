@@ -6,3 +6,7 @@
 .ia-dictamen h2 { font-size: 1.15rem; margin: 0 0 .4rem; }
 .ia-dictamen h3 { font-size: .95rem; margin: 1rem 0 .25rem; }
 .ia-dictamen ul { padding-left: 1.3rem; }
+.ia-register-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; margin: 1rem 0 1.5rem; }
+.ia-register-form .btn { justify-self: start; }
+.ia-panel h2 { margin: 1.25rem 0 .5rem; }
+@media (max-width: 650px) { .ia-register-form { grid-template-columns: 1fr; } }
