@@ -11,6 +11,7 @@ class Settings(BaseSettings):
 
     app_name: str = "SIPRIM Backend"
     app_env: str = "development"
+    vercel_demo_enabled: bool = False
     use_in_memory_repository: bool = True
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/siprim"
     auth_db_url: str = (
