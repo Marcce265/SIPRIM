@@ -11,6 +11,7 @@ function formatRoles(roles: string[]): string {
     PLANNER: 'Planificador',
     LEGAL_ADVISOR: 'Asesor jurídico',
     ADMIN: 'Administrador',
+    SUPERADMIN: 'Superadministrador',
   }
   return roles.map((r) => labels[r] ?? r).join(' · ')
 }

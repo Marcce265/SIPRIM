@@ -10,6 +10,7 @@ import {
 import { loginApi } from '../../api/auth.api'
 import { clearAccessToken, saveAccessToken } from '../../api/authStorage'
 import type { AuthSession, AuthUser, LoginCredentials } from '../../types/auth'
+import { roleGrantsAccess } from '../../utils/roles'
 import { clearAuthSession, loadAuthSession, saveAuthSession } from './authStorage'
 
 interface AuthContextValue {
@@ -69,7 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const hasRole = useCallback(
-    (role: string) => session?.user.roles.includes(role) ?? false,
+    (role: string) => {
+      const roles = session?.user.roles ?? []
+      return roleGrantsAccess(roles, role)
+    },
     [session],
   )
 

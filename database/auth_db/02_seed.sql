@@ -6,7 +6,8 @@
 INSERT INTO roles (id, code, name) VALUES
     ('00000000-0000-4000-a000-000000000001', 'ADMIN',         'Administrador'),
     ('00000000-0000-4000-a000-000000000002', 'PLANNER',       'Planificador'),
-    ('00000000-0000-4000-a000-000000000003', 'LEGAL_ADVISOR', 'Asesor Jurídico')
+    ('00000000-0000-4000-a000-000000000003', 'LEGAL_ADVISOR', 'Asesor Jurídico'),
+    ('00000000-0000-4000-a000-000000000004', 'SUPERADMIN',    'Superadministrador')
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO users (id, email, full_name, password_hash) VALUES
@@ -16,7 +17,9 @@ INSERT INTO users (id, email, full_name, password_hash) VALUES
     ('10000000-0000-4000-a000-000000000011', 'planificador@eltambo.gob.pe', 'Planificador Municipal', '$argon2id$v=19$m=65536,t=3,p=4$cAhSGXPECIE1eEcTFZ8FzA$gdfKnrzn/MqneeDWduMl5BDZPzS0YGQElFMfQeL9xUQ'),
     ('10000000-0000-4000-a000-000000000012', 'asesor.juridico@eltambo.gob.pe', 'Asesoría Jurídica', '$argon2id$v=19$m=65536,t=3,p=4$cAhSGXPECIE1eEcTFZ8FzA$gdfKnrzn/MqneeDWduMl5BDZPzS0YGQElFMfQeL9xUQ'),
     ('10000000-0000-4000-a000-000000000014', 'evaluador@eltambo.gob.pe', 'Evaluador técnico', '$argon2id$v=19$m=65536,t=3,p=4$cAhSGXPECIE1eEcTFZ8FzA$gdfKnrzn/MqneeDWduMl5BDZPzS0YGQElFMfQeL9xUQ'),
-    ('10000000-0000-4000-a000-000000000013', 'admin@eltambo.gob.pe', 'Administración SIPRIM', '$argon2id$v=19$m=65536,t=3,p=4$cAhSGXPECIE1eEcTFZ8FzA$gdfKnrzn/MqneeDWduMl5BDZPzS0YGQElFMfQeL9xUQ')
+    ('10000000-0000-4000-a000-000000000013', 'admin@eltambo.gob.pe', 'Administración SIPRIM', '$argon2id$v=19$m=65536,t=3,p=4$cAhSGXPECIE1eEcTFZ8FzA$gdfKnrzn/MqneeDWduMl5BDZPzS0YGQElFMfQeL9xUQ'),
+    ('10000000-0000-4000-a000-000000000021', 'superadmin@siprim.test', 'Superadmin de prueba', '$argon2id$v=19$m=65536,t=3,p=4$AkY6YFtxy7UNAZXFGK+obQ$Wd2QEQqCBe0erJ5WODBTXsq8gJLJ1fL9UjPiGEGEZz0'),
+    ('10000000-0000-4000-a000-000000000022', 'superadmin@eltambo.gob.pe', 'Superadmin SIPRIM', '$argon2id$v=19$m=65536,t=3,p=4$cAhSGXPECIE1eEcTFZ8FzA$gdfKnrzn/MqneeDWduMl5BDZPzS0YGQElFMfQeL9xUQ')
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO user_roles (user_id, role_id) VALUES
@@ -26,5 +29,7 @@ INSERT INTO user_roles (user_id, role_id) VALUES
     ('10000000-0000-4000-a000-000000000011', '00000000-0000-4000-a000-000000000002'),
     ('10000000-0000-4000-a000-000000000012', '00000000-0000-4000-a000-000000000003'),
     ('10000000-0000-4000-a000-000000000014', '00000000-0000-4000-a000-000000000003'),
-    ('10000000-0000-4000-a000-000000000013', '00000000-0000-4000-a000-000000000001')
+    ('10000000-0000-4000-a000-000000000013', '00000000-0000-4000-a000-000000000001'),
+    ('10000000-0000-4000-a000-000000000021', '00000000-0000-4000-a000-000000000004'),
+    ('10000000-0000-4000-a000-000000000022', '00000000-0000-4000-a000-000000000004')
 ON CONFLICT DO NOTHING;

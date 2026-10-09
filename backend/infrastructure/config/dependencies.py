@@ -193,26 +193,36 @@ def get_current_user(
     return auth.decode(credentials.credentials)
 
 
+def _user_roles(user: dict[str, Any]) -> list[str]:
+    return list(user.get("roles", []))
+
+
+def _is_superadmin(roles: list[str]) -> bool:
+    return "SUPERADMIN" in roles
+
+
 def require_planner(
     user: Annotated[dict[str, Any], Depends(get_current_user)],
 ) -> dict[str, Any]:
-    if "PLANNER" not in user.get("roles", []):
-        raise AccesoDenegadoError("Se requiere el rol PLANNER")
-    return user
+    roles = _user_roles(user)
+    if _is_superadmin(roles) or "PLANNER" in roles:
+        return user
+    raise AccesoDenegadoError("Se requiere el rol PLANNER")
 
 
 def require_legal_advisor(
     user: Annotated[dict[str, Any], Depends(get_current_user)],
 ) -> dict[str, Any]:
-    roles = user.get("roles", [])
-    if "LEGAL_ADVISOR" not in roles and "ADMIN" not in roles:
-        raise AccesoDenegadoError("Se requiere el rol LEGAL_ADVISOR o ADMIN")
-    return user
+    roles = _user_roles(user)
+    if _is_superadmin(roles) or "LEGAL_ADVISOR" in roles or "ADMIN" in roles:
+        return user
+    raise AccesoDenegadoError("Se requiere el rol LEGAL_ADVISOR o ADMIN")
 
 
 def require_admin(
     user: Annotated[dict[str, Any], Depends(get_current_user)],
 ) -> dict[str, Any]:
-    if "ADMIN" not in user.get("roles", []):
-        raise AccesoDenegadoError("Se requiere el rol ADMIN")
-    return user
+    roles = _user_roles(user)
+    if _is_superadmin(roles) or "ADMIN" in roles:
+        return user
+    raise AccesoDenegadoError("Se requiere el rol ADMIN")

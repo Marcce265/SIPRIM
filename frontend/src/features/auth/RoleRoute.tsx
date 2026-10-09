@@ -1,4 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom'
+import { roleGrantsAny } from '../../utils/roles'
 import { useAuth } from './AuthContext'
 
 interface RoleRouteProps {
@@ -6,8 +7,8 @@ interface RoleRouteProps {
 }
 
 export function RoleRoute({ anyOf }: RoleRouteProps) {
-  const { hasRole } = useAuth()
-  const allowed = anyOf.some((role) => hasRole(role))
+  const { user } = useAuth()
+  const allowed = roleGrantsAny(user?.roles ?? [], anyOf)
 
   if (!allowed) {
     return <Navigate to="/" replace />
