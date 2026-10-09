@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { apiFetch } from '../../api/client'
 import { PageHeader } from '../../components/ui/PageHeader'
 
@@ -10,11 +10,61 @@ interface DictamenIA {
   recomendaciones: string[]
 }
 
+interface ProyectoBackend {
+  id: number
+  nombre: string
+  codigo: string
+}
+
+interface RegistroResponse {
+  proyecto: ProyectoBackend
+}
+
+interface ValidacionResponse {
+  estado: string
+  campos_faltantes: string[]
+  mensaje: string
+}
+
 export function GeminiIntegrationPage() {
   const [rawId, setRawId] = useState('')
   const [dictamen, setDictamen] = useState<DictamenIA | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [registrando, setRegistrando] = useState(false)
+  const [proyecto, setProyecto] = useState<ProyectoBackend | null>(null)
+  const [validacion, setValidacion] = useState<ValidacionResponse | null>(null)
+  const [form, setForm] = useState({ nombre: '', descripcion: '', ubicacion: '', presupuesto: '', beneficiarios: '', tipo_proyecto: '' })
+
+  const registrar = async (event: FormEvent) => {
+    event.preventDefault()
+    setRegistrando(true)
+    setError(null)
+    setDictamen(null)
+    setProyecto(null)
+    setValidacion(null)
+    try {
+      const registrado = await apiFetch<RegistroResponse>('/api/v1/proyectos', {
+        method: 'POST',
+        body: JSON.stringify({
+          nombre: form.nombre,
+          descripcion: form.descripcion,
+          ubicacion: form.ubicacion,
+          presupuesto: Number(form.presupuesto),
+          beneficiarios: Number(form.beneficiarios),
+          tipo_proyecto: form.tipo_proyecto,
+        }),
+      })
+      setProyecto(registrado.proyecto)
+      setRawId(String(registrado.proyecto.id))
+      const resultado = await apiFetch<ValidacionResponse>(`/api/v1/proyectos/${registrado.proyecto.id}/validar`, { method: 'POST' })
+      setValidacion(resultado)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo registrar el expediente.')
+    } finally {
+      setRegistrando(false)
+    }
+  }
 
   const evaluar = async () => {
     const id = Number(rawId)
@@ -41,10 +91,31 @@ export function GeminiIntegrationPage() {
   return (
     <div className="form-page">
       <PageHeader
-        title="Integración experimental con Gemini"
-        description="Use un expediente creado en el backend FastAPI. Los proyectos del modo demostración se guardan en este navegador y no comparten identificadores."
+        title="Evaluación preliminar con IA"
+        description="Registre un expediente municipal en el backend, valide sus datos y solicite un dictamen orientativo de Gemini."
       />
       <section className="ia-panel">
+        <h2>1. Registrar expediente para evaluación IA</h2>
+        <p>Este registro usa el backend. Es independiente de los expedientes locales del modo demostración.</p>
+        <form className="ia-register-form" onSubmit={(event) => void registrar(event)}>
+          {([
+            ['nombre', 'Nombre del proyecto', 'text'],
+            ['descripcion', 'Descripción y objetivo', 'text'],
+            ['ubicacion', 'Ubicación', 'text'],
+            ['presupuesto', 'Presupuesto (S/)', 'number'],
+            ['beneficiarios', 'Beneficiarios', 'number'],
+            ['tipo_proyecto', 'Tipo de proyecto', 'text'],
+          ] as const).map(([name, label, type]) => (
+            <label className="form-field" key={name}>
+              <span className="form-field-label">{label}</span>
+              <input className="form-field-input" type={type} min={type === 'number' ? '1' : undefined} step={name === 'presupuesto' ? '0.01' : undefined} required value={form[name]} onChange={(event) => setForm((prev) => ({ ...prev, [name]: event.target.value }))} />
+            </label>
+          ))}
+          <button className="btn btn-primary" type="submit" disabled={registrando || loading}>{registrando ? 'Registrando y validando…' : 'Registrar y validar'}</button>
+        </form>
+        {proyecto && <p role="status"><strong>Expediente #{proyecto.id} · {proyecto.codigo}</strong> — {proyecto.nombre}</p>}
+        {validacion && <p role="status">Validación: <strong>{validacion.estado}</strong>. {validacion.mensaje}</p>}
+        <h2>2. Evaluar expediente con Gemini</h2>
         <label className="form-field" htmlFor="gemini-project-id">
           <span className="form-field-label">ID numérico del expediente en el backend</span>
         </label>
@@ -59,7 +130,7 @@ export function GeminiIntegrationPage() {
             onChange={(event) => setRawId(event.target.value)}
             placeholder="Ej. 1"
           />
-          <button className="btn btn-primary" type="button" disabled={loading} onClick={() => void evaluar()}>
+          <button className="btn btn-primary" type="button" disabled={loading || registrando} onClick={() => void evaluar()}>
             {loading ? 'Evaluando…' : 'Evaluar con IA'}
           </button>
         </div>
