@@ -15,6 +15,11 @@ import { RegistrarPage } from '../features/registrar/RegistrarPage'
 export function AppRoutes() {
   return (
     <Routes>
+      {import.meta.env.VITE_IA_DEMO_SERVERLESS === 'true' && (
+        <Route element={<Layout />}>
+          <Route path="integracion-ia" element={<GeminiIntegrationPage />} />
+        </Route>
+      )}
       <Route element={<GuestRoute />}>
         <Route path="login" element={<LoginPage />} />
       </Route>
@@ -24,7 +29,9 @@ export function AppRoutes() {
           <Route index element={<HomePage />} />
           <Route path="registrar" element={<RegistrarPage />} />
           <Route path="consultar" element={<ConsultarPage />} />
-          <Route path="integracion-ia" element={<GeminiIntegrationPage />} />
+          {import.meta.env.VITE_IA_DEMO_SERVERLESS !== 'true' && (
+            <Route path="integracion-ia" element={<GeminiIntegrationPage />} />
+          )}
           <Route path="proyectos/:projectId" element={<ProyectoDetallePage />} />
 
           <Route element={<RoleRoute anyOf={['LEGAL_ADVISOR']} />}>
