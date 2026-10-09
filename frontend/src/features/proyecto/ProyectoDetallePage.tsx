@@ -24,6 +24,8 @@ import type {
 } from '../../types/pmv1'
 import { newIdempotencyKey } from '../../utils/idempotency'
 import { mapPmV1ToProyecto } from '../../utils/pmv1Mapper'
+import { formatDate, formatFileSize } from '../../utils/format'
+import { getPhysicalExpediente } from '../../utils/physicalExpedienteStorage'
 import { rememberProject } from '../../utils/recentProjects'
 
 const POLL_MS = 2000
@@ -151,6 +153,7 @@ export function ProyectoDetallePage() {
   }
 
   const proyectoView = project ? mapPmV1ToProyecto(project) : null
+  const physicalExpediente = projectId ? getPhysicalExpediente(projectId) : null
 
   return (
     <div className="form-page pmv1-flow">
@@ -167,6 +170,23 @@ export function ProyectoDetallePage() {
       {proyectoView && (
         <>
           <ProyectoCard proyecto={proyectoView} />
+
+          {physicalExpediente && (
+            <section className="flow-panel expediente-physical-panel">
+              <h2>Expediente físico adjunto</h2>
+              <p className="flow-hint">
+                {physicalExpediente.fileName} · {formatFileSize(physicalExpediente.size)} · subido{' '}
+                {formatDate(physicalExpediente.uploadedAt)}
+              </p>
+              <a
+                className="btn btn-secondary"
+                href={physicalExpediente.dataUrl}
+                download={physicalExpediente.fileName}
+              >
+                Descargar documento
+              </a>
+            </section>
+          )}
 
           <section className="flow-panel">
             <h2>1. Validación del expediente</h2>

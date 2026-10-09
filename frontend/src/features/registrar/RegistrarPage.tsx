@@ -3,14 +3,24 @@ import { ExpedienteForm } from './ExpedienteForm'
 import { useRegistrarProyecto } from './useRegistrarProyecto'
 
 export function RegistrarPage() {
-  const { form, fieldErrors, submitError, loading, updateField, resetForm, submit } =
-    useRegistrarProyecto()
+  const {
+    form,
+    fieldErrors,
+    submitError,
+    loading,
+    physicalFile,
+    physicalFileError,
+    updateField,
+    setPhysicalFile,
+    resetForm,
+    submit,
+  } = useRegistrarProyecto()
 
   return (
     <div className="form-page">
       <PageHeader
         title="Registrar proyecto"
-        description="Complete los datos mínimos del PMV 1. Se guardarán localmente en este navegador. HU05, HU07."
+        description="Complete los datos mínimos del PMV 1. Opcionalmente adjunte el expediente físico escaneado. HU05, HU07."
       />
       <ExpedienteForm
         form={form}
@@ -21,6 +31,9 @@ export function RegistrarPage() {
         onSubmit={submit}
         onReset={resetForm}
         submitLabel="Registrar proyecto"
+        physicalFile={physicalFile}
+        onPhysicalFileChange={setPhysicalFile}
+        physicalFileError={physicalFileError}
       />
     </div>
   )
