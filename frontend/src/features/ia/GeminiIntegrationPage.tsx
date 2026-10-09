@@ -26,6 +26,8 @@ interface ValidacionResponse {
   mensaje: string
 }
 
+const demoServerless = import.meta.env.VITE_IA_DEMO_SERVERLESS === 'true'
+
 export function GeminiIntegrationPage() {
   const [rawId, setRawId] = useState('')
   const [dictamen, setDictamen] = useState<DictamenIA | null>(null)
@@ -44,16 +46,27 @@ export function GeminiIntegrationPage() {
     setProyecto(null)
     setValidacion(null)
     try {
-      const registrado = await apiFetch<RegistroResponse>('/api/v1/proyectos', {
-        method: 'POST',
-        body: JSON.stringify({
+      const payload = {
           nombre: form.nombre,
           descripcion: form.descripcion,
           ubicacion: form.ubicacion,
           presupuesto: Number(form.presupuesto),
           beneficiarios: Number(form.beneficiarios),
           tipo_proyecto: form.tipo_proyecto,
-        }),
+      }
+      if (demoServerless) {
+        const resultado = await apiFetch<{ proyecto: ProyectoBackend; validacion: ValidacionResponse; dictamen: DictamenIA }>(
+          '/api/v1/proyectos/evaluacion-ia-demo',
+          { method: 'POST', body: JSON.stringify(payload), timeoutMs: 60_000 },
+        )
+        setProyecto(resultado.proyecto)
+        setValidacion(resultado.validacion)
+        setDictamen(resultado.dictamen)
+        setRawId(String(resultado.proyecto.id))
+        return
+      }
+      const registrado = await apiFetch<RegistroResponse>('/api/v1/proyectos', {
+        method: 'POST', body: JSON.stringify(payload),
       })
       setProyecto(registrado.proyecto)
       setRawId(String(registrado.proyecto.id))
@@ -92,11 +105,12 @@ export function GeminiIntegrationPage() {
     <div className="form-page">
       <PageHeader
         title="Evaluación preliminar con IA"
-        description="Registre un expediente municipal en el backend, valide sus datos y solicite un dictamen orientativo de Gemini."
+        description="Registre un expediente municipal, valide sus datos y solicite un dictamen orientativo de Gemini."
       />
       <section className="ia-panel">
         <h2>1. Registrar expediente para evaluación IA</h2>
         <p>Este registro usa el backend. Es independiente de los expedientes locales del modo demostración.</p>
+        {demoServerless && <p>Demostración temporal: el expediente y el dictamen se muestran en esta sesión; no se guardan en una base de datos. Las decisiones requieren revisión humana.</p>}
         <form className="ia-register-form" onSubmit={(event) => void registrar(event)}>
           {([
             ['nombre', 'Nombre del proyecto', 'text'],
@@ -111,11 +125,11 @@ export function GeminiIntegrationPage() {
               <input className="form-field-input" type={type} min={type === 'number' ? '1' : undefined} step={name === 'presupuesto' ? '0.01' : undefined} required value={form[name]} onChange={(event) => setForm((prev) => ({ ...prev, [name]: event.target.value }))} />
             </label>
           ))}
-          <button className="btn btn-primary" type="submit" disabled={registrando || loading}>{registrando ? 'Registrando y validando…' : 'Registrar y validar'}</button>
+          <button className="btn btn-primary" type="submit" disabled={registrando || loading}>{registrando ? (demoServerless ? 'Evaluando con Gemini…' : 'Registrando y validando…') : (demoServerless ? 'Registrar, validar y evaluar con IA' : 'Registrar y validar')}</button>
         </form>
         {proyecto && <p role="status"><strong>Expediente #{proyecto.id} · {proyecto.codigo}</strong> — {proyecto.nombre}</p>}
         {validacion && <p role="status">Validación: <strong>{validacion.estado}</strong>. {validacion.mensaje}</p>}
-        <h2>2. Evaluar expediente con Gemini</h2>
+        {!demoServerless && <><h2>2. Evaluar expediente con Gemini</h2>
         <label className="form-field" htmlFor="gemini-project-id">
           <span className="form-field-label">ID numérico del expediente en el backend</span>
         </label>
@@ -134,6 +148,7 @@ export function GeminiIntegrationPage() {
             {loading ? 'Evaluando…' : 'Evaluar con IA'}
           </button>
         </div>
+        </>}
         {loading && <p role="status">Consultando Gemini desde el backend…</p>}
         {error && <p role="alert" className="ia-error">{error}</p>}
         {dictamen && (
