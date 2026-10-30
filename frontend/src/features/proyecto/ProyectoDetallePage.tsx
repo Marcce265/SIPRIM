@@ -9,7 +9,6 @@ import {
   getEvaluation,
   getHumanApproval,
   getProject,
-  legalPrecheck,
   requestEvaluation,
   validateProject,
   zoningPrecheck,
@@ -18,7 +17,6 @@ import { useAuth } from '../auth/AuthContext'
 import type {
   EvaluationResponse,
   HumanApprovalStatusResponse,
-  LegalPrecheckResponse,
   PMV1ProjectResponse,
   PMV1ValidationResponse,
   ZoningPrecheckResponse,
@@ -41,7 +39,6 @@ export function ProyectoDetallePage() {
   const [project, setProject] = useState<PMV1ProjectResponse | null>(null)
   const [validation, setValidation] = useState<PMV1ValidationResponse | null>(null)
   const [evaluation, setEvaluation] = useState<EvaluationResponse | null>(null)
-  const [legal, setLegal] = useState<LegalPrecheckResponse | null>(null)
   const [zoning, setZoning] = useState<ZoningPrecheckResponse | null>(null)
   const [approval, setApproval] = useState<HumanApprovalStatusResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -122,19 +119,6 @@ export function ProyectoDetallePage() {
       await pollEvaluation(accepted.evaluation_id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo evaluar.')
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  const runLegal = async () => {
-    if (!projectId) return
-    setBusy('legal')
-    setError(null)
-    try {
-      setLegal(await legalPrecheck(projectId))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Precheck jurídico fallido.')
     } finally {
       setBusy(null)
     }
@@ -234,32 +218,44 @@ export function ProyectoDetallePage() {
             {evaluation && <TechnicalDetails data={evaluation} />}
           </section>
 
-          <section className="flow-panel">
-            <h2>3. Revisión jurídica y de zonificación</h2>
-            <div className="flow-actions">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                disabled={busy !== null}
-                onClick={() => void runLegal()}
-              >
-                {busy === 'legal' ? '…' : 'Revisión jurídica inicial'}
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                disabled={busy !== null}
-                onClick={() => void runZoning()}
-              >
-                {busy === 'zoning' ? '…' : 'Compatibilidad urbanística (PDU)'}
-              </button>
+          <section className="flow-panel legal-flow-panel">
+            <div className="flow-panel-heading">
+              <div>
+                <span className="story-label">PMV1 · HU1.10</span>
+                <h2>3. Conformidad con contratación pública</h2>
+              </div>
+              <span className="review-badge">Revisión jurídica</span>
             </div>
-            {legal && <TechnicalDetails data={legal} />}
+            <p className="flow-hint">
+              Abra la vista dedicada para ejecutar el análisis y consultar faltantes,
+              observaciones y trazabilidad normativa.
+            </p>
+            <Link
+              to={`/proyectos/${projectId}/revision-juridica`}
+              className="btn btn-primary"
+            >
+              Abrir detalle de revisión jurídica
+            </Link>
+          </section>
+
+          <section className="flow-panel">
+            <h2>4. Compatibilidad urbanística (HU1.11)</h2>
+            <p className="flow-hint">
+              Revisa de forma preliminar el uso de suelo declarado frente al PDU/PDM.
+            </p>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={busy !== null}
+              onClick={() => void runZoning()}
+            >
+              {busy === 'zoning' ? 'Analizando…' : 'Analizar compatibilidad urbanística'}
+            </button>
             {zoning && <TechnicalDetails data={zoning} />}
           </section>
 
           <section className="flow-panel">
-            <h2>4. Normativa y dictamen final</h2>
+            <h2>5. Normativa y dictamen final</h2>
             <ul className="flow-links">
               {hasRole('LEGAL_ADVISOR') && (
                 <li>

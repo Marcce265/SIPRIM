@@ -69,6 +69,7 @@ export interface LegalPrecheckResponse {
   project_id: string
   status: string
   complies: null
+  sources: string[]
   requires_review: boolean
   observations: string[]
 }
