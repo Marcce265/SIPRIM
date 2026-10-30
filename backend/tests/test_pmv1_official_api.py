@@ -394,6 +394,7 @@ class FakePlatform:
 
         is_pry_b = str(project_id).endswith("b")
         is_pry_c = str(project_id).endswith("c")
+        is_pry_d = str(project_id).endswith("d")
 
         if is_pry_b:
             return {
@@ -419,6 +420,27 @@ class FakePlatform:
                 },
                 "impacts": [],
                 "mitigations": [],
+                "green_area": {
+                    "has_sufficient_data": False,
+                    "total_project_area_m2": None,
+                    "green_area_m2": None,
+                    "green_area_percentage": None,
+                    "delimitation_description": None,
+                    "declared_affectation": None,
+                    "verifiable_affectation": None,
+                    "affectation_type": None,
+                    "affectation_type_label": "No determinada: información insuficiente",
+                    "protection_measures": None,
+                    "has_sufficient_measures": False,
+                    "score_effect_pts": None,
+                    "effect_type": "indeterminado",
+                    "calculation_explanation": "Información insuficiente sobre áreas verdes (Sin ventaja ambiental automática).",
+                    "source_name": "Catastro Municipal El Tambo (Sin catastro verde)",
+                    "data_origin": "simulated",
+                    "is_simulated": True,
+                },
+                "environmental_score": None,
+                "score_explanation": "Puntaje ambiental no determinado: información de áreas verdes insuficiente para ponderación cuantitativa (CA-HU1.7-02).",
                 "evaluated_at": datetime.now(timezone.utc),
                 "duplicated": idempotency_key == "env-repeat",
             }
@@ -466,6 +488,85 @@ class FakePlatform:
                         "origin": "requerimiento_tecnico",
                     }
                 ],
+                "green_area": {
+                    "has_sufficient_data": True,
+                    "total_project_area_m2": 1000.0,
+                    "green_area_m2": 300.0,
+                    "green_area_percentage": 30.0,
+                    "delimitation_description": "Delimitado con cerco perimétrico vivo.",
+                    "declared_affectation": "Sin afectación.",
+                    "verifiable_affectation": "Cobertura vegetal ribereña.",
+                    "affectation_type": "conservacion_positiva",
+                    "affectation_type_label": "Conservación activa / Aumento de área verde",
+                    "protection_measures": "Mantenimiento de vegetación.",
+                    "has_sufficient_measures": True,
+                    "score_effect_pts": 15.0,
+                    "effect_type": "bonus",
+                    "calculation_explanation": "Bonificación ambiental (+15.0 pts).",
+                    "source_name": "Catastro Municipal El Tambo (Simulado)",
+                    "data_origin": "simulated",
+                    "is_simulated": True,
+                },
+                "environmental_score": 40.0,
+                "score_explanation": "Puntaje ambiental preliminar: 40.0/100 pts. ALERTA DE RIESGO PREVALENTE: La valoración de áreas verdes no convalida ni convierte en favorable el expediente ante la presencia de RIESGO AMBIENTAL ALTO.",
+                "evaluated_at": datetime.now(timezone.utc),
+                "duplicated": idempotency_key == "env-repeat",
+            }
+
+        if is_pry_d:
+            return {
+                "project_id": project_id,
+                "project_code": "PRY-D",
+                "project_version_id": VERSION_ID,
+                "status": "sufficient",
+                "risk_level": "moderate",
+                "risk_level_label": "Riesgo Moderado",
+                "risk_observation": None,
+                "requires_human_review": False,
+                "favorable": False,
+                "favorable_label": "Desfavorable: puntaje ambiental insuficiente por afectación no mitigada de áreas verdes",
+                "summary": "Evaluación ambiental DESFAVORABLE: puntaje de 50.0/100 pts inferior al umbral aprobatorio (60.0 pts) debido a la afectación no mitigada de áreas verdes.",
+                "declared_vs_evidence": {
+                    "declared_by_applicant": "Tala de 8 árboles para ensanche de acceso vehicular.",
+                    "declared_measures": "No especificadas.",
+                    "verifiable_evidence": "Afectación de 350 m2 de cobertura verde preexistente sin plan de reposición.",
+                    "evidence_source": "Dataset ambiental simulado SIPRIM El Tambo (Simulado)",
+                    "is_simulated": True,
+                    "proximity_to_water_meters": 550.0,
+                    "is_in_protected_or_risk_area": False,
+                },
+                "impacts": [
+                    {
+                        "component": "areas_verdes",
+                        "component_label": "Cobertura Vegetal y Áreas Verdes",
+                        "description": "Pérdida neta de cobertura arbórea urbana.",
+                        "severity": "moderada",
+                        "substantiation": "Reducción de arbolado sin compensación forestal.",
+                        "mitigations": ["Plan de compensación de 3 árboles por cada ejemplar talado"],
+                    }
+                ],
+                "mitigations": [],
+                "green_area": {
+                    "has_sufficient_data": True,
+                    "total_project_area_m2": 3000.0,
+                    "green_area_m2": 150.0,
+                    "green_area_percentage": 5.0,
+                    "delimitation_description": "Delimitación parcial sin buffer de amortiguamiento.",
+                    "declared_affectation": "Tala de 8 árboles para ensanche de acceso vehicular.",
+                    "verifiable_affectation": "Afectación de 350 m2 de cobertura verde preexistente.",
+                    "affectation_type": "afectacion_no_mitigada",
+                    "affectation_type_label": "Afectación negativa sin mitigación suficiente",
+                    "protection_measures": "No se contempla plan de reposición forestal ni compensación.",
+                    "has_sufficient_measures": False,
+                    "score_effect_pts": -20.0,
+                    "effect_type": "penalizacion",
+                    "calculation_explanation": "Deducción ambiental (-20.0 pts): afectación sin reposición.",
+                    "source_name": "Inspección Ambiental Huancayo (Simulado)",
+                    "data_origin": "simulated",
+                    "is_simulated": True,
+                },
+                "environmental_score": 50.0,
+                "score_explanation": "Puntaje ambiental preliminar: 50.0/100 pts (Base ambiental: 70.0 pts, Deducción ambiental (-20.0 pts)).",
                 "evaluated_at": datetime.now(timezone.utc),
                 "duplicated": idempotency_key == "env-repeat",
             }
@@ -512,6 +613,27 @@ class FakePlatform:
                     "origin": "propuesta_expediente",
                 }
             ],
+            "green_area": {
+                "has_sufficient_data": True,
+                "total_project_area_m2": 2500.0,
+                "green_area_m2": 625.0,
+                "green_area_percentage": 25.0,
+                "delimitation_description": "Área verde perimétrica delimitada en plano catastral mz. 42 lote 5.",
+                "declared_affectation": "Sin afectación de cobertura vegetal existente.",
+                "verifiable_affectation": "Verificado: proyecto no remueve arbolado urbano existente.",
+                "affectation_type": "conservacion_positiva",
+                "affectation_type_label": "Conservación activa / Aumento de área verde",
+                "protection_measures": "Conservación del 100% del arbolado existente e incorporación de 250 m2 de césped nativo.",
+                "has_sufficient_measures": True,
+                "score_effect_pts": 15.0,
+                "effect_type": "bonus",
+                "calculation_explanation": "Bonificación ambiental (+15.0 pts): el proyecto conserva y protege áreas verdes con medidas suficientes.",
+                "source_name": "Catastro Municipal El Tambo / SIGRID (Simulado)",
+                "data_origin": "simulated",
+                "is_simulated": True,
+            },
+            "environmental_score": 85.0,
+            "score_explanation": "Puntaje ambiental preliminar: 85.0/100 pts (Base ambiental: 70.0 pts, Bonificación ambiental (+15.0 pts)). Regla de demostración para el prototipo PMV2 (HU1.7).",
             "evaluated_at": datetime.now(timezone.utc),
             "duplicated": idempotency_key == "env-repeat",
         }
@@ -1099,3 +1221,51 @@ def test_get_environmental_assessment(client: TestClient) -> None:
     assert body["status"] == "sufficient"
     assert body["risk_level"] == "moderate"
 
+
+
+def test_environmental_assessment_hu17_pry_a_green_area_bonus(client: TestClient) -> None:
+    """CA-HU1.7-01: API retorna puntaje ponderado con bonificación de áreas verdes para PRY-A."""
+    response = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/environmental-assessment",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["environmental_score"] == 85.0
+    assert body["green_area"] is not None
+    assert body["green_area"]["score_effect_pts"] == 15.0
+    assert body["green_area"]["effect_type"] == "bonus"
+    assert "85.0/100" in body["score_explanation"]
+    assert "+15.0 pts" in body["score_explanation"]
+
+
+def test_environmental_assessment_hu17_pry_d_green_area_penalty(client: TestClient) -> None:
+    """CA-HU1.7-01: API retorna penalización en puntaje por afectación de áreas verdes para PRY-D."""
+    project_d_id = UUID("a0000000-0000-4000-a000-00000000000d")
+    response = client.post(
+        f"/api/v1/projects/{project_d_id}/environmental-assessment",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["environmental_score"] == 50.0
+    assert body["favorable"] is False
+    assert body["green_area"] is not None
+    assert body["green_area"]["score_effect_pts"] == -20.0
+    assert body["green_area"]["effect_type"] == "penalizacion"
+    assert "50.0/100" in body["score_explanation"]
+
+
+def test_environmental_assessment_hu17_pry_b_insufficient_no_automatic_advantage(client: TestClient) -> None:
+    """CA-HU1.7-02: API no asigna ventaja ambiental automática ni puntaje cuando faltan datos en PRY-B."""
+    project_b_id = UUID("a0000000-0000-4000-a000-00000000000b")
+    response = client.post(
+        f"/api/v1/projects/{project_b_id}/environmental-assessment",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["environmental_score"] is None
+    assert body["favorable"] is None
+    assert body["green_area"]["has_sufficient_data"] is False
+    assert body["green_area"]["score_effect_pts"] is None

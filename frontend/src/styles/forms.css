@@ -839,7 +839,196 @@ textarea.form-field-input {
   color: #475569;
 }
 
+
+/* HU1.7 Conservación de Áreas Verdes & Puntaje Ambiental */
+.pmv1-flow .env-score-card {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-md);
+  border-left: 4px solid #059669;
+}
+
+.pmv1-flow .env-score-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.pmv1-flow .env-score-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #059669;
+  letter-spacing: 0.05em;
+}
+
+.pmv1-flow .env-score-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.pmv1-flow .env-score-badge.score-good {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.pmv1-flow .env-score-badge.score-low {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.pmv1-flow .env-score-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.85rem;
+}
+
+.pmv1-flow .env-score-item {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.pmv1-flow .env-score-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pmv1-flow .env-score-val {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.pmv1-flow .env-score-explanation {
+  margin: 0.6rem 0 0;
+  font-size: 0.85rem;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.pmv1-flow .green-area-panel {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.pmv1-flow .green-area-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.pmv1-flow .green-status-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.pmv1-flow .green-status-badge.status-ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.pmv1-flow .green-status-badge.status-warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pmv1-flow .green-insufficient-banner {
+  padding: 0.85rem 1rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-sm);
+}
+
+.pmv1-flow .green-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.pmv1-flow .green-detail-card {
+  padding: 0.75rem 0.9rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.pmv1-flow .green-detail-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.pmv1-flow .green-metric-value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.pmv1-flow .green-metric-percent {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #059669;
+  margin-left: 0.4rem;
+}
+
+.pmv1-flow .green-detail-sub {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 0.2rem;
+}
+
+.pmv1-flow .green-detail-text {
+  margin: 0.2rem 0;
+  font-size: 0.82rem;
+  color: #334155;
+  line-height: 1.4;
+}
+
+.pmv1-flow .green-measures-pill {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.pmv1-flow .green-measures-pill.pill-ok {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.pmv1-flow .green-measures-pill.pill-warn {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 @media (max-width: 640px) {
+  .pmv1-flow .green-details-grid {
+    grid-template-columns: 1fr;
+  }
+
   .pmv1-flow .env-contrast-grid {
     grid-template-columns: 1fr;
   }

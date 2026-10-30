@@ -167,6 +167,26 @@ export interface EnvironmentalDeclaredVsEvidence {
   is_in_protected_or_risk_area: boolean | null
 }
 
+export interface GreenAreaRecordItem {
+  has_sufficient_data: boolean
+  total_project_area_m2?: number | null
+  green_area_m2?: number | null
+  green_area_percentage?: number | null
+  delimitation_description?: string | null
+  declared_affectation?: string | null
+  verifiable_affectation?: string | null
+  affectation_type?: string | null
+  affectation_type_label?: string | null
+  protection_measures?: string | null
+  has_sufficient_measures: boolean
+  score_effect_pts?: number | null
+  effect_type: 'bonus' | 'penalizacion' | 'neutro' | 'indeterminado'
+  calculation_explanation: string
+  source_name: string
+  data_origin: string
+  is_simulated: boolean
+}
+
 export interface EnvironmentalAssessmentResponse {
   project_id: string
   project_code: string
@@ -182,6 +202,9 @@ export interface EnvironmentalAssessmentResponse {
   declared_vs_evidence: EnvironmentalDeclaredVsEvidence
   impacts: EnvironmentalImpactItem[]
   mitigations: EnvironmentalMitigationItem[]
+  green_area?: GreenAreaRecordItem | null
+  environmental_score?: number | null
+  score_explanation?: string | null
   evaluated_at: string
   duplicated?: boolean
 }

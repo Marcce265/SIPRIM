@@ -17,7 +17,8 @@ ON CONFLICT DO NOTHING;
 INSERT INTO projects (id, code, created_by_user_id, status) VALUES
     ('a0000000-0000-4000-a000-00000000000a', 'PRY-A', '10000000-0000-4000-a000-000000000002', 'ready'),
     ('a0000000-0000-4000-a000-00000000000b', 'PRY-B', '10000000-0000-4000-a000-000000000002', 'ready'),
-    ('a0000000-0000-4000-a000-00000000000c', 'PRY-C', '10000000-0000-4000-a000-000000000002', 'ready')
+    ('a0000000-0000-4000-a000-00000000000c', 'PRY-C', '10000000-0000-4000-a000-000000000002', 'ready'),
+    ('a0000000-0000-4000-a000-00000000000d', 'PRY-D', '10000000-0000-4000-a000-000000000002', 'ready')
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO project_versions (id, project_id, version_number, title, description, location_description,
@@ -34,6 +35,10 @@ INSERT INTO project_versions (id, project_id, version_number, title, description
     ('b0000000-0000-4000-a000-00000000000c', 'a0000000-0000-4000-a000-00000000000c', 1,
      'Proyecto C - Taller de maestranza y depósito municipal (prueba)', 'Dato ficticio para el PMV 2 (HU1.6)',
      'CASO SIMULADO - Faja marginal del Río Shullcas - El Tambo', 'taller / maestranza', 'simulated', 350000.00, 1200,
+     '10000000-0000-4000-a000-000000000002'),
+    ('b0000000-0000-4000-a000-00000000000d', 'a0000000-0000-4000-a000-00000000000d', 1,
+     'Proyecto D - Pavimentación y ampliación vial en Av. Ferrocarril (prueba)', 'Dato ficticio para el PMV 2 (HU1.7)',
+     'CASO SIMULADO - Av. Ferrocarril tramo El Tambo', 'vial / transporte', 'simulated', 480000.00, 1800,
      '10000000-0000-4000-a000-000000000002')
 ON CONFLICT (project_id, version_number) DO NOTHING;
 
@@ -206,7 +211,17 @@ VALUES
      NULL,
      NULL, NULL,
      'Catastro Municipal El Tambo (Sin Declaración de Impacto Ambiental ni línea base registrada)', 'simulated',
-     'Información insuficiente')
+     'Información insuficiente'),
+
+    -- PRY-D (Caso con afectación de áreas verdes y medidas insuficientes)
+    ('81000000-0000-4000-a000-000000000004', 'a0000000-0000-4000-a000-00000000000d', 'PRY-D', TRUE,
+     'aire_acustico_residuos',
+     'El administrado declara obras de pavimentación con generación diurna de polvo y ruido por maquinaria pesada.',
+     'Riego periódico de calzada con cisterna y desvío de tránsito vehicular por calles alternas.',
+     'Eje vial metropolitano consolidado en El Tambo. Distancia superior a 350 m a cursos hídricos; fuera de fajas marginales o zonas no mitigables del PDM.',
+     350.00, FALSE,
+     'Dataset ambiental simulado SIPRIM El Tambo - PDM Huancayo (Simulado)', 'simulated',
+     'Pavimentación en trama consolidada. Impactos generales mitigables, pero interviene berma central arborizada.')
 ON CONFLICT (id) DO UPDATE SET
     declared_impacts = EXCLUDED.declared_impacts,
     declared_measures = EXCLUDED.declared_measures,
@@ -217,3 +232,82 @@ ON CONFLICT (id) DO UPDATE SET
     data_origin = EXCLUDED.data_origin,
     description = EXCLUDED.description;
 
+
+
+-- =========================================================
+-- Semillas de datos de áreas verdes (HU1.7)
+-- Conjunto explícitamente simulado para el distrito de El Tambo.
+-- PRY-A: Conservación activa con sustento y medidas suficientes (+15 pts).
+-- PRY-B: Información insuficiente (sin bonificación, puntaje sin determinar).
+-- PRY-C: Riesgo alto en HU1.6 (la bonificación NO elude la compuerta humana).
+-- PRY-D: Afectación de áreas verdes con medidas insuficientes (-20 pts).
+-- =========================================================
+INSERT INTO project_green_area_records
+    (id, project_id, project_code, has_sufficient_data, total_project_area_m2, green_area_m2,
+     green_area_percentage, delimitation_description, declared_affectation, verifiable_affectation,
+     affectation_type, protection_measures, has_sufficient_measures, score_effect_pts, effect_type,
+     calculation_explanation, source_name, data_origin, description)
+VALUES
+    -- PRY-A (Conservación con sustento y medidas suficientes: Bonificación +15 pts)
+    ('91000000-0000-4000-a000-000000000001', 'a0000000-0000-4000-a000-00000000000a', 'PRY-A', TRUE,
+     4600.00, 850.00, 18.48,
+     'Polígono delimitado en plano perimétrico PL-01: sector norte y franja este del complejo deportivo El Tambo, con cerco vivo de cipreses y grass natural.',
+     'El expediente prevé conservar las áreas verdes perimetrales existentes e incorporar 150 m² adicionales de cobertura vegetal.',
+     'Inspección catastral municipal confirma que el proyecto respeta la zonificación recreativa ZRP del PDM y no reduce la masa vegetal existente.',
+     'conservacion_positiva',
+     'Instalación de cerco de protección durante obras civiles, sistema de riego por goteo y plan de arborización con especies nativas (queñua y aliso).',
+     TRUE, 15.00, 'bonus',
+     'Bonificación ambiental (+15.0 pts): el proyecto conserva y protege 850.00 m² (18.48% del predio) de áreas verdes con delimitación verificada y medidas de protección suficientes.',
+     'Dataset territorial simulado SIPRIM El Tambo - Gerencia de Gestión Ambiental MPH (Simulado)', 'simulated',
+     'Conservación de áreas verdes con incremento neto de cobertura vegetal.'),
+
+    -- PRY-B (Información insuficiente: sin bonificación, efecto indeterminado)
+    ('91000000-0000-4000-a000-000000000002', 'a0000000-0000-4000-a000-00000000000b', 'PRY-B', FALSE,
+     NULL, NULL, NULL,
+     NULL, NULL, NULL,
+     NULL, NULL, FALSE, NULL, 'indeterminado',
+     'Información insuficiente: no se dispone de superficie, delimitación ni sustento técnico de áreas verdes. Por regla de precaución (CA-HU1.7-02), no se concede ventaja ambiental ni bonificación automática.',
+     'Catastro Municipal El Tambo (Sin catastro verde ni delimitación)', 'simulated',
+     'Información insuficiente'),
+
+    -- PRY-C (Riesgo ambiental alto en HU1.6: franja ribereña Río Shullcas)
+    ('91000000-0000-4000-a000-000000000003', 'a0000000-0000-4000-a000-00000000000c', 'PRY-C', TRUE,
+     3200.00, 400.00, 12.50,
+     'Franja ribereña adyacente a faja marginal del Río Shullcas.',
+     'El administrado declara conservación de vegetación ribereña.',
+     'Emplazamiento en faja marginal intangible no mitigable. Aunque declara conservar 400 m², el uso de maestranza genera riesgo crítico de contaminación sobre el ecosistema ribereño.',
+     'afectacion_mitigada',
+     'Cuneta rústica sin impermeabilización.',
+     FALSE, 0.00, 'neutro',
+     'Efecto neutro / sin ventaja convalidante: el predio se encuentra en faja marginal intangible de muy alto riesgo. La condición de riesgo alto prevalece e impide una valoración favorable automática.',
+     'Dataset territorial simulado SIPRIM El Tambo - SIGRID / ANA (Simulado)', 'simulated',
+     'Predio ribereño en faja marginal. Conservación declarada no neutraliza el riesgo ambiental alto.'),
+
+    -- PRY-D (Afectación de áreas verdes con medidas insuficientes: Deducción -20 pts)
+    ('91000000-0000-4000-a000-000000000004', 'a0000000-0000-4000-a000-00000000000d', 'PRY-D', TRUE,
+     5200.00, 320.00, 6.15,
+     'Berma central Av. Ferrocarril entre cuadras 12 y 16, El Tambo.',
+     'Remoción de berma con árboles para habilitar tercer carril de tránsito vehicular.',
+     'Tala y pérdida neta de 320 m² de cobertura arbórea consolidada en eje vial metropolitano.',
+     'afectacion_no_mitigada',
+     'No presenta plan de compensación arbórea ni trasplante de especies maduras; solo propuesta verbal de maceteros ornamentales.',
+     FALSE, -20.00, 'penalizacion',
+     'Deducción ambiental (-20.0 pts): el proyecto genera afectación y remoción de 320.00 m² de área verde sin medidas de reposición forestal ni compensación de biomasa acreditadas.',
+     'Dataset ambiental simulado SIPRIM El Tambo - Subgerencia de Áreas Verdes (Simulado)', 'simulated',
+     'Tala y reducción de áreas verdes sin compensación reglamentaria.')
+ON CONFLICT (id) DO UPDATE SET
+    total_project_area_m2 = EXCLUDED.total_project_area_m2,
+    green_area_m2 = EXCLUDED.green_area_m2,
+    green_area_percentage = EXCLUDED.green_area_percentage,
+    delimitation_description = EXCLUDED.delimitation_description,
+    declared_affectation = EXCLUDED.declared_affectation,
+    verifiable_affectation = EXCLUDED.verifiable_affectation,
+    affectation_type = EXCLUDED.affectation_type,
+    protection_measures = EXCLUDED.protection_measures,
+    has_sufficient_measures = EXCLUDED.has_sufficient_measures,
+    score_effect_pts = EXCLUDED.score_effect_pts,
+    effect_type = EXCLUDED.effect_type,
+    calculation_explanation = EXCLUDED.calculation_explanation,
+    source_name = EXCLUDED.source_name,
+    data_origin = EXCLUDED.data_origin,
+    description = EXCLUDED.description;

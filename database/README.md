@@ -118,3 +118,15 @@ Las migraciones DDL (`03_migration_hu1.4.sql` y `03_migration_hu1.6.sql`) contie
   La columna `is_in_protected_or_risk_area` es de tres estados (`TRUE`, `FALSE`, o `NULL` / no determinado).
   La restricción `chk_env_insufficient_no_evidence` exige que si `has_sufficient_data = FALSE`, `is_in_protected_or_risk_area` sea estrictamente `NULL`, impidiendo interpretar la ausencia de datos como ausencia de riesgo.
 - `environmental_assessments`: Evaluaciones con compuerta técnica y restricción que exige revisión técnica humana ante riesgo alto (`chk_high_risk_requires_human_review`).
+
+### HU1.7: Conservación de Áreas Verdes y Regla de Demostración de Puntaje
+`platform_db` incorpora:
+- `project_green_area_records`: Registros de superficie, delimitación, afectación declarada vs. evidenciada y medidas de protección de áreas verdes.
+- Restricción `chk_green_area_insufficient`: Exige que si `has_sufficient_data = FALSE`, los campos de superficie, delimitación, tipo de afectación y efecto en puntaje sean estrictamente `NULL`.
+- Regla de demostración para el prototipo PMV2:
+  - **Base ambiental (HU1.6):** Riesgo bajo (85.0 pts), riesgo moderado (70.0 pts), riesgo alto (25.0 pts).
+  - **Conservación con sustento y medidas suficientes:** Bonificación de `+15.0 pts` (explicada).
+  - **Afectación de áreas verdes con medidas insuficientes:** Deducción de `-20.0 pts` (explicada).
+  - **Afectación mitigada con reposición equivalente:** Efecto neutro (`0.0 pts`).
+  - **Información insuficiente (`CA-HU1.7-02`):** Sin ventaja ambiental automática ni bonificación (`None` / no determinado).
+  - **Interacción con riesgo alto:** La bonificación nunca convierte en favorable un expediente con riesgo ambiental alto (`favorable` es estrictamente `None` / condicionado a revisión humana obligatoria).

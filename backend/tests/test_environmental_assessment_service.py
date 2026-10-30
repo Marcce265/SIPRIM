@@ -17,6 +17,7 @@ from backend.infrastructure.config.settings import get_settings
 PROJECT_A_ID = UUID("a0000000-0000-4000-a000-00000000000a")
 PROJECT_B_ID = UUID("a0000000-0000-4000-a000-00000000000b")
 PROJECT_C_ID = UUID("a0000000-0000-4000-a000-00000000000c")
+PROJECT_D_ID = UUID("a0000000-0000-4000-a000-00000000000d")
 PLANNER_ID = UUID("10000000-0000-4000-a000-000000000002")
 
 
@@ -284,3 +285,298 @@ def test_platform_service_environmental_flow():
     fetched_c = service.get_environmental_assessment(PROJECT_C_ID)
     assert fetched_c["risk_level"] == "high"
     assert fetched_c["requires_human_review"] is True
+
+
+def test_environmental_engine_green_area_conservation_positive():
+    """CA-HU1.7-01: Conservación de áreas verdes con medidas de protección otorga bonificación y explica puntaje."""
+    env_records = [{
+        "environmental_component": "aire_acustico_residuos",
+        "has_sufficient_data": True,
+        "declared_impacts": "Polvo y ruido temporal durante movimiento de tierras.",
+        "declared_measures": "Riego diario y cerco perimétrico.",
+        "verifiable_evidence": "Ubicación en zona consolidada a más de 400 m de faja marginal fluvial.",
+        "proximity_to_water_meters": 420.0,
+        "is_in_protected_or_risk_area": False,
+        "source_name": "PDM Huancayo 2017-2037 / CENEPRED (Simulado)",
+        "data_origin": "simulated",
+    }]
+    green_records = [{
+        "has_sufficient_data": True,
+        "total_project_area_m2": 2500.0,
+        "green_area_m2": 625.0,
+        "green_area_percentage": 25.0,
+        "delimitation_description": "Área verde perimétrica delimitada en plano catastral mz. 42 lote 5.",
+        "declared_affectation": "Sin afectación de cobertura vegetal existente.",
+        "verifiable_affectation": "Verificado: proyecto no remueve arbolado urbano existente.",
+        "affectation_type": "conservacion_positiva",
+        "protection_measures": "Conservación del 100% del arbolado existente e incorporación de 250 m2 de césped nativo.",
+        "has_sufficient_measures": True,
+        "score_effect_pts": 15.0,
+        "effect_type": "bonus",
+        "calculation_explanation": "Bonificación de +15.0 pts por conservación activa y medidas suficientes de protección.",
+        "source_name": "Catastro Municipal El Tambo / SIGRID (Simulado)",
+        "data_origin": "simulated",
+    }]
+
+    result = EnvironmentalAssessmentEngine.evaluate(
+        project_id=PROJECT_A_ID,
+        project_code="PRY-A",
+        project_version_id=uuid4(),
+        records=env_records,
+        green_records=green_records,
+    )
+
+    assert result["status"] == "sufficient"
+    assert result["risk_level"] == "moderate"
+    assert result["favorable"] is True
+    assert result["green_area"] is not None
+    assert result["green_area"]["has_sufficient_data"] is True
+    assert result["green_area"]["score_effect_pts"] == 15.0
+    assert result["green_area"]["effect_type"] == "bonus"
+    assert result["green_area"]["green_area_percentage"] == 25.0
+    assert result["environmental_score"] == 85.0
+    assert "85.0/100" in result["score_explanation"]
+    assert "+15.0 pts" in result["score_explanation"]
+    assert "Base ambiental: 70.0" in result["score_explanation"]
+
+
+def test_environmental_engine_green_area_affectation_deduction():
+    """CA-HU1.7-01: Afectación de áreas verdes con medidas insuficientes deduce puntaje y lo explica."""
+    env_records = [{
+        "environmental_component": "aire_acustico_residuos",
+        "has_sufficient_data": True,
+        "declared_impacts": "Nivelación y remoción de suelo.",
+        "declared_measures": "Cerco perimétrico simple.",
+        "verifiable_evidence": "Área adyacente a parque vecinal con remoción proyectada sin mitigación.",
+        "proximity_to_water_meters": 550.0,
+        "is_in_protected_or_risk_area": False,
+        "source_name": "PDM Huancayo (Simulado)",
+        "data_origin": "simulated",
+    }]
+    green_records = [{
+        "has_sufficient_data": True,
+        "total_project_area_m2": 3000.0,
+        "green_area_m2": 150.0,
+        "green_area_percentage": 5.0,
+        "delimitation_description": "Delimitación parcial sin buffer de amortiguamiento.",
+        "declared_affectation": "Tala de 8 árboles para ensanche de acceso vehicular.",
+        "verifiable_affectation": "Afectación de 350 m2 de cobertura verde preexistente.",
+        "affectation_type": "afectacion_no_mitigada",
+        "protection_measures": "No se contempla plan de reposición forestal ni compensación.",
+        "has_sufficient_measures": False,
+        "score_effect_pts": -20.0,
+        "effect_type": "penalizacion",
+        "calculation_explanation": "Penalización de -20.0 pts por afectación vegetal sin medidas de reposición.",
+        "source_name": "Inspección Ambiental Huancayo (Simulado)",
+        "data_origin": "simulated",
+    }]
+
+    result = EnvironmentalAssessmentEngine.evaluate(
+        project_id=PROJECT_D_ID,
+        project_code="PRY-D",
+        project_version_id=uuid4(),
+        records=env_records,
+        green_records=green_records,
+    )
+
+    assert result["status"] == "sufficient"
+    assert result["green_area"] is not None
+    assert result["green_area"]["score_effect_pts"] == -20.0
+    assert result["green_area"]["effect_type"] == "penalizacion"
+    assert result["green_area"]["has_sufficient_measures"] is False
+    assert result["environmental_score"] == 50.0
+    assert "50.0/100" in result["score_explanation"]
+    assert "-20.0 pts" in result["score_explanation"]
+    assert result["favorable"] is False
+
+
+def test_environmental_engine_green_area_insufficient_no_automatic_advantage():
+    """CA-HU1.7-02: Si faltan datos de áreas verdes, advierte y NO asigna ventaja ambiental automática."""
+    env_records = [{
+        "environmental_component": "integral",
+        "has_sufficient_data": False,
+        "declared_impacts": None,
+        "declared_measures": None,
+        "verifiable_evidence": None,
+        "proximity_to_water_meters": None,
+        "is_in_protected_or_risk_area": None,
+        "source_name": "Catastro Municipal El Tambo",
+        "data_origin": "simulated",
+    }]
+    green_records = [{
+        "has_sufficient_data": False,
+        "total_project_area_m2": None,
+        "green_area_m2": None,
+        "green_area_percentage": None,
+        "delimitation_description": None,
+        "declared_affectation": None,
+        "verifiable_affectation": None,
+        "affectation_type": "sin_datos",
+        "protection_measures": None,
+        "has_sufficient_measures": False,
+        "score_effect_pts": 0.0,
+        "effect_type": "indeterminado",
+        "calculation_explanation": "Información insuficiente: sin datos de áreas verdes, no se asigna bonificación.",
+        "source_name": "Catastro Municipal (Simulado)",
+        "data_origin": "simulated",
+    }]
+
+    result = EnvironmentalAssessmentEngine.evaluate(
+        project_id=PROJECT_B_ID,
+        project_code="PRY-B",
+        project_version_id=uuid4(),
+        records=env_records,
+        green_records=green_records,
+    )
+
+    assert result["status"] == "insufficient"
+    assert result["green_area"] is not None
+    assert result["green_area"]["has_sufficient_data"] is False
+    assert result["green_area"]["score_effect_pts"] is None
+    assert result["green_area"]["effect_type"] == "indeterminado"
+    # NUNCA puntaje favorable ni ventaja automática
+    assert result["environmental_score"] is None
+    assert result["favorable"] is None
+    assert result["favorable"] is not True
+    assert "no determinado" in result["score_explanation"].lower()
+    assert "no se concede ventaja ambiental" in result["green_area"]["calculation_explanation"].lower()
+
+
+def test_environmental_engine_high_risk_strictly_overrides_green_bonus():
+    """Inviolable: Una bonificación de áreas verdes NUNCA convierte en favorable un proyecto de alto riesgo."""
+    env_records = [{
+        "environmental_component": "recurso_hidrico_ecosistema",
+        "has_sufficient_data": True,
+        "declared_impacts": "Almacenamiento de vehículos.",
+        "declared_measures": "Piso de afirmado compacto.",
+        "verifiable_evidence": "Predio ubicado a 25 metros del Río Shullcas en faja marginal intangible no mitigable.",
+        "proximity_to_water_meters": 25.0,
+        "is_in_protected_or_risk_area": True,
+        "source_name": "PDM Huancayo / ANA-ALA Mantaro",
+        "data_origin": "simulated",
+    }]
+    green_records = [{
+        "has_sufficient_data": True,
+        "total_project_area_m2": 1000.0,
+        "green_area_m2": 300.0,
+        "green_area_percentage": 30.0,
+        "delimitation_description": "Delimitado con cerco perimétrico vivo.",
+        "declared_affectation": "Sin afectación.",
+        "verifiable_affectation": "Cobertura vegetal ribereña.",
+        "affectation_type": "conservacion_positiva",
+        "protection_measures": "Mantenimiento de vegetación.",
+        "has_sufficient_measures": True,
+        "score_effect_pts": 15.0,
+        "effect_type": "bonus",
+        "calculation_explanation": "Bonificación de áreas verdes.",
+        "source_name": "Catastro Municipal (Simulado)",
+        "data_origin": "simulated",
+    }]
+
+    result = EnvironmentalAssessmentEngine.evaluate(
+        project_id=PROJECT_C_ID,
+        project_code="PRY-C",
+        project_version_id=uuid4(),
+        records=env_records,
+        green_records=green_records,
+    )
+
+    assert result["risk_level"] == "high"
+    assert result["requires_human_review"] is True
+    # Inviolable: favorable NO puede ser True
+    assert result["favorable"] is not True
+    assert result["favorable"] is None
+    assert "prohíbe la aprobación automática" in result["risk_observation"]
+
+
+def test_db_check_constraints_green_area_records():
+    """Comprueba las restricciones check de la tabla project_green_area_records."""
+    settings = get_settings()
+    db_url = settings.platform_db_url.replace("postgresql+psycopg://", "postgresql://", 1)
+
+    with psycopg.connect(db_url) as conn:
+        # 1. chk_green_area_insufficient: has_sufficient_data=FALSE con green_area_m2 no nulo debe fallar
+        with pytest.raises(CheckViolation):
+            with conn.transaction():
+                conn.execute(
+                    """
+                    INSERT INTO project_green_area_records
+                    (id, project_id, project_code, has_sufficient_data, green_area_m2, source_name)
+                    VALUES (%s, %s, 'PRY-TEST', FALSE, 250.0, 'test')
+                    """,
+                    (uuid4(), PROJECT_B_ID),
+                )
+
+        # 2. chk_green_area_effect_type: effect_type inválido debe fallar
+        with pytest.raises(CheckViolation):
+            with conn.transaction():
+                conn.execute(
+                    """
+                    INSERT INTO project_green_area_records
+                    (id, project_id, project_code, has_sufficient_data, effect_type, source_name)
+                    VALUES (%s, %s, 'PRY-TEST', TRUE, 'invalido_tipo', 'test')
+                    """,
+                    (uuid4(), PROJECT_B_ID),
+                )
+
+
+def test_platform_service_hu17_live_db():
+    """Verifica la persistencia y evaluación completa de HU1.7 con PlatformService y base de datos real."""
+    settings = get_settings()
+    service = PlatformService(
+        db_url=settings.platform_db_url,
+        dispatcher=None,  # type: ignore
+        enable_demo_fallback=False,
+    )
+
+    # 1. PRY-A: Conservación con bonificación (+15 pts -> 85.0 pts, favorable)
+    res_a = service.evaluate_environmental_assessment(
+        project_id=PROJECT_A_ID,
+        actor_id=PLANNER_ID,
+        idempotency_key=f"test-hu17-a-{uuid4().hex[:8]}",
+    )
+    assert res_a["status"] == "sufficient"
+    assert res_a["green_area"] is not None
+    assert res_a["green_area"]["score_effect_pts"] == 15.0
+    assert res_a["green_area"]["effect_type"] == "bonus"
+    assert res_a["environmental_score"] == 85.0
+    assert res_a["favorable"] is True
+
+    # 2. PRY-D: Afectación con deducción (-20 pts -> 50.0 pts, desfavorable)
+    res_d = service.evaluate_environmental_assessment(
+        project_id=PROJECT_D_ID,
+        actor_id=PLANNER_ID,
+        idempotency_key=f"test-hu17-d-{uuid4().hex[:8]}",
+    )
+    assert res_d["status"] == "sufficient"
+    assert res_d["green_area"] is not None
+    assert res_d["green_area"]["score_effect_pts"] == -20.0
+    assert res_d["green_area"]["effect_type"] == "penalizacion"
+    assert res_d["environmental_score"] == 50.0
+    assert res_d["favorable"] is False
+
+    # 3. PRY-B: Información insuficiente (Sin ventaja automática, score None)
+    res_b = service.evaluate_environmental_assessment(
+        project_id=PROJECT_B_ID,
+        actor_id=PLANNER_ID,
+        idempotency_key=f"test-hu17-b-{uuid4().hex[:8]}",
+    )
+    assert res_b["status"] == "insufficient"
+    assert res_b["green_area"]["has_sufficient_data"] is False
+    assert res_b["environmental_score"] is None
+    assert res_b["favorable"] is None
+
+    # 4. PRY-C: Alto riesgo (Shullcas), revisión humana requerida, nunca favorable
+    res_c = service.evaluate_environmental_assessment(
+        project_id=PROJECT_C_ID,
+        actor_id=PLANNER_ID,
+        idempotency_key=f"test-hu17-c-{uuid4().hex[:8]}",
+    )
+    assert res_c["risk_level"] == "high"
+    assert res_c["requires_human_review"] is True
+    assert res_c["favorable"] is not True
+
+    # 5. get_environmental_assessment recupera los datos de HU1.7
+    fetched_a = service.get_environmental_assessment(PROJECT_A_ID)
+    assert fetched_a["environmental_score"] == 85.0
+    assert fetched_a["green_area"]["score_effect_pts"] == 15.0

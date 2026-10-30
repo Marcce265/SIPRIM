@@ -1164,6 +1164,7 @@ class PlatformService:
                     SELECT id, project_id, project_version_id, status, risk_level,
                            risk_observation, requires_human_review, favorable, summary,
                            declared_vs_evidence_json, impacts_json, mitigations_json,
+                           green_area_json, environmental_score, score_explanation,
                            evaluated_at, idempotency_key
                     FROM environmental_assessments
                     WHERE idempotency_key = %s
@@ -1189,13 +1190,18 @@ class PlatformService:
                         "requires_human_review": prev["requires_human_review"],
                         "favorable": prev["favorable"],
                         "favorable_label": "Favorable condicionado a cumplimiento de mitigaciones" if prev["favorable"] is True else (
-                            "No favorable - Requiere revisión técnica ambiental humana obligatoria" if prev["risk_level"] == "high" else
-                            "Sin conclusión favorable: información insuficiente"
+                            "No favorable - Requiere revisión técnica ambiental humana obligatoria" if prev["risk_level"] == "high" else (
+                                "Desfavorable: puntaje ambiental insuficiente por afectación no mitigada de áreas verdes" if prev["favorable"] is False else
+                                "Sin conclusión favorable: información insuficiente"
+                            )
                         ),
                         "summary": prev["summary"],
                         "declared_vs_evidence": prev["declared_vs_evidence_json"],
                         "impacts": prev["impacts_json"],
                         "mitigations": prev["mitigations_json"],
+                        "green_area": prev.get("green_area_json"),
+                        "environmental_score": float(prev["environmental_score"]) if prev.get("environmental_score") is not None else None,
+                        "score_explanation": prev.get("score_explanation"),
                         "evaluated_at": prev["evaluated_at"],
                         "duplicated": True,
                     }
@@ -1213,11 +1219,28 @@ class PlatformService:
                 (project_id, project["code"]),
             ).fetchall()
 
+            green_rows = conn.execute(
+                """
+                SELECT id, project_id, project_code, has_sufficient_data,
+                       total_project_area_m2, green_area_m2, green_area_percentage,
+                       delimitation_description, declared_affectation, verifiable_affectation,
+                       affectation_type, protection_measures, has_sufficient_measures,
+                       score_effect_pts, effect_type, calculation_explanation,
+                       source_name, data_origin, description,
+                       (data_origin = 'simulated') AS is_simulated
+                FROM project_green_area_records
+                WHERE project_id = %s OR project_code = %s
+                ORDER BY created_at ASC
+                """,
+                (project_id, project["code"]),
+            ).fetchall()
+
             assessment = EnvironmentalAssessmentEngine.evaluate(
                 project_id=project_id,
                 project_code=project["code"],
                 project_version_id=project.get("project_version_id"),
                 records=[dict(r) for r in rows],
+                green_records=[dict(g) for g in green_rows],
             )
 
             assessment_id = uuid4()
@@ -1229,8 +1252,9 @@ class PlatformService:
                 INSERT INTO environmental_assessments
                 (id, project_id, project_version_id, assessed_by_user_id, idempotency_key,
                  status, risk_level, risk_observation, requires_human_review, favorable,
-                 summary, declared_vs_evidence_json, impacts_json, mitigations_json, evaluated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 summary, declared_vs_evidence_json, impacts_json, mitigations_json,
+                 green_area_json, environmental_score, score_explanation, evaluated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     assessment_id,
@@ -1247,6 +1271,9 @@ class PlatformService:
                     Jsonb(assessment["declared_vs_evidence"]),
                     Jsonb(assessment["impacts"]),
                     Jsonb(assessment["mitigations"]),
+                    Jsonb(assessment["green_area"]) if assessment.get("green_area") else None,
+                    assessment.get("environmental_score"),
+                    assessment.get("score_explanation"),
                     now,
                 ),
             )
@@ -1292,7 +1319,8 @@ class PlatformService:
                 """
                 SELECT id, project_id, project_version_id, status, risk_level,
                        risk_observation, requires_human_review, favorable, summary,
-                       declared_vs_evidence_json, impacts_json, mitigations_json, evaluated_at
+                       declared_vs_evidence_json, impacts_json, mitigations_json,
+                       green_area_json, environmental_score, score_explanation, evaluated_at
                 FROM environmental_assessments
                 WHERE project_id = %s
                 ORDER BY evaluated_at DESC
@@ -1318,13 +1346,18 @@ class PlatformService:
                     "requires_human_review": latest["requires_human_review"],
                     "favorable": latest["favorable"],
                     "favorable_label": "Favorable condicionado a cumplimiento de mitigaciones" if latest["favorable"] is True else (
-                        "No favorable - Requiere revisión técnica ambiental humana obligatoria" if latest["risk_level"] == "high" else
-                        "Sin conclusión favorable: información insuficiente"
+                        "No favorable - Requiere revisión técnica ambiental humana obligatoria" if latest["risk_level"] == "high" else (
+                            "Desfavorable: puntaje ambiental insuficiente por afectación no mitigada de áreas verdes" if latest["favorable"] is False else
+                            "Sin conclusión favorable: información insuficiente"
+                        )
                     ),
                     "summary": latest["summary"],
                     "declared_vs_evidence": latest["declared_vs_evidence_json"],
                     "impacts": latest["impacts_json"],
                     "mitigations": latest["mitigations_json"],
+                    "green_area": latest.get("green_area_json"),
+                    "environmental_score": float(latest["environmental_score"]) if latest.get("environmental_score") is not None else None,
+                    "score_explanation": latest.get("score_explanation"),
                     "evaluated_at": latest["evaluated_at"],
                     "duplicated": False,
                 }
@@ -1342,11 +1375,28 @@ class PlatformService:
                 (project_id, project["code"]),
             ).fetchall()
 
+            green_rows = conn.execute(
+                """
+                SELECT id, project_id, project_code, has_sufficient_data,
+                       total_project_area_m2, green_area_m2, green_area_percentage,
+                       delimitation_description, declared_affectation, verifiable_affectation,
+                       affectation_type, protection_measures, has_sufficient_measures,
+                       score_effect_pts, effect_type, calculation_explanation,
+                       source_name, data_origin, description,
+                       (data_origin = 'simulated') AS is_simulated
+                FROM project_green_area_records
+                WHERE project_id = %s OR project_code = %s
+                ORDER BY created_at ASC
+                """,
+                (project_id, project["code"]),
+            ).fetchall()
+
             assessment = EnvironmentalAssessmentEngine.evaluate(
                 project_id=project_id,
                 project_code=project["code"],
                 project_version_id=project.get("project_version_id"),
                 records=[dict(r) for r in rows],
+                green_records=[dict(g) for g in green_rows],
             )
             return {
                 **assessment,
@@ -1478,12 +1528,133 @@ class EnvironmentalAssessmentEngine:
     """
 
     @classmethod
+    def _evaluate_green_area(
+        cls,
+        green_records: list[dict[str, Any]] | None,
+        base_score: float | None,
+        is_high_risk: bool,
+    ) -> tuple[dict[str, Any], float | None, str]:
+        g_rec = green_records[0] if green_records else None
+        if not g_rec or not g_rec.get("has_sufficient_data"):
+            green_dict = {
+                "has_sufficient_data": False,
+                "total_project_area_m2": None,
+                "green_area_m2": None,
+                "green_area_percentage": None,
+                "delimitation_description": None,
+                "declared_affectation": None,
+                "verifiable_affectation": None,
+                "affectation_type": None,
+                "affectation_type_label": "No determinada: información insuficiente",
+                "protection_measures": None,
+                "has_sufficient_measures": False,
+                "score_effect_pts": None,
+                "effect_type": "indeterminado",
+                "calculation_explanation": (
+                    "Información insuficiente: no se dispone de superficie, delimitación o sustento suficiente de áreas verdes. "
+                    "Conforme a la regla de precaución (CA-HU1.7-02), no se concede ventaja ambiental ni bonificación automática."
+                ),
+                "source_name": g_rec.get("source_name") if g_rec else "Catastro Municipal El Tambo (Sin catastro verde ni delimitación)",
+                "data_origin": "simulated",
+                "is_simulated": True,
+            }
+            return (
+                green_dict,
+                None,
+                "Puntaje ambiental no determinado: información de áreas verdes insuficiente para ponderación cuantitativa (CA-HU1.7-02)."
+            )
+
+        total_area = float(g_rec.get("total_project_area_m2") or 0.0)
+        green_m2 = float(g_rec.get("green_area_m2") or 0.0)
+        green_pct = float(g_rec.get("green_area_percentage") or ((green_m2 / total_area * 100.0) if total_area > 0 else 0.0))
+        delimitation = g_rec.get("delimitation_description") or "Delimitación perimétrica no especificada"
+        declared_aff = g_rec.get("declared_affectation") or "No declarada"
+        verifiable_aff = g_rec.get("verifiable_affectation") or "Sin hallazgos cartográficos"
+        aff_type = g_rec.get("affectation_type") or "indeterminada"
+        measures = g_rec.get("protection_measures") or "No especificadas"
+        suff_measures = bool(g_rec.get("has_sufficient_measures", True))
+
+        aff_labels = {
+            "conservacion_positiva": "Conservación activa / Aumento de área verde",
+            "afectacion_no_mitigada": "Afectación negativa sin mitigación suficiente",
+            "afectacion_mitigada": "Intervención con medidas de mitigación",
+            "sin_afectacion": "Sin afectación a cobertura vegetal",
+            "indeterminada": "Afectación no determinada",
+        }
+        aff_label = aff_labels.get(aff_type, aff_type)
+
+        if base_score is None:
+            score_effect_pts = None
+            effect_type = "indeterminado"
+            calc_expl = "Información ambiental base insuficiente: no es posible computar puntaje consolidado."
+            explanation = calc_expl
+            final_score = None
+        else:
+            if aff_type in ("conservacion_positiva", "sin_afectacion") and suff_measures:
+                score_effect_pts = 15.0
+                effect_type = "bonus"
+                calc_expl = (
+                    f"Bonificación ambiental (+15.0 pts): el proyecto conserva y protege {green_m2:.2f} m² "
+                    f"({green_pct:.1f}% del predio) de áreas verdes con delimitación verificada y medidas de protección suficientes."
+                )
+            elif aff_type == "afectacion_no_mitigada" or (aff_type == "afectacion_mitigada" and not suff_measures):
+                score_effect_pts = -20.0
+                effect_type = "penalizacion"
+                calc_expl = (
+                    f"Deducción ambiental (-20.0 pts): el proyecto genera afectación/reducción de {green_m2:.2f} m² "
+                    f"de área verde sin medidas de compensación suficientes ({measures})."
+                )
+            else:
+                score_effect_pts = 0.0
+                effect_type = "neutro"
+                calc_expl = (
+                    f"Efecto neutro (0.0 pts): la intervención sobre {green_m2:.2f} m² de área verde "
+                    "cuenta con medidas de reposición y compensación equivalentes acreditadas."
+                )
+
+            final_score = max(0.0, min(100.0, base_score + score_effect_pts))
+            if is_high_risk:
+                explanation = (
+                    f"Puntaje ambiental preliminar: {final_score:.1f}/100 pts (Base de riesgo alto: {base_score:.1f} pts, {calc_expl}). "
+                    "ALERTA DE RIESGO PREVALENTE: La valoración de áreas verdes no convalida ni convierte en favorable el expediente "
+                    "ante la presencia de RIESGO AMBIENTAL ALTO (faja marginal fluvial intangible). "
+                    "La aprobación automática queda prohibida (CA-HU1.6-02 / CA-HU1.7-01)."
+                )
+            else:
+                explanation = (
+                    f"Puntaje ambiental preliminar: {final_score:.1f}/100 pts (Base ambiental: {base_score:.1f} pts, {calc_expl}). "
+                    "Regla de demostración para el prototipo PMV2 (HU1.7)."
+                )
+
+        green_dict = {
+            "has_sufficient_data": True,
+            "total_project_area_m2": total_area,
+            "green_area_m2": green_m2,
+            "green_area_percentage": green_pct,
+            "delimitation_description": delimitation,
+            "declared_affectation": declared_aff,
+            "verifiable_affectation": verifiable_aff,
+            "affectation_type": aff_type,
+            "affectation_type_label": aff_label,
+            "protection_measures": measures,
+            "has_sufficient_measures": suff_measures,
+            "score_effect_pts": score_effect_pts,
+            "effect_type": effect_type,
+            "calculation_explanation": calc_expl,
+            "source_name": g_rec.get("source_name") or "Dataset territorial simulado SIPRIM El Tambo - Gerencia de Gestión Ambiental MPH (Simulado)",
+            "data_origin": g_rec.get("data_origin", "simulated"),
+            "is_simulated": g_rec.get("data_origin", "simulated") == "simulated",
+        }
+        return green_dict, final_score, explanation
+
+    @classmethod
     def evaluate(
         cls,
         project_id: UUID,
         project_code: str,
         project_version_id: UUID | None,
         records: list[dict[str, Any]],
+        green_records: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         now = datetime.now(timezone.utc)
 
@@ -1498,6 +1669,11 @@ class EnvironmentalAssessmentEngine:
                 "proximity_to_water_meters": None,
                 "is_in_protected_or_risk_area": None,
             }
+            green_item, env_score, score_expl = cls._evaluate_green_area(
+                green_records=green_records,
+                base_score=None,
+                is_high_risk=False,
+            )
             return {
                 "project_id": project_id,
                 "project_code": project_code,
@@ -1513,6 +1689,9 @@ class EnvironmentalAssessmentEngine:
                 "declared_vs_evidence": declared_vs_evidence,
                 "impacts": [],
                 "mitigations": [],
+                "green_area": green_item,
+                "environmental_score": env_score,
+                "score_explanation": score_expl,
                 "evaluated_at": now,
             }
 
@@ -1625,6 +1804,11 @@ class EnvironmentalAssessmentEngine:
                 "OBSERVACIÓN DE RIESGO AMBIENTAL ALTO: " + " ".join(high_risk_reasons) +
                 " Se prohíbe la aprobación automática. Requiere consideración técnica ambiental humana obligatoria antes de cualquier decisión favorable."
             )
+            green_item, env_score, score_expl = cls._evaluate_green_area(
+                green_records=green_records,
+                base_score=25.0,
+                is_high_risk=True,
+            )
             return {
                 "project_id": project_id,
                 "project_code": project_code,
@@ -1640,8 +1824,27 @@ class EnvironmentalAssessmentEngine:
                 "declared_vs_evidence": declared_vs_evidence,
                 "impacts": impacts,
                 "mitigations": mitigations,
+                "green_area": green_item,
+                "environmental_score": env_score,
+                "score_explanation": score_expl,
                 "evaluated_at": now,
             }
+
+        green_item, env_score, score_expl = cls._evaluate_green_area(
+            green_records=green_records,
+            base_score=70.0,
+            is_high_risk=False,
+        )
+        is_favorable = True
+        fav_label = "Favorable condicionado a cumplimiento de mitigaciones"
+        summary_text = "Evaluación ambiental con riesgo MODERADO: impactos de obra mitigables mediante las medidas ambientales programadas."
+        if env_score is not None and env_score < 60.0:
+            is_favorable = False
+            fav_label = "Desfavorable: puntaje ambiental insuficiente por afectación no mitigada de áreas verdes"
+            summary_text = (
+                f"Evaluación ambiental DESFAVORABLE: puntaje de {env_score:.1f}/100 pts inferior al umbral aprobatorio (60.0 pts) "
+                "debido a la afectación no mitigada de áreas verdes."
+            )
 
         return {
             "project_id": project_id,
@@ -1652,12 +1855,15 @@ class EnvironmentalAssessmentEngine:
             "risk_level_label": "Riesgo Moderado",
             "risk_observation": None,
             "requires_human_review": False,
-            "favorable": True,
-            "favorable_label": "Favorable condicionado a cumplimiento de mitigaciones",
-            "summary": "Evaluación ambiental con riesgo MODERADO: impactos de obra mitigables mediante las medidas ambientales programadas.",
+            "favorable": is_favorable,
+            "favorable_label": fav_label,
+            "summary": summary_text,
             "declared_vs_evidence": declared_vs_evidence,
             "impacts": impacts,
             "mitigations": mitigations,
+            "green_area": green_item,
+            "environmental_score": env_score,
+            "score_explanation": score_expl,
             "evaluated_at": now,
         }
 

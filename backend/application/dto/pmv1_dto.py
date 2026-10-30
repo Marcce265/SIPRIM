@@ -300,6 +300,26 @@ class EnvironmentalDeclaredVsEvidence(BaseModel):
     is_in_protected_or_risk_area: bool | None = None
 
 
+
+class GreenAreaRecordItem(BaseModel):
+    has_sufficient_data: bool = True
+    total_project_area_m2: float | None = None
+    green_area_m2: float | None = None
+    green_area_percentage: float | None = None
+    delimitation_description: str | None = None
+    declared_affectation: str | None = None
+    verifiable_affectation: str | None = None
+    affectation_type: str | None = None
+    affectation_type_label: str | None = None
+    protection_measures: str | None = None
+    has_sufficient_measures: bool = True
+    score_effect_pts: float | None = None
+    effect_type: Literal["bonus", "penalizacion", "neutro", "indeterminado"] = "indeterminado"
+    calculation_explanation: str
+    source_name: str
+    data_origin: str = "simulated"
+    is_simulated: bool = True
+
 class EnvironmentalAssessmentResponse(BaseModel):
     project_id: UUID
     project_code: str
@@ -315,6 +335,9 @@ class EnvironmentalAssessmentResponse(BaseModel):
     declared_vs_evidence: EnvironmentalDeclaredVsEvidence
     impacts: list[EnvironmentalImpactItem]
     mitigations: list[EnvironmentalMitigationItem]
+    green_area: GreenAreaRecordItem | None = None
+    environmental_score: float | None = None
+    score_explanation: str | None = None
     evaluated_at: datetime
     duplicated: bool = False
 

@@ -374,13 +374,13 @@ export function ProyectoDetallePage() {
           <section className="flow-panel environmental-flow-panel">
             <div className="flow-panel-heading">
               <div>
-                <span className="story-label">PMV 2 · HU1.6</span>
-                <h2>Evaluación de impacto ambiental</h2>
+                <span className="story-label">PMV 2 · HU1.6 / HU1.7</span>
+                <h2>Evaluación ambiental y conservación de áreas verdes</h2>
               </div>
               <span className="review-badge">Análisis ambiental territorial</span>
             </div>
             <p className="flow-hint">
-              Evaluación del impacto ambiental estimado de la obra, distinguiendo declaraciones en el expediente de la evidencia territorial de demostración (El Tambo, Huancayo).
+              Evaluación del impacto ambiental y conservación de áreas verdes de la obra, con ponderación y desglose de puntaje ambiental, distinguiendo declaraciones en el expediente de la evidencia territorial de demostración (El Tambo, Huancayo).
             </p>
 
             {hasRole('PLANNER') && (
@@ -430,6 +430,162 @@ export function ProyectoDetallePage() {
                     Evaluado el: {formatDate(environmentalAssessment.evaluated_at)}
                   </div>
                 </Alert>
+
+                {/* Panel de Puntaje Ambiental y Áreas Verdes HU1.7 */}
+                <div className="env-score-card">
+                  <div className="env-score-header">
+                    <div>
+                      <span className="env-score-tag">HU1.7 · Puntuación Ambiental Ponderada</span>
+                      <h3 style={{ margin: '0.2rem 0', fontSize: '1.15rem', color: '#0f172a' }}>
+                        Puntaje Ambiental: {environmentalAssessment.environmental_score !== null && environmentalAssessment.environmental_score !== undefined
+                          ? `${environmentalAssessment.environmental_score.toFixed(1)} / 100`
+                          : 'No determinado'}
+                      </h3>
+                    </div>
+                    {environmentalAssessment.environmental_score !== null && environmentalAssessment.environmental_score !== undefined && (
+                      <span className={`env-score-badge ${environmentalAssessment.environmental_score >= 70 ? 'score-good' : 'score-low'}`}>
+                        {environmentalAssessment.environmental_score >= 70 ? 'Aceptable' : 'Bajo'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="env-score-breakdown">
+                    <div className="env-score-item">
+                      <span className="env-score-label">Puntaje Base (HU1.6):</span>
+                      <span className="env-score-val">
+                        {environmentalAssessment.risk_level === 'low'
+                          ? '85.0 pts (Riesgo Bajo)'
+                          : environmentalAssessment.risk_level === 'moderate'
+                          ? '70.0 pts (Riesgo Moderado)'
+                          : environmentalAssessment.risk_level === 'high'
+                          ? '25.0 pts (Riesgo Alto)'
+                          : 'No determinado (Datos insuficientes)'}
+                      </span>
+                    </div>
+                    <div className="env-score-item">
+                      <span className="env-score-label">Efecto Áreas Verdes (HU1.7):</span>
+                      <span className="env-score-val">
+                        {environmentalAssessment.green_area?.score_effect_pts !== null && environmentalAssessment.green_area?.score_effect_pts !== undefined
+                          ? environmentalAssessment.green_area.score_effect_pts > 0
+                            ? `+${environmentalAssessment.green_area.score_effect_pts.toFixed(1)} pts (${environmentalAssessment.green_area.effect_type})`
+                            : environmentalAssessment.green_area.score_effect_pts < 0
+                            ? `${environmentalAssessment.green_area.score_effect_pts.toFixed(1)} pts (${environmentalAssessment.green_area.effect_type})`
+                            : `0.0 pts (${environmentalAssessment.green_area.effect_type})`
+                          : '0.0 pts (Indeterminado / Sin ventaja automática)'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {environmentalAssessment.score_explanation && (
+                    <p className="env-score-explanation">
+                      <strong>Explicación del cálculo:</strong> {environmentalAssessment.score_explanation}
+                    </p>
+                  )}
+                </div>
+
+                {/* Detalle de Áreas Verdes HU1.7 */}
+                {environmentalAssessment.green_area && (
+                  <div className="green-area-panel">
+                    <div className="green-area-header">
+                      <div>
+                        <span className="story-label" style={{ fontSize: '0.75rem' }}>PMV 2 · HU1.7</span>
+                        <h3 style={{ margin: '0.15rem 0', fontSize: '1rem', color: '#0f172a' }}>
+                          Conservación y Protección de Áreas Verdes
+                        </h3>
+                      </div>
+                      <span className={`green-status-badge ${environmentalAssessment.green_area.has_sufficient_data ? 'status-ok' : 'status-warn'}`}>
+                        {environmentalAssessment.green_area.has_sufficient_data
+                          ? environmentalAssessment.green_area.affectation_type_label || 'Evaluado'
+                          : 'Información insuficiente'}
+                      </span>
+                    </div>
+
+                    {!environmentalAssessment.green_area.has_sufficient_data ? (
+                      <div className="green-insufficient-banner">
+                        <div style={{ fontWeight: 700, color: '#b45309', marginBottom: '0.25rem' }}>
+                          ⚠️ Información insuficiente sobre áreas verdes (Sin ventaja ambiental automática)
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#92400e', lineHeight: 1.45 }}>
+                          El expediente no cuenta con superficie delimitada ni medidas de protección verificables. De conformidad con el criterio de aceptación <strong>CA-HU1.7-02</strong>, no se asigna bonificación ni ventaja ambiental automática.
+                        </p>
+                        <div className="social-source-tag" style={{ marginTop: '0.5rem' }}>
+                          {environmentalAssessment.green_area.source_name}
+                          {environmentalAssessment.green_area.is_simulated && (
+                            <span className="social-simulated-pill">Simulado</span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="green-details-grid">
+                        <div className="green-detail-card">
+                          <span className="green-detail-label">Superficie de Áreas Verdes</span>
+                          <div className="green-metric-value">
+                            {environmentalAssessment.green_area.green_area_m2 !== null && environmentalAssessment.green_area.green_area_m2 !== undefined
+                              ? `${environmentalAssessment.green_area.green_area_m2.toLocaleString()} m²`
+                              : 'No determinada'}
+                            {environmentalAssessment.green_area.green_area_percentage !== null && environmentalAssessment.green_area.green_area_percentage !== undefined && (
+                              <span className="green-metric-percent">
+                                ({environmentalAssessment.green_area.green_area_percentage}% del predio)
+                              </span>
+                            )}
+                          </div>
+                          <span className="green-detail-sub">
+                            Total predio: {environmentalAssessment.green_area.total_project_area_m2?.toLocaleString() || 'N/A'} m²
+                          </span>
+                        </div>
+
+                        <div className="green-detail-card">
+                          <span className="green-detail-label">Delimitación Cartográfica</span>
+                          <p className="green-detail-text">
+                            {environmentalAssessment.green_area.delimitation_description || 'No delimitado'}
+                          </p>
+                        </div>
+
+                        <div className="green-detail-card">
+                          <span className="green-detail-label">Afectación y Medidas de Protección</span>
+                          <p className="green-detail-text">
+                            <strong>Declarado:</strong> {environmentalAssessment.green_area.declared_affectation || 'No especificado'}
+                          </p>
+                          <p className="green-detail-text">
+                            <strong>Verificable:</strong> {environmentalAssessment.green_area.verifiable_affectation || 'No verificado'}
+                          </p>
+                          <p className="green-detail-text">
+                            <strong>Medidas:</strong> {environmentalAssessment.green_area.protection_measures || 'Ninguna'}
+                          </p>
+                          <div style={{ marginTop: '0.4rem' }}>
+                            <span className={`green-measures-pill ${environmentalAssessment.green_area.has_sufficient_measures ? 'pill-ok' : 'pill-warn'}`}>
+                              {environmentalAssessment.green_area.has_sufficient_measures
+                                ? '✓ Medidas suficientes y acreditadas'
+                                : '⚠️ Medidas insuficientes o no acreditadas'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="green-detail-card">
+                          <span className="green-detail-label">Efecto en el Puntaje y Sustento</span>
+                          <div className="green-metric-value" style={{ fontSize: '1.1rem' }}>
+                            {environmentalAssessment.green_area.score_effect_pts !== null && environmentalAssessment.green_area.score_effect_pts !== undefined
+                              ? environmentalAssessment.green_area.score_effect_pts > 0
+                                ? `+${environmentalAssessment.green_area.score_effect_pts.toFixed(1)} pts (Bonificación)`
+                                : environmentalAssessment.green_area.score_effect_pts < 0
+                                ? `${environmentalAssessment.green_area.score_effect_pts.toFixed(1)} pts (Penalización)`
+                                : '0.0 pts (Neutro)'
+                              : '0.0 pts'}
+                          </div>
+                          <p className="green-detail-text" style={{ marginTop: '0.25rem' }}>
+                            {environmentalAssessment.green_area.calculation_explanation}
+                          </p>
+                          <div className="social-source-tag" style={{ marginTop: '0.5rem' }}>
+                            {environmentalAssessment.green_area.source_name}
+                            {environmentalAssessment.green_area.is_simulated && (
+                              <span className="social-simulated-pill">Simulado</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="env-contrast-panel">
                   <h3>Contraste: Declaración en expediente vs. Evidencia territorial de demostración</h3>
