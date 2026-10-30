@@ -7,6 +7,7 @@ import type {
   PMV1ProjectCreate,
   PMV1ProjectResponse,
   PMV1ValidationResponse,
+  SocialAccessibilityResponse,
   ZoningPrecheckResponse,
 } from '../types/pmv1'
 import { isExpedienteUuid } from '../utils/expedienteRef'
@@ -124,3 +125,21 @@ export function submitHumanApproval(
     body: JSON.stringify(payload),
   })
 }
+
+export function getSocialAccessibility(projectId: string): Promise<SocialAccessibilityResponse> {
+  return apiFetch<SocialAccessibilityResponse>(`/api/v1/projects/${projectId}/social-assessment`, {
+    auth: true,
+  })
+}
+
+export function evaluateSocialAccessibility(
+  projectId: string,
+  idempotencyKey?: string,
+): Promise<SocialAccessibilityResponse> {
+  return apiFetch<SocialAccessibilityResponse>(`/api/v1/projects/${projectId}/social-assessment`, {
+    method: 'POST',
+    auth: true,
+    idempotencyKey,
+  })
+}
+

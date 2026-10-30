@@ -6,9 +6,11 @@ import { Alert } from '../../components/ui/Alert'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { TechnicalDetails } from '../../components/ui/TechnicalDetails'
 import {
+  evaluateSocialAccessibility,
   getEvaluation,
   getHumanApproval,
   getProject,
+  getSocialAccessibility,
   requestEvaluation,
   validateProject,
   zoningPrecheck,
@@ -19,6 +21,7 @@ import type {
   HumanApprovalStatusResponse,
   PMV1ProjectResponse,
   PMV1ValidationResponse,
+  SocialAccessibilityResponse,
   ZoningPrecheckResponse,
 } from '../../types/pmv1'
 import { newIdempotencyKey } from '../../utils/idempotency'
@@ -41,6 +44,8 @@ export function ProyectoDetallePage() {
   const [evaluation, setEvaluation] = useState<EvaluationResponse | null>(null)
   const [zoning, setZoning] = useState<ZoningPrecheckResponse | null>(null)
   const [approval, setApproval] = useState<HumanApprovalStatusResponse | null>(null)
+  const [socialAssessment, setSocialAssessment] = useState<SocialAccessibilityResponse | null>(null)
+  const [socialError, setSocialError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(flash ?? null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -67,10 +72,21 @@ export function ProyectoDetallePage() {
     }
   }, [projectId])
 
+  const loadSocialAssessment = useCallback(async () => {
+    if (!projectId) return
+    try {
+      const data = await getSocialAccessibility(projectId)
+      setSocialAssessment(data)
+    } catch {
+      /* opcional hasta evaluación o consulta */
+    }
+  }, [projectId])
+
   useEffect(() => {
     void loadProject()
     void loadApproval()
-  }, [loadProject, loadApproval])
+    void loadSocialAssessment()
+  }, [loadProject, loadApproval, loadSocialAssessment])
 
   const runValidate = async () => {
     if (!projectId) return
@@ -119,6 +135,21 @@ export function ProyectoDetallePage() {
       await pollEvaluation(accepted.evaluation_id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo evaluar.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const runSocialAssessment = async () => {
+    if (!projectId) return
+    setBusy('social')
+    setSocialError(null)
+    try {
+      const data = await evaluateSocialAccessibility(projectId, newIdempotencyKey('social'))
+      setSocialAssessment(data)
+      setInfo('Evaluación de accesibilidad social territorial registrada exitosamente.')
+    } catch (err) {
+      setSocialError(err instanceof Error ? err.message : 'Error al evaluar accesibilidad social.')
     } finally {
       setBusy(null)
     }
@@ -216,6 +247,97 @@ export function ProyectoDetallePage() {
               </Alert>
             )}
             {evaluation && <TechnicalDetails data={evaluation} />}
+          </section>
+
+          <section className="flow-panel social-flow-panel">
+            <div className="flow-panel-heading">
+              <div>
+                <span className="story-label">PMV 2 · HU1.4</span>
+                <h2>Accesibilidad a salud, educación y transporte</h2>
+              </div>
+              <span className="review-badge">Análisis territorial social</span>
+            </div>
+            <p className="flow-hint">
+              Evaluación multidimensional de accesibilidad territorial para priorizar zonas desatendidas (El Tambo, Huancayo).
+            </p>
+
+            {hasRole('PLANNER') && (
+              <div style={{ marginBottom: '1rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={busy !== null}
+                  onClick={() => void runSocialAssessment()}
+                >
+                  {busy === 'social'
+                    ? 'Evaluando accesibilidad…'
+                    : socialAssessment
+                    ? 'Actualizar evaluación de accesibilidad'
+                    : 'Evaluar accesibilidad social'}
+                </button>
+              </div>
+            )}
+
+            {socialError && <Alert variant="error">{socialError}</Alert>}
+
+            {socialAssessment && (
+              <>
+                <Alert variant={socialAssessment.status === 'complete' ? 'success' : 'error'}>
+                  <strong>{socialAssessment.summary}</strong>
+                  <div style={{ marginTop: '0.25rem', fontSize: '0.82rem' }}>
+                    Evaluado el: {formatDate(socialAssessment.evaluated_at)}
+                  </div>
+                </Alert>
+
+                <div className="social-cards-grid">
+                  {socialAssessment.categories.map((cat) => (
+                    <div
+                      key={cat.category}
+                      className={`social-card ${cat.has_sufficient_data ? 'is-sufficient' : 'is-insufficient'}`}
+                    >
+                      <div className="social-card-header">
+                        <h3 className="social-card-title">{cat.category_label}</h3>
+                        <span className={`social-badge-status ${cat.has_sufficient_data ? 'sufficient' : 'insufficient'}`}>
+                          {cat.has_sufficient_data ? 'Dato disponible' : 'Insuficiente'}
+                        </span>
+                      </div>
+
+                      <div className="social-indicator-label">{cat.indicator}</div>
+
+                      {cat.has_sufficient_data && cat.value !== null ? (
+                        <div className="social-metric-box">
+                          <span className="social-metric-value">{cat.value}</span>
+                          <span className="social-metric-unit">{cat.unit}</span>
+                        </div>
+                      ) : (
+                        <div className="social-insufficient-callout">
+                          Información insuficiente
+                        </div>
+                      )}
+
+                      <p style={{ margin: '0.35rem 0', fontSize: '0.82rem', color: '#334155', lineHeight: 1.45 }}>
+                        {cat.message}
+                      </p>
+
+                      <div className="social-card-meta">
+                        <div>
+                          <strong>Fuente:</strong>
+                          <div className="social-source-tag">
+                            {cat.source}
+                            {cat.is_simulated && <span className="social-simulated-pill">Simulado</span>}
+                          </div>
+                        </div>
+                        <div style={{ marginTop: '0.35rem' }}>
+                          <strong>Origen del dato:</strong> {cat.data_origin}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <TechnicalDetails data={socialAssessment} />
+              </>
+            )}
           </section>
 
           <section className="flow-panel legal-flow-panel">

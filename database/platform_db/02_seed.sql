@@ -111,3 +111,52 @@ ON CONFLICT (id) DO UPDATE SET
     topic = EXCLUDED.topic,
     content = EXCLUDED.content,
     data_origin = EXCLUDED.data_origin;
+
+-- =========================================================
+-- Semillas de datos territoriales de accesibilidad social (HU1.4)
+-- Conjunto explícitamente simulado para el distrito de El Tambo.
+-- PRY-A: Caso completo con las tres categorías disponibles.
+-- PRY-B: Caso incompleto con categorías faltantes ('Información insuficiente').
+-- =========================================================
+INSERT INTO territorial_social_indicators
+    (id, project_id, project_code, category, indicator_name, metric_value, metric_unit, has_sufficient_data, source_name, data_origin, description)
+VALUES
+    -- PRY-A (Caso completo: Salud, Educación, Transporte)
+    ('71000000-0000-4000-a000-000000000001', 'a0000000-0000-4000-a000-00000000000a', 'PRY-A', 'salud',
+     'Distancia peatonal al establecimiento de salud de primer nivel (I-1/I-2)', 450.00, 'metros', TRUE,
+     'Dataset territorial simulado SIPRIM El Tambo - RENAES MINSA (Simulado)', 'simulated',
+     'Puesto de Salud El Tambo I a 450 metros a pie. Cobertura peatonal adecuada.'),
+
+    ('71000000-0000-4000-a000-000000000002', 'a0000000-0000-4000-a000-00000000000a', 'PRY-A', 'educacion',
+     'Distancia a la institución educativa pública inicial/primaria más cercana', 320.00, 'metros', TRUE,
+     'Dataset territorial simulado SIPRIM El Tambo - Censo Educativo MINEDU (Simulado)', 'simulated',
+     'I.E. Primaria N.° 30154 a 320 metros. Ubicada dentro del radio óptimo de 500 m.'),
+
+    ('71000000-0000-4000-a000-000000000003', 'a0000000-0000-4000-a000-00000000000a', 'PRY-A', 'transporte',
+     'Tiempo de caminata al paradero o eje de transporte público más cercano', 6.00, 'minutos', TRUE,
+     'Dataset territorial simulado SIPRIM El Tambo - Sistema Vial Metropolitano MPH (Simulado)', 'simulated',
+     'Paradero Av. Mariscal Castilla a 6 minutos a pie (420 metros). Servicio continuo.'),
+
+    -- PRY-B (Caso incompleto: Salud con dato; Educación y Transporte sin información suficiente)
+    ('71000000-0000-4000-a000-000000000004', 'a0000000-0000-4000-a000-00000000000b', 'PRY-B', 'salud',
+     'Distancia peatonal al establecimiento de salud de primer nivel (I-1/I-2)', 680.00, 'metros', TRUE,
+     'Dataset territorial simulado SIPRIM El Tambo - RENAES MINSA (Simulado)', 'simulated',
+     'Centro de Salud El Tambo a 680 metros. Supera el radio peatonal ideal de 500 metros.'),
+
+    ('71000000-0000-4000-a000-000000000005', 'a0000000-0000-4000-a000-00000000000b', 'PRY-B', 'educacion',
+     'Distancia a la institución educativa pública inicial/primaria más cercana', NULL, NULL, FALSE,
+     'Dataset territorial simulado SIPRIM El Tambo (Sin cobertura de padrón escolar en la zona)', 'simulated',
+     'Información insuficiente'),
+
+    ('71000000-0000-4000-a000-000000000006', 'a0000000-0000-4000-a000-00000000000b', 'PRY-B', 'transporte',
+     'Tiempo de caminata al paradero o eje de transporte público más cercano', NULL, NULL, FALSE,
+     'Dataset territorial simulado SIPRIM El Tambo (Sin cobertura de rutas autorizadas registrada)', 'simulated',
+     'Información insuficiente')
+ON CONFLICT (id) DO UPDATE SET
+    indicator_name = EXCLUDED.indicator_name,
+    metric_value = EXCLUDED.metric_value,
+    metric_unit = EXCLUDED.metric_unit,
+    has_sufficient_data = EXCLUDED.has_sufficient_data,
+    source_name = EXCLUDED.source_name,
+    data_origin = EXCLUDED.data_origin,
+    description = EXCLUDED.description;

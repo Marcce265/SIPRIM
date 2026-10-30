@@ -514,7 +514,149 @@ textarea.form-field-input {
   line-height: 1.5;
 }
 
+
+/* HU1.4: Accesibilidad social territorial */
+.pmv1-flow .social-flow-panel {
+  border-left: 4px solid #0284c7;
+}
+
+.pmv1-flow .social-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.pmv1-flow .social-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.pmv1-flow .social-card.is-sufficient {
+  border-top: 3px solid #16a34a;
+}
+
+.pmv1-flow .social-card.is-insufficient {
+  border-top: 3px solid #d97706;
+  background: #fffdfa;
+}
+
+.pmv1-flow .social-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.pmv1-flow .social-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.pmv1-flow .social-badge-status {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pmv1-flow .social-badge-status.sufficient {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.pmv1-flow .social-badge-status.insufficient {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.pmv1-flow .social-metric-box {
+  margin: 0.6rem 0;
+  padding: 0.6rem 0.75rem;
+  background: #f8fafc;
+  border-radius: var(--radius-sm);
+  border: 1px solid #e2e8f0;
+}
+
+.pmv1-flow .social-metric-value {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.pmv1-flow .social-metric-unit {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 0.35rem;
+}
+
+.pmv1-flow .social-insufficient-callout {
+  margin: 0.6rem 0;
+  padding: 0.75rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-sm);
+  color: #b45309;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.pmv1-flow .social-indicator-label {
+  font-size: 0.8rem;
+  color: #475569;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+}
+
+.pmv1-flow .social-card-meta {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f1f5f9;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.pmv1-flow .social-source-tag {
+  display: inline-block;
+  margin-top: 0.25rem;
+  padding: 0.15rem 0.4rem;
+  background: #f1f5f9;
+  border-radius: 4px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.pmv1-flow .social-simulated-pill {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.35rem;
+  background: #e0f2fe;
+  color: #0369a1;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
 @media (max-width: 640px) {
+  .pmv1-flow .social-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
   .pmv1-flow .flow-panel-heading,
   .pmv1-flow .legal-result-header {
     align-items: stretch;

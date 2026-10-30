@@ -20,6 +20,7 @@ from backend.application.dto.pmv1_dto import (
     PMV1ProjectCreate,
     PMV1ProjectResponse,
     PMV1ValidationResponse,
+    SocialAccessibilityResponse,
     ZoningPrecheckResponse,
 )
 from backend.application.services.pmv1_services import AuthService, PlatformService
@@ -272,3 +273,37 @@ def get_human_approval(
     service: Annotated[PlatformService, Depends(get_platform_service)],
 ) -> dict[str, Any]:
     return service.get_human_approval(project_id)
+
+@router.post(
+    "/projects/{project_id}/social-assessment",
+    response_model=SocialAccessibilityResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Evalúa la accesibilidad territorial en salud, educación y transporte (HU1.4)",
+)
+def evaluate_social_assessment(
+    project_id: Annotated[UUID, Path()],
+    user: Annotated[dict[str, Any], Depends(require_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+    idempotency_key: Annotated[
+        str | None, Header(alias="Idempotency-Key", max_length=120)
+    ] = None,
+) -> dict[str, Any]:
+    return service.evaluate_social_accessibility(
+        project_id=project_id,
+        actor_id=UUID(user["sub"]),
+        idempotency_key=idempotency_key,
+    )
+
+
+@router.get(
+    "/projects/{project_id}/social-assessment",
+    response_model=SocialAccessibilityResponse,
+    summary="Consulta la accesibilidad social territorial del proyecto (HU1.4)",
+)
+def get_social_assessment(
+    project_id: Annotated[UUID, Path()],
+    _: Annotated[dict[str, Any], Depends(require_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+) -> dict[str, Any]:
+    return service.get_social_accessibility(project_id=project_id)
+

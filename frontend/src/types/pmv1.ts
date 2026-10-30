@@ -116,3 +116,29 @@ export interface HumanApprovalStatusResponse {
     conditions: string | null
   } | null
 }
+
+export interface SocialAccessibilityCategoryItem {
+  category: string
+  category_label: string
+  status: 'sufficient' | 'insufficient'
+  has_sufficient_data: boolean
+  indicator?: string | null
+  value?: number | null
+  unit?: string | null
+  source: string
+  data_origin: string
+  is_simulated: boolean
+  message: string
+}
+
+export interface SocialAccessibilityResponse {
+  project_id: string
+  project_code: string
+  project_version_id?: string | null
+  status: 'complete' | 'partial' | 'insufficient'
+  summary: string
+  categories: SocialAccessibilityCategoryItem[]
+  evaluated_at: string
+  duplicated?: boolean
+}
+

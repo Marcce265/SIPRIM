@@ -975,6 +975,283 @@ class PlatformService:
             "current_approval": dict(latest) if latest else None,
         }
 
+    def evaluate_social_accessibility(
+        self,
+        project_id: UUID,
+        actor_id: UUID,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        """Evalúa la accesibilidad territorial en salud, educación y transporte (HU1.4)."""
+        project = self.get_project(project_id)
+        cleaned_key = idempotency_key.strip() if idempotency_key and idempotency_key.strip() else None
+
+        if not _is_db_available(self.db_url):
+            if not self.enable_demo_fallback:
+                raise ServicioNoDisponibleError(
+                    "Servicio de accesibilidad social no disponible: la base de datos no responde."
+                )
+
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
+            if cleaned_key:
+                prev = conn.execute(
+                    """
+                    SELECT id, project_id, project_version_id, status, summary, results_json, evaluated_at, idempotency_key
+                    FROM social_accessibility_assessments
+                    WHERE idempotency_key = %s
+                    """,
+                    (cleaned_key,),
+                ).fetchone()
+                if prev:
+                    if prev["project_id"] != project_id:
+                        raise ConfiguracionPMV1Error("Idempotency-Key ya fue utilizada para otro expediente")
+                    return {
+                        "project_id": prev["project_id"],
+                        "project_code": project["code"],
+                        "project_version_id": prev["project_version_id"],
+                        "status": prev["status"],
+                        "summary": prev["summary"],
+                        "categories": prev["results_json"]["categories"],
+                        "evaluated_at": prev["evaluated_at"],
+                        "duplicated": True,
+                    }
+
+            rows = conn.execute(
+                """
+                SELECT id, project_id, project_code, category, indicator_name,
+                       metric_value, metric_unit, has_sufficient_data, source_name,
+                       data_origin, description,
+                       (data_origin = 'simulated') AS is_simulated
+                FROM territorial_social_indicators
+                WHERE project_id = %s OR project_code = %s
+                ORDER BY created_at ASC
+                """,
+                (project_id, project["code"]),
+            ).fetchall()
+
+            assessment = SocialAccessibilityEngine.evaluate(
+                project_id=project_id,
+                project_code=project["code"],
+                project_version_id=project.get("project_version_id"),
+                indicator_rows=[dict(r) for r in rows],
+            )
+
+            assessment_id = uuid4()
+            effective_key = cleaned_key or f"social-assessment-{assessment_id}"
+            now = assessment["evaluated_at"]
+
+            conn.execute(
+                """
+                INSERT INTO social_accessibility_assessments
+                (id, project_id, project_version_id, requested_by_user_id, idempotency_key, status, summary, results_json, evaluated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    assessment_id,
+                    project_id,
+                    project["project_version_id"],
+                    actor_id,
+                    effective_key,
+                    assessment["status"],
+                    assessment["summary"],
+                    Jsonb({"categories": assessment["categories"]}),
+                    now,
+                ),
+            )
+
+            conn.execute(
+                """
+                INSERT INTO audit_events
+                (actor_user_id, action, entity_type, entity_id, details)
+                VALUES (%s, 'SOCIAL_ACCESSIBILITY_EVALUATED', 'social_assessment', %s, %s)
+                """,
+                (
+                    actor_id,
+                    assessment_id,
+                    Jsonb(
+                        {
+                            "project_id": str(project_id),
+                            "project_code": project["code"],
+                            "status": assessment["status"],
+                            "categories_count": len(assessment["categories"]),
+                        }
+                    ),
+                ),
+            )
+
+        return {
+            **assessment,
+            "duplicated": False,
+        }
+
+    def get_social_accessibility(self, project_id: UUID) -> dict[str, Any]:
+        """Obtiene la última evaluación de accesibilidad social o genera el análisis si aún no fue guardado."""
+        project = self.get_project(project_id)
+
+        if not _is_db_available(self.db_url):
+            if not self.enable_demo_fallback:
+                raise ServicioNoDisponibleError(
+                    "Servicio de accesibilidad social no disponible: la base de datos no responde."
+                )
+
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            latest = conn.execute(
+                """
+                SELECT id, project_id, project_version_id, status, summary, results_json, evaluated_at
+                FROM social_accessibility_assessments
+                WHERE project_id = %s
+                ORDER BY evaluated_at DESC
+                LIMIT 1
+                """,
+                (project_id,),
+            ).fetchone()
+
+            if latest:
+                return {
+                    "project_id": latest["project_id"],
+                    "project_code": project["code"],
+                    "project_version_id": latest["project_version_id"],
+                    "status": latest["status"],
+                    "summary": latest["summary"],
+                    "categories": latest["results_json"]["categories"],
+                    "evaluated_at": latest["evaluated_at"],
+                    "duplicated": False,
+                }
+
+            rows = conn.execute(
+                """
+                SELECT id, project_id, project_code, category, indicator_name,
+                       metric_value, metric_unit, has_sufficient_data, source_name,
+                       data_origin, description,
+                       (data_origin = 'simulated') AS is_simulated
+                FROM territorial_social_indicators
+                WHERE project_id = %s OR project_code = %s
+                ORDER BY created_at ASC
+                """,
+                (project_id, project["code"]),
+            ).fetchall()
+
+            assessment = SocialAccessibilityEngine.evaluate(
+                project_id=project_id,
+                project_code=project["code"],
+                project_version_id=project.get("project_version_id"),
+                indicator_rows=[dict(r) for r in rows],
+            )
+            return {
+                **assessment,
+                "duplicated": False,
+            }
+
+
+class SocialAccessibilityEngine:
+    """Motor de evaluación de accesibilidad territorial en salud, educación y transporte (HU1.4).
+
+    Garantiza el cumplimiento estricto de los criterios de aceptación:
+    - CA-HU1.4-01: Presenta por separado salud, educación y transporte, identificando fuente u origen simulado.
+    - CA-HU1.4-02: Cuando falten datos, muestra 'Información insuficiente' y estrictamente NINGÚN valor
+      ni unidad inventados (value=None, unit=None).
+    """
+
+    CANONICAL_CATEGORIES: ClassVar[tuple[tuple[str, str], ...]] = (
+        ("salud", "Accesibilidad a Salud"),
+        ("educacion", "Accesibilidad a Educación"),
+        ("transporte", "Accesibilidad a Transporte"),
+    )
+
+    @classmethod
+    def build_category_item(
+        cls,
+        category: str,
+        category_label: str,
+        indicator_row: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        if not indicator_row or not indicator_row.get("has_sufficient_data") or indicator_row.get("metric_value") is None:
+            source = indicator_row.get("source_name") if indicator_row else "Registro Catastral Municipal El Tambo (Sin cobertura)"
+            data_origin = indicator_row.get("data_origin") if indicator_row else "simulated"
+            is_sim = indicator_row.get("is_simulated", True) if indicator_row else True
+            return {
+                "category": category,
+                "category_label": category_label,
+                "status": "insufficient",
+                "has_sufficient_data": False,
+                "indicator": indicator_row.get("indicator_name") if indicator_row else f"Indicador territorial de {category}",
+                "value": None,
+                "unit": None,
+                "source": source,
+                "data_origin": data_origin,
+                "is_simulated": is_sim,
+                "message": "Información insuficiente",
+            }
+
+        val = float(indicator_row["metric_value"])
+        unit = indicator_row["metric_unit"]
+        ind_name = indicator_row["indicator_name"]
+        source = indicator_row["source_name"]
+        data_origin = indicator_row["data_origin"]
+        is_sim = indicator_row.get("is_simulated", True)
+        desc = indicator_row.get("description") or f"{ind_name}: {val} {unit}"
+
+        return {
+            "category": category,
+            "category_label": category_label,
+            "status": "sufficient",
+            "has_sufficient_data": True,
+            "indicator": ind_name,
+            "value": val,
+            "unit": unit,
+            "source": source,
+            "data_origin": data_origin,
+            "is_simulated": is_sim,
+            "message": desc,
+        }
+
+    @classmethod
+    def evaluate(
+        cls,
+        project_id: UUID,
+        project_code: str,
+        project_version_id: UUID | None,
+        indicator_rows: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        rows_by_category = {str(r["category"]).lower(): r for r in indicator_rows}
+        categories_output: list[dict[str, Any]] = []
+
+        insufficient_count = 0
+        for cat_key, cat_label in cls.CANONICAL_CATEGORIES:
+            row = rows_by_category.get(cat_key)
+            item = cls.build_category_item(cat_key, cat_label, row)
+            if not item["has_sufficient_data"]:
+                insufficient_count += 1
+            categories_output.append(item)
+
+        if insufficient_count == 0:
+            status = "complete"
+            summary = (
+                "Análisis de accesibilidad social completo. Se identificaron indicadores territoriales "
+                "para salud, educación y transporte."
+            )
+        elif insufficient_count == len(cls.CANONICAL_CATEGORIES):
+            status = "insufficient"
+            summary = (
+                "Información insuficiente: no se dispone de datos territoriales de cobertura "
+                "para ninguna de las categorías sociales (salud, educación, transporte)."
+            )
+        else:
+            status = "partial"
+            summary = (
+                f"Análisis de accesibilidad social parcial: {len(cls.CANONICAL_CATEGORIES) - insufficient_count} "
+                f"categoría(s) con datos suficientes y {insufficient_count} con Información insuficiente."
+            )
+
+        return {
+            "project_id": project_id,
+            "project_code": project_code,
+            "project_version_id": project_version_id,
+            "status": status,
+            "summary": summary,
+            "categories": categories_output,
+            "evaluated_at": datetime.now(timezone.utc),
+        }
+
 
 class EconomicProcessor:
     """Consumidor propietario exclusivo de economic_db e idempotente por event_id."""

@@ -276,6 +276,116 @@ class FakePlatform:
             "current_approval": None,
         }
 
+    def evaluate_social_accessibility(
+        self, project_id: UUID, actor_id: UUID, idempotency_key: str | None = None
+    ) -> dict[str, Any]:
+        if idempotency_key == "social-conflict":
+            raise ConfiguracionPMV1Error("Idempotency-Key ya fue utilizada para otro expediente")
+
+        is_pry_b = str(project_id).endswith("b")
+        if is_pry_b:
+            cats = [
+                {
+                    "category": "salud",
+                    "category_label": "Accesibilidad a Salud",
+                    "status": "sufficient",
+                    "has_sufficient_data": True,
+                    "indicator": "Distancia peatonal al establecimiento de salud de primer nivel",
+                    "value": 680.0,
+                    "unit": "metros",
+                    "source": "RENAES MINSA (Simulado)",
+                    "data_origin": "simulated",
+                    "is_simulated": True,
+                    "message": "Centro de Salud El Tambo a 680 metros.",
+                },
+                {
+                    "category": "educacion",
+                    "category_label": "Accesibilidad a Educación",
+                    "status": "insufficient",
+                    "has_sufficient_data": False,
+                    "indicator": "Distancia a la institución educativa pública inicial/primaria más cercana",
+                    "value": None,
+                    "unit": None,
+                    "source": "Catastro Municipal (Sin cobertura de padrón escolar)",
+                    "data_origin": "simulated",
+                    "is_simulated": True,
+                    "message": "Información insuficiente",
+                },
+                {
+                    "category": "transporte",
+                    "category_label": "Accesibilidad a Transporte",
+                    "status": "insufficient",
+                    "has_sufficient_data": False,
+                    "indicator": "Tiempo de caminata al paradero o eje de transporte público más cercano",
+                    "value": None,
+                    "unit": None,
+                    "source": "Catastro Municipal (Sin cobertura de rutas autorizadas)",
+                    "data_origin": "simulated",
+                    "is_simulated": True,
+                    "message": "Información insuficiente",
+                },
+            ]
+            summary = "Análisis de accesibilidad social parcial: 1 categoría(s) con datos suficientes y 2 con Información insuficiente."
+            status = "partial"
+        else:
+            cats = [
+                {
+                    "category": "salud",
+                    "category_label": "Accesibilidad a Salud",
+                    "status": "sufficient",
+                    "has_sufficient_data": True,
+                    "indicator": "Distancia peatonal al establecimiento de salud de primer nivel",
+                    "value": 450.0,
+                    "unit": "metros",
+                    "source": "RENAES MINSA (Simulado)",
+                    "data_origin": "simulated",
+                    "is_simulated": True,
+                    "message": "Puesto de Salud El Tambo I a 450 metros.",
+                },
+                {
+                    "category": "educacion",
+                    "category_label": "Accesibilidad a Educación",
+                    "status": "sufficient",
+                    "has_sufficient_data": True,
+                    "indicator": "Distancia a la institución educativa pública inicial/primaria más cercana",
+                    "value": 320.0,
+                    "unit": "metros",
+                    "source": "Censo Educativo MINEDU (Simulado)",
+                    "data_origin": "simulated",
+                    "is_simulated": True,
+                    "message": "I.E. Primaria N.° 30154 a 320 metros.",
+                },
+                {
+                    "category": "transporte",
+                    "category_label": "Accesibilidad a Transporte",
+                    "status": "sufficient",
+                    "has_sufficient_data": True,
+                    "indicator": "Tiempo de caminata al paradero o eje de transporte público más cercano",
+                    "value": 6.0,
+                    "unit": "minutos",
+                    "source": "Sistema Vial Metropolitano (Simulado)",
+                    "data_origin": "simulated",
+                    "is_simulated": True,
+                    "message": "Paradero Av. Mariscal Castilla a 6 minutos a pie.",
+                },
+            ]
+            summary = "Análisis de accesibilidad social completo. Se identificaron indicadores territoriales para salud, educación y transporte."
+            status = "complete"
+
+        return {
+            "project_id": project_id,
+            "project_code": "PRY-B" if is_pry_b else "PRY-A",
+            "project_version_id": VERSION_ID,
+            "status": status,
+            "summary": summary,
+            "categories": cats,
+            "evaluated_at": datetime.now(timezone.utc),
+            "duplicated": idempotency_key == "social-repeat",
+        }
+
+    def get_social_accessibility(self, project_id: UUID) -> dict[str, Any]:
+        return self.evaluate_social_accessibility(project_id, UUID("10000000-0000-4000-a000-000000000002"))
+
 
 
 @pytest.fixture
@@ -708,4 +818,73 @@ def test_api_servicio_no_disponible_retorna_503_controlado(client: TestClient) -
         assert "no disponible" in response.json()["detail"].lower()
     finally:
         app.dependency_overrides[get_platform_service] = lambda: FakePlatform()
+
+def test_social_assessment_requires_auth(client: TestClient) -> None:
+    response = client.post(f"/api/v1/projects/{PROJECT_ID}/social-assessment")
+    assert response.status_code == 401
+
+
+def test_social_assessment_requires_planner_role(client: TestClient) -> None:
+    response = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/social-assessment",
+        headers={"Authorization": "Bearer token-legal"},
+    )
+    assert response.status_code == 403
+
+
+def test_social_assessment_pry_a_complete(client: TestClient) -> None:
+    response = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/social-assessment",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "complete"
+    assert len(body["categories"]) == 3
+    cats = {c["category"]: c for c in body["categories"]}
+    assert cats["salud"]["has_sufficient_data"] is True
+    assert cats["salud"]["value"] == 450.0
+    assert cats["educacion"]["has_sufficient_data"] is True
+    assert cats["educacion"]["value"] == 320.0
+    assert cats["transporte"]["has_sufficient_data"] is True
+    assert cats["transporte"]["value"] == 6.0
+
+
+def test_social_assessment_pry_b_insufficient_no_numbers(client: TestClient) -> None:
+    project_b_id = UUID("a0000000-0000-4000-a000-00000000000b")
+    response = client.post(
+        f"/api/v1/projects/{project_b_id}/social-assessment",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "partial"
+    cats = {c["category"]: c for c in body["categories"]}
+
+    # Salud con datos
+    assert cats["salud"]["has_sufficient_data"] is True
+    assert cats["salud"]["value"] == 680.0
+
+    # Educación: Información insuficiente y estrictamente NINGÚN número inventado
+    assert cats["educacion"]["has_sufficient_data"] is False
+    assert cats["educacion"]["message"] == "Información insuficiente"
+    assert cats["educacion"]["value"] is None
+    assert cats["educacion"]["unit"] is None
+
+    # Transporte: Información insuficiente y estrictamente NINGÚN número inventado
+    assert cats["transporte"]["has_sufficient_data"] is False
+    assert cats["transporte"]["message"] == "Información insuficiente"
+    assert cats["transporte"]["value"] is None
+    assert cats["transporte"]["unit"] is None
+
+
+def test_get_social_assessment(client: TestClient) -> None:
+    response = client.get(
+        f"/api/v1/projects/{PROJECT_ID}/social-assessment",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "complete"
+    assert len(body["categories"]) == 3
 

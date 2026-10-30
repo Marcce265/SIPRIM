@@ -249,3 +249,28 @@ class HumanApprovalStatusResponse(BaseModel):
     is_evaluated: bool
     requires_human_approval: bool
     current_approval: HumanApprovalResponse | None = None
+
+class SocialAccessibilityCategoryItem(BaseModel):
+    category: str
+    category_label: str
+    status: str
+    has_sufficient_data: bool
+    indicator: str | None = None
+    value: float | None = None
+    unit: str | None = None
+    source: str
+    data_origin: str
+    is_simulated: bool = True
+    message: str
+
+
+class SocialAccessibilityResponse(BaseModel):
+    project_id: UUID
+    project_code: str
+    project_version_id: UUID | None = None
+    status: str
+    summary: str
+    categories: list[SocialAccessibilityCategoryItem]
+    evaluated_at: datetime
+    duplicated: bool = False
+
