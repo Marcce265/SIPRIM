@@ -165,12 +165,16 @@ class FakePlatform:
             raise ConfiguracionPMV1Error("Idempotency-Key ya fue utilizada para otra consulta")
 
         has_alert_match = "incompatible" in query.lower() or "riesgo" in query.lower()
-        results = [
-            {
-                "id": "PDUPDM-02" if has_alert_match else "LEY27972-01",
+        if any(term in query.lower() for term in ["inexistente", "marte", "sin_sustento"]):
+            results = []
+        else:
+            results = [
+                {
+                    "id": "PDUPDM-02" if has_alert_match else "LEY27972-01",
                 "document_name": "PDU/PDM Huancayo-El Tambo" if has_alert_match else "Ley N.° 27972",
                 "short_code": "PDU_EL_TAMBO" if has_alert_match else "LEY_27972",
                 "version": "2026-v1",
+                "location": "Art. 89 / Título III" if has_alert_match else "Art. 73",
                 "topic": "Compatibilidad de uso de suelo" if has_alert_match else "Competencias municipales",
                 "content": (
                     "Resumen didactico simulado: si el uso propuesto para un proyecto es incompatible "
@@ -187,7 +191,7 @@ class FakePlatform:
         ]
         alerts = [
             f"Alerta legal detectada en {results[0]['id']} ({results[0]['topic']}): {results[0]['content']}"
-        ] if has_alert_match else []
+        ] if (has_alert_match and len(results) > 0) else []
 
         return {
             "query": query,
@@ -496,6 +500,34 @@ def test_hu21_listar_documentos_normativos(client: TestClient) -> None:
     assert "PDU_EL_TAMBO" in codes
     assert "DL_1252" in codes
     assert "LEY_32069" in codes
+
+
+def test_hu21_busqueda_normativa_incluye_ubicacion_identificable(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/normative/search",
+        headers={"Authorization": "Bearer token-legal"},
+        json={"query": "competencias municipales"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_results"] >= 1
+    hit = body["results"][0]
+    assert "Ley" in hit["document_name"]
+    assert hit["version"] == "2026-v1"
+    assert hit["location"] == "Art. 73"
+    assert hit["id"] == "LEY27972-01"
+
+
+def test_hu21_busqueda_normativa_sin_evidencia_devuelve_cero_resultados(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/normative/search",
+        headers={"Authorization": "Bearer token-legal"},
+        json={"query": "sin_sustento tema espacial inexistente"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_results"] == 0
+    assert len(body["results"]) == 0
 
 
 def test_hu21_motor_ponderacion_scoring() -> None:

@@ -173,6 +173,7 @@ class NormativeChunkItem(BaseModel):
     has_alert: bool
     data_origin: str
     relevance_score: float
+    location: str | None = None
 
 
 class NormativeSearchResponse(BaseModel):

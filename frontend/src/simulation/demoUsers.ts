@@ -17,6 +17,13 @@ const DEMO_ACCOUNTS: readonly DemoAccount[] = [
     roles: ['PLANNER'],
     demoPassword: 'demo2026',
   },
+  {
+    id: 'demo-legal',
+    nombre: 'Asesor Jurídico de demostración',
+    email: 'legal@siprim.demo',
+    roles: ['LEGAL_ADVISOR'],
+    demoPassword: 'demo2026',
+  },
 ] as const
 
 function publicUser(account: DemoAccount): AuthUser {

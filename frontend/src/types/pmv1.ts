@@ -84,19 +84,22 @@ export interface ZoningPrecheckResponse {
   limitations: string
 }
 
+export interface NormativeChunkItem {
+  id: string
+  document_name: string
+  short_code: string
+  version: string
+  topic: string
+  content: string
+  relevance_score: number
+  has_alert: boolean
+  location?: string | null
+}
+
 export interface NormativeSearchResponse {
   query: string
   total_results: number
-  results: Array<{
-    id: string
-    document_name: string
-    short_code: string
-    version: string
-    topic: string
-    content: string
-    relevance_score: number
-    has_alert: boolean
-  }>
+  results: NormativeChunkItem[]
   alerts_found: string[]
   disclaimer: string
   requires_human_review: boolean
