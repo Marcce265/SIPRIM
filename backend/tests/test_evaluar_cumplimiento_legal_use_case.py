@@ -40,3 +40,29 @@ def test_invoca_puerto_juridico_y_persiste_resultado() -> None:
     assert resultado.fuentes == []
     assert resultado.requiere_revision is True
     assert evaluaciones.obtener_por_proyecto(proyecto.id or 0) is not None
+
+
+def test_un_resultado_desfavorable_con_fuente_exige_revision_humana() -> None:
+    """Doble controlado del puerto: no acredita incompatibilidad normativa real."""
+    from backend.domain.entities.evaluacion_juridica import EvaluacionJuridica
+    from backend.domain.value_objects.estado_evaluacion_juridica import EstadoEvaluacionJuridica
+
+    class EvaluadorDesfavorable:
+        def evaluar(self, proyecto):
+            return EvaluacionJuridica(
+                proyecto_id=proyecto.id,
+                estado=EstadoEvaluacionJuridica.PENDIENTE_VALIDACION_NORMATIVA,
+                cumple=False,
+                observaciones=('Caso controlado; requiere asesor juridico.',),
+                fuentes=('Referencia de prueba del contrato, no evidencia normativa.',),
+            )
+
+    proyectos = InMemoryProyectoRepository()
+    evaluaciones = InMemoryEvaluacionJuridicaRepository()
+    proyecto = RegistrarProyectoUseCase(proyectos).execute(ProyectoCreate(
+        nombre='Prueba controlada', descripcion='Verificar revision humana',
+        ubicacion='El Tambo', presupuesto=1000, beneficiarios=10, tipo_proyecto='Parque',
+    ))
+    resultado = EvaluarCumplimientoLegalUseCase(proyectos, EvaluadorDesfavorable(), evaluaciones).execute(proyecto.id)
+    assert resultado.cumple is False
+    assert resultado.requiere_revision is True
