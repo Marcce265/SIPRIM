@@ -1269,3 +1269,4 @@ def test_environmental_assessment_hu17_pry_b_insufficient_no_automatic_advantage
     assert body["favorable"] is None
     assert body["green_area"]["has_sufficient_data"] is False
     assert body["green_area"]["score_effect_pts"] is None
+    assert body["green_area"]["score_effect_pts"] != 0.0

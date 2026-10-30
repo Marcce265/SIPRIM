@@ -470,8 +470,8 @@ export function ProyectoDetallePage() {
                             ? `+${environmentalAssessment.green_area.score_effect_pts.toFixed(1)} pts (${environmentalAssessment.green_area.effect_type})`
                             : environmentalAssessment.green_area.score_effect_pts < 0
                             ? `${environmentalAssessment.green_area.score_effect_pts.toFixed(1)} pts (${environmentalAssessment.green_area.effect_type})`
-                            : `0.0 pts (${environmentalAssessment.green_area.effect_type})`
-                          : '0.0 pts (Indeterminado / Sin ventaja automática)'}
+                            : '0.0 pts (Neutro)'
+                          : 'No determinado · Sin ventaja ambiental automática'}
                       </span>
                     </div>
                   </div>
@@ -505,6 +505,12 @@ export function ProyectoDetallePage() {
                         <div style={{ fontWeight: 700, color: '#b45309', marginBottom: '0.25rem' }}>
                           ⚠️ Información insuficiente sobre áreas verdes (Sin ventaja ambiental automática)
                         </div>
+                        <p style={{ margin: '0.35rem 0', fontSize: '0.85rem', color: '#92400e', lineHeight: 1.45 }}>
+                          <strong>Efecto en el puntaje:</strong>{' '}
+                          {environmentalAssessment.green_area.score_effect_pts !== null && environmentalAssessment.green_area.score_effect_pts !== undefined
+                            ? `${environmentalAssessment.green_area.score_effect_pts.toFixed(1)} pts`
+                            : 'No determinado · Sin ventaja ambiental automática'}
+                        </p>
                         <p style={{ margin: 0, fontSize: '0.85rem', color: '#92400e', lineHeight: 1.45 }}>
                           El expediente no cuenta con superficie delimitada ni medidas de protección verificables. De conformidad con el criterio de aceptación <strong>CA-HU1.7-02</strong>, no se asigna bonificación ni ventaja ambiental automática.
                         </p>
@@ -570,7 +576,7 @@ export function ProyectoDetallePage() {
                                 : environmentalAssessment.green_area.score_effect_pts < 0
                                 ? `${environmentalAssessment.green_area.score_effect_pts.toFixed(1)} pts (Penalización)`
                                 : '0.0 pts (Neutro)'
-                              : '0.0 pts'}
+                              : 'No determinado · Sin ventaja ambiental automática'}
                           </div>
                           <p className="green-detail-text" style={{ marginTop: '0.25rem' }}>
                             {environmentalAssessment.green_area.calculation_explanation}

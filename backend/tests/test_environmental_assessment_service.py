@@ -580,3 +580,83 @@ def test_platform_service_hu17_live_db():
     fetched_a = service.get_environmental_assessment(PROJECT_A_ID)
     assert fetched_a["environmental_score"] == 85.0
     assert fetched_a["green_area"]["score_effect_pts"] == 15.0
+
+
+def test_environmental_engine_green_area_distinguishes_null_from_zero():
+    """Distingue estrictamente un efecto nulo (null / sin datos) de un efecto calculado neutro (0.0 pts).
+
+    - Si faltan datos o la evaluación no puede determinar el efecto cuantitativo:
+      score_effect_pts DEBE ser None (null en JSON), NO 0.0, y NO otorga ventaja automática.
+    - Si la intervención cuenta con mitigación y reposición equivalente acreditada:
+      score_effect_pts DEBE ser 0.0 (cero numérico), effect_type='neutro', manteniendo el puntaje base.
+    """
+    env_records_sufficient = [{
+        "environmental_component": "aire_acustico_residuos",
+        "has_sufficient_data": True,
+        "declared_impacts": "Nivelación de terreno.",
+        "declared_measures": "Riego y mallas.",
+        "verifiable_evidence": "Ubicación consolidada fuera de faja marginal.",
+        "proximity_to_water_meters": 400.0,
+        "is_in_protected_or_risk_area": False,
+        "source_name": "PDM Huancayo",
+    }]
+
+    # 1. Caso Neutro: 0.0 pts numérico calculado explícitamente (afectación mitigada con medidas suficientes)
+    green_records_neutral = [{
+        "has_sufficient_data": True,
+        "total_project_area_m2": 2000.0,
+        "green_area_m2": 200.0,
+        "green_area_percentage": 10.0,
+        "delimitation_description": "Delimitado en plano perimétrico.",
+        "declared_affectation": "Remoción temporal con reposición.",
+        "verifiable_affectation": "Plan de reposición equivalente verificado.",
+        "affectation_type": "afectacion_mitigada",
+        "protection_measures": "Reposición de 200 m2 de áreas verdes.",
+        "has_sufficient_measures": True,
+        "score_effect_pts": 0.0,
+        "effect_type": "neutro",
+        "calculation_explanation": "Efecto neutro (0.0 pts): la intervención cuenta con medidas de reposición y compensación equivalentes acreditadas.",
+        "source_name": "Catastro Municipal",
+    }]
+
+    res_neutral = EnvironmentalAssessmentEngine.evaluate(
+        project_id=PROJECT_A_ID,
+        project_code="PRY-A",
+        project_version_id=uuid4(),
+        records=env_records_sufficient,
+        green_records=green_records_neutral,
+    )
+    assert res_neutral["green_area"]["score_effect_pts"] == 0.0
+    assert res_neutral["green_area"]["score_effect_pts"] is not None
+    assert res_neutral["green_area"]["effect_type"] == "neutro"
+    assert res_neutral["environmental_score"] == 70.0  # Base 70.0 + 0.0 = 70.0
+
+    # 2. Caso Datos Insuficientes: score_effect_pts DEBE ser None (null), NUNCA 0.0
+    green_records_insufficient = [{
+        "has_sufficient_data": False,
+        "total_project_area_m2": None,
+        "green_area_m2": None,
+        "green_area_percentage": None,
+        "delimitation_description": None,
+        "declared_affectation": None,
+        "verifiable_affectation": None,
+        "affectation_type": "sin_datos",
+        "protection_measures": None,
+        "has_sufficient_measures": False,
+        "score_effect_pts": None,
+        "effect_type": "indeterminado",
+        "calculation_explanation": "Información insuficiente: no se asigna bonificación.",
+        "source_name": "Catastro Municipal",
+    }]
+
+    res_insufficient = EnvironmentalAssessmentEngine.evaluate(
+        project_id=PROJECT_B_ID,
+        project_code="PRY-B",
+        project_version_id=uuid4(),
+        records=env_records_sufficient,
+        green_records=green_records_insufficient,
+    )
+    assert res_insufficient["green_area"]["score_effect_pts"] is None
+    assert res_insufficient["green_area"]["score_effect_pts"] != 0.0
+    assert res_insufficient["green_area"]["effect_type"] == "indeterminado"
+    assert res_insufficient["environmental_score"] is None
