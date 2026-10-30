@@ -23,6 +23,7 @@ from backend.domain.exceptions.pmv1_exceptions import (
     CredencialesInvalidasError,
     ExpedientePMV1IncompletoError,
     RecursoPMV1NoEncontradoError,
+    ServicioNoDisponibleError,
 )
 
 
@@ -123,11 +124,37 @@ class AuthService:
         self.expiration_minutes = expiration_minutes
         self.password_hasher = PasswordHasher()
 
+    def issue_token(
+        self,
+        user_id: UUID,
+        roles: list[str],
+        full_name: str = "",
+    ) -> dict[str, Any]:
+        """Emite una sesion con token JWT firmado a partir de identidad verificada o autorizada."""
+        now = datetime.now(timezone.utc)
+        expires = now + timedelta(minutes=self.expiration_minutes)
+        claims = {
+            "sub": str(user_id),
+            "roles": list(roles),
+            "iss": self.issuer,
+            "aud": self.audience,
+            "iat": now,
+            "exp": expires,
+        }
+        token = jwt.encode(claims, self.jwt_secret, algorithm="HS256")
+        return {
+            "access_token": token,
+            "expires_in": self.expiration_minutes * 60,
+            "user_id": user_id,
+            "full_name": full_name,
+            "roles": list(roles),
+        }
+
     def login(self, email: str, password: str) -> dict[str, Any]:
         clean_email = email.strip().lower()
         try:
             if not _is_db_available(self.db_url):
-                raise psycopg.OperationalError("Database unreachable")
+                raise psycopg.OperationalError("Base de datos de autenticacion no disponible")
             with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
                 row = conn.execute(
                     """
@@ -147,43 +174,11 @@ class AuthService:
                 self.password_hasher.verify(row["password_hash"], password)
             except (VerifyMismatchError, InvalidHashError):
                 raise CredencialesInvalidasError("Credenciales invalidas") from None
-        except psycopg.OperationalError:
-            fallback_users = {
-                "legal@siprim.demo": {"id": UUID("10000000-0000-4000-a000-000000000003"), "name": "Asesor Jurídico de demostración", "pwd": "demo2026", "roles": ["LEGAL_ADVISOR"]},
-                "asesor.juridico@eltambo.gob.pe": {"id": UUID("10000000-0000-4000-a000-000000000012"), "name": "Asesoría Jurídica", "pwd": "siprim2026", "roles": ["LEGAL_ADVISOR"]},
-                "admin@siprim.demo": {"id": UUID("10000000-0000-4000-a000-000000000001"), "name": "Administrador de demostración", "pwd": "demo2026", "roles": ["ADMIN", "SUPERADMIN"]},
-                "admin@eltambo.gob.pe": {"id": UUID("10000000-0000-4000-a000-000000000013"), "name": "Administración SIPRIM", "pwd": "siprim2026", "roles": ["ADMIN", "SUPERADMIN"]},
-                "planificador@siprim.demo": {"id": UUID("10000000-0000-4000-a000-000000000002"), "name": "Planificador de demostración", "pwd": "demo2026", "roles": ["URBAN_PLANNER"]},
-                "planificador@eltambo.gob.pe": {"id": UUID("10000000-0000-4000-a000-000000000011"), "name": "Planificador Urbano", "pwd": "siprim2026", "roles": ["URBAN_PLANNER"]},
-            }
-            if clean_email not in fallback_users or fallback_users[clean_email]["pwd"] != password:
-                raise CredencialesInvalidasError("Credenciales invalidas")
-            u = fallback_users[clean_email]
-            row = {
-                "id": u["id"],
-                "full_name": u["name"],
-                "is_active": True,
-                "roles": u["roles"],
-            }
-
-        now = datetime.now(timezone.utc)
-        expires = now + timedelta(minutes=self.expiration_minutes)
-        claims = {
-            "sub": str(row["id"]),
-            "roles": list(row["roles"]),
-            "iss": self.issuer,
-            "aud": self.audience,
-            "iat": now,
-            "exp": expires,
-        }
-        token = jwt.encode(claims, self.jwt_secret, algorithm="HS256")
-        return {
-            "access_token": token,
-            "expires_in": self.expiration_minutes * 60,
-            "user_id": row["id"],
-            "full_name": row["full_name"],
-            "roles": list(row["roles"]),
-        }
+            return self.issue_token(row["id"], row["roles"], row["full_name"])
+        except psycopg.OperationalError as err:
+            raise ServicioNoDisponibleError(
+                "Servicio de autenticacion no disponible: la base de datos no responde."
+            ) from err
 
     def decode(self, token: str) -> dict[str, Any]:
         try:
@@ -280,9 +275,15 @@ class NormativeSearchEngine:
 
 
 class PlatformService:
-    def __init__(self, db_url: str, dispatcher: TaskDispatcher) -> None:
+    def __init__(
+        self,
+        db_url: str,
+        dispatcher: TaskDispatcher,
+        enable_demo_fallback: bool = False,
+    ) -> None:
         self.db_url = _dsn(db_url)
         self.dispatcher = dispatcher
+        self.enable_demo_fallback = enable_demo_fallback
 
     @staticmethod
     def _missing(data: PMV1ProjectCreate) -> list[str]:
@@ -748,7 +749,11 @@ class PlatformService:
                             ),
                         ),
                     )
-        except psycopg.OperationalError:
+        except psycopg.OperationalError as err:
+            if not self.enable_demo_fallback:
+                raise ServicioNoDisponibleError(
+                    "Servicio de normativa no disponible: la base de datos no responde."
+                ) from err
             fallback_rows = _load_fallback_seed_documents()
             if only_in_force:
                 fallback_rows = [r for r in fallback_rows if r["in_force"]]
@@ -815,7 +820,11 @@ class PlatformService:
                     """
                 ).fetchall()
             return [dict(r) for r in rows]
-        except psycopg.OperationalError:
+        except psycopg.OperationalError as err:
+            if not self.enable_demo_fallback:
+                raise ServicioNoDisponibleError(
+                    "Servicio de normativa no disponible: la base de datos no responde."
+                ) from err
             docs = _load_fallback_seed_documents()
             grouped: dict[tuple[str, str, str, bool, str], int] = {}
             for d in docs:

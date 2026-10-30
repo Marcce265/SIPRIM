@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     app_name: str = "SIPRIM Backend"
     app_env: str = "development"
     use_in_memory_repository: bool = True
+    enable_demo_fallback: bool = Field(
+        default=False,
+        description="Habilita modo demostracion explicitamente para consulta normativa sin PostgreSQL. Desactivado por defecto.",
+    )
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/siprim"
     auth_db_url: str = (
         "postgresql+psycopg://auth_app:auth_dev_only@localhost:5432/auth_db"

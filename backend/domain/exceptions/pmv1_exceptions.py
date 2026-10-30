@@ -20,3 +20,8 @@ class ExpedientePMV1IncompletoError(Exception):
 
 class ConfiguracionPMV1Error(Exception):
     pass
+
+
+class ServicioNoDisponibleError(Exception):
+    """Error controlado cuando un servicio de base de datos o infraestructura no responde."""
+    pass

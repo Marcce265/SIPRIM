@@ -8,6 +8,7 @@ from backend.domain.exceptions.pmv1_exceptions import (
     CredencialesInvalidasError,
     ExpedientePMV1IncompletoError,
     RecursoPMV1NoEncontradoError,
+    ServicioNoDisponibleError,
 )
 from backend.domain.exceptions.proyecto_exceptions import (
     ExpedienteIncompletoError,
@@ -108,6 +109,12 @@ def create_app() -> FastAPI:
         request: Request, exc: ConfiguracionPMV1Error
     ) -> JSONResponse:
         return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+    @application.exception_handler(ServicioNoDisponibleError)
+    async def servicio_no_disponible_handler(
+        request: Request, exc: ServicioNoDisponibleError
+    ) -> JSONResponse:
+        return JSONResponse(status_code=503, content={"detail": str(exc)})
 
     return application
 

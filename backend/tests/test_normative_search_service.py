@@ -1,7 +1,19 @@
+from uuid import uuid4
+
+import pytest
+
 from backend.application.services.pmv1_services import (
+    AuthService,
     NormativeSearchEngine,
+    PlatformService,
     _load_fallback_seed_documents,
 )
+from backend.domain.exceptions.pmv1_exceptions import (
+    ServicioNoDisponibleError,
+)
+from backend.infrastructure.output.broker.celery_app import CeleryTaskDispatcher
+
+DEAD_DB_URL = "postgresql://user:pass@127.0.0.1:59999/unreachable_db"
 
 
 def test_keywords_extraction_and_stop_words():
@@ -165,3 +177,80 @@ def test_hu21_ca3_no_evidence_returns_zero_results_without_inventing():
             results.append(item)
 
     assert len(results) == 0, "No debe retornar fragmentos inventados para consultas sin sustento"
+
+
+def test_auth_service_db_down_raises_controlled_error_and_never_emits_session():
+    """Ante falla de base de datos, la autenticacion falla de forma controlada y nunca emite sesion."""
+    auth = AuthService(DEAD_DB_URL, "test-secret-12345-at-least-32-bytes-long-for-hmac", "test-issuer", "test-aud", 60)
+
+    # Debe lanzar ServicioNoDisponibleError para cualquier usuario, incluidos roles admin/legal
+    for test_email, test_pwd in [
+        ("legal@siprim.demo", "demo2026"),
+        ("admin@siprim.demo", "demo2026"),
+        ("asesor.juridico@eltambo.gob.pe", "siprim2026"),
+        ("usuario_desconocido@siprim.pe", "clave123"),
+    ]:
+        with pytest.raises(ServicioNoDisponibleError) as exc_info:
+            auth.login(test_email, test_pwd)
+        assert "no disponible" in str(exc_info.value).lower()
+
+
+def test_platform_service_db_down_in_normal_mode_raises_controlled_error():
+    """En modo normal (enable_demo_fallback=False por defecto), la caida de BD no activa datos simulados."""
+    # Instancia en modo normal (desactivado por defecto)
+    platform = PlatformService(DEAD_DB_URL, CeleryTaskDispatcher(), enable_demo_fallback=False)
+
+    # 1. Busqueda normativa falla de forma controlada y NO retorna datos simulados
+    with pytest.raises(ServicioNoDisponibleError) as exc_search:
+        platform.search_normatives("obras y contrataciones municipales", actor_id=uuid4())
+    assert "no disponible" in str(exc_search.value).lower()
+
+    # 2. Listado de documentos normativos tambien falla de forma controlada
+    with pytest.raises(ServicioNoDisponibleError) as exc_list:
+        platform.list_normative_documents()
+    assert "no disponible" in str(exc_list.value).lower()
+
+
+def test_platform_service_explicit_demo_mode_allows_fallback_seed_corpus():
+    """Cuando el modo demostracion se habilita expresamente (enable_demo_fallback=True), permite consultar el corpus didactico."""
+    platform = PlatformService(DEAD_DB_URL, CeleryTaskDispatcher(), enable_demo_fallback=True)
+
+    # 1. Listar documentos retorna las fuentes del seed
+    docs = platform.list_normative_documents()
+    assert len(docs) > 0
+    short_codes = [d["short_code"] for d in docs]
+    assert "LEY_27972" in short_codes
+
+    # 2. Busqueda normativa encuentra fragmentos vigentes con ubicacion identificable
+    res = platform.search_normatives("competencias municipales", actor_id=uuid4(), only_in_force=True)
+    assert res["total_results"] > 0
+    hit = res["results"][0]
+    assert hit["location"] is not None
+    assert hit["version"] is not None
+    assert hit["in_force"] is True
+
+    # 3. Excluye norma inactiva LEY26850-HIST de la busqueda vigente
+    res_contrat = platform.search_normatives("contrataciones y adquisiciones del estado", actor_id=uuid4(), only_in_force=True)
+    hit_ids = [r["id"] for r in res_contrat["results"]]
+    assert "LEY26850-HIST" not in hit_ids
+
+    # 4. Consulta sin sustento retorna 0 resultados sin inventar articulos
+    res_empty = platform.search_normatives("satelites y naves espaciales en orbita", actor_id=uuid4(), only_in_force=True)
+    assert res_empty["total_results"] == 0
+    assert len(res_empty["results"]) == 0
+
+
+def test_auth_service_issue_token_for_authorized_development_sessions():
+    """issue_token permite firmar sesiones autorizadas sin contrasenas ni dependencias de BD."""
+    auth = AuthService(DEAD_DB_URL, "secret-key-456-at-least-32-bytes-long-for-hmac", "siprim-auth", "siprim-api", 60)
+    user_id = uuid4()
+    session = auth.issue_token(user_id, ["LEGAL_ADVISOR"], full_name="Asesor Juridico Autorizado")
+
+    assert session["access_token"] is not None
+    assert session["user_id"] == user_id
+    assert session["roles"] == ["LEGAL_ADVISOR"]
+
+    # El token firmado es decodificable y valido
+    decoded = auth.decode(session["access_token"])
+    assert decoded["sub"] == str(user_id)
+    assert decoded["roles"] == ["LEGAL_ADVISOR"]

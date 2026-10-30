@@ -176,7 +176,7 @@ def get_auth_service() -> AuthService:
 @lru_cache
 def get_platform_service() -> PlatformService:
     settings = get_settings()
-    return PlatformService(settings.platform_db_url, CeleryTaskDispatcher())
+    return PlatformService(settings.platform_db_url, CeleryTaskDispatcher(), enable_demo_fallback=settings.enable_demo_fallback)
 
 
 bearer = HTTPBearer(auto_error=False)

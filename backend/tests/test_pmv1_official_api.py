@@ -689,3 +689,23 @@ def test_get_human_approval_status(client: TestClient) -> None:
     assert body["project_status"] == "evaluated"
     assert body["is_evaluated"] is True
     assert body["requires_human_approval"] is True
+
+def test_api_servicio_no_disponible_retorna_503_controlado(client: TestClient) -> None:
+    class FailingPlatform(FakePlatform):
+        def search_normatives(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+            from backend.domain.exceptions.pmv1_exceptions import ServicioNoDisponibleError
+            raise ServicioNoDisponibleError("Servicio de normativa no disponible: la base de datos no responde.")
+
+    app = client.app
+    app.dependency_overrides[get_platform_service] = lambda: FailingPlatform()
+    try:
+        response = client.post(
+            "/api/v1/normative/search",
+            headers={"Authorization": "Bearer token-legal"},
+            json={"query": "obras municipales"},
+        )
+        assert response.status_code == 503
+        assert "no disponible" in response.json()["detail"].lower()
+    finally:
+        app.dependency_overrides[get_platform_service] = lambda: FakePlatform()
+
