@@ -65,13 +65,60 @@ export interface EvaluationResponse {
   result: EconomicResult | null
 }
 
+export interface NormativeCitationItem {
+  fragment_id: string | null
+  document_name: string | null
+  short_code: string | null
+  version: string | null
+  article_or_section: string | null
+  fragment_content: string | null
+  citation_status: 'verificable' | 'no_verificable'
+  is_verifiable: boolean
+  status_label: string
+  limitation_note: string | null
+  in_force: boolean
+  is_simulated: boolean
+  data_origin: string
+  citation_hash: string | null
+}
+
+export interface LegalFindingItem {
+  finding_id: string
+  finding_key: string
+  title: string
+  description: string
+  complies: boolean | null
+  requires_human_review: boolean
+  citation: NormativeCitationItem
+}
+
+export interface LegalAssessmentResponse {
+  assessment_id: string
+  project_id: string
+  project_code: string
+  project_version_id?: string | null
+  status: 'requires_review' | 'verified' | 'insufficient'
+  status_label: string
+  summary: string
+  findings: LegalFindingItem[]
+  total_findings: number
+  verifiable_citations_count: number
+  unverifiable_citations_count: number
+  requires_human_review: boolean
+  evaluated_at: string
+  is_simulated_corpus: boolean
+  duplicated?: boolean
+}
+
 export interface LegalPrecheckResponse {
   project_id: string
   status: string
-  complies: null
+  complies: boolean | null
   sources: string[]
   requires_review: boolean
   observations: string[]
+  assessment?: LegalAssessmentResponse | null
+  findings?: LegalFindingItem[]
 }
 
 export interface ZoningPrecheckResponse {

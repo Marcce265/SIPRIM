@@ -427,3 +427,69 @@ ON CONFLICT (id) DO UPDATE SET
     source_name = EXCLUDED.source_name,
     data_origin = EXCLUDED.data_origin,
     description = EXCLUDED.description;
+
+-- =========================================================
+-- Semillas de hallazgos jurídicos y citas normativas (HU2.2)
+-- =========================================================
+INSERT INTO project_legal_findings (
+    id, project_id, project_code, finding_key, title, description,
+    normative_chunk_id, has_precise_reference, custom_article_or_section,
+    complies, requires_human_review, notes
+) VALUES
+    -- PRY-A: Caso con citas comprobables y artículos exactos (CA-HU2.2-01)
+    ('e1000000-0000-4000-a000-000000000001', 'a0000000-0000-4000-a000-00000000000a', 'PRY-A',
+     'contratacion_publica', 'Procedimiento de selección para obra pública y valor por dinero',
+     'El expediente técnico contempla licitación pública para ejecución de obra de recreación pública, sujeta a procedimiento competitivo conforme a los parámetros de contratación del Estado.',
+     'LEY32069-03', TRUE, 'Arts. 53 y 54', TRUE, FALSE,
+     'Sustento verificado en Ley 32069. Cita comprobable para el Asesor Jurídico.'),
+
+    ('e1000000-0000-4000-a000-000000000002', 'a0000000-0000-4000-a000-00000000000a', 'PRY-A',
+     'competencia_municipal', 'Competencia municipal en recreación pública y deporte',
+     'Corresponde a la municipalidad distrital proveer y mantener servicios públicos de recreación, áreas de esparcimiento y deportes en beneficio del vecindario.',
+     'LEY27972-05', TRUE, 'Arts. IV TP, 73.2 y 80', TRUE, FALSE,
+     'Sustento verificado en Ley 27972 Orgánica de Municipalidades.'),
+
+    ('e1000000-0000-4000-a000-000000000003', 'a0000000-0000-4000-a000-00000000000a', 'PRY-A',
+     'invierte_pe_viabilidad', 'Viabilidad en el Banco de Inversiones y fase de ejecución',
+     'Inversión orientada al cierre de brechas de infraestructura recreativa, con declaración de viabilidad requerida antes de comprometer gasto público.',
+     'DL1252-03', TRUE, 'Art. 4.1.c y 4.3', TRUE, FALSE,
+     'Sustento verificado en D.L. 1252 Invierte.pe.'),
+
+    -- PRY-B: Caso con citas no verificables / sin artículo preciso (CA-HU2.2-02)
+    ('e1000000-0000-4000-a000-000000000011', 'a0000000-0000-4000-a000-00000000000b', 'PRY-B',
+     'contratacion_antecedente_historico', 'Régimen contractual y antecedentes normativos alegados',
+     'El expediente cita genéricamente un régimen de compras anterior sin indicar el artículo o sección precisa de la normativa vigente de contrataciones.',
+     'LEY26850-HIST', FALSE, NULL, NULL, TRUE,
+     'Cita no verificable: la referencia alude a una norma sustituida sin identificar un artículo vigente aplicable. Requiere revisión humana.'),
+
+    ('e1000000-0000-4000-a000-000000000012', 'a0000000-0000-4000-a000-00000000000b', 'PRY-B',
+     'alineamiento_vial_indeterminado', 'Retiro y alineamiento vial en trama urbana consolidada',
+     'El expediente omite la delimitación del derecho de vía y retiro reglamentario exigible en el plano de vías municipal, impidiendo vincularlo a un artículo o sección específica.',
+     NULL, FALSE, NULL, NULL, TRUE,
+     'Cita no verificable: falta el acápite normativo específico y la planimetría requerida. Requiere revisión humana obligatoria.'),
+
+    -- PRY-C: Caso ordenamiento territorial
+    ('e1000000-0000-4000-a000-000000000021', 'a0000000-0000-4000-a000-00000000000c', 'PRY-C',
+     'ordenamiento_territorial', 'Planificación y ordenamiento territorial provincial',
+     'Verificación de enmarcamiento en el Plan de Acondicionamiento Territorial provincial.',
+     'LEY27972-01', TRUE, 'Art. 73', TRUE, FALSE,
+     'Sustento verificado en Ley 27972.'),
+
+    -- PRY-D: Caso alerta legal zonas de riesgo
+    ('e1000000-0000-4000-a000-000000000031', 'a0000000-0000-4000-a000-00000000000d', 'PRY-D',
+     'zonas_riesgo_intangibles', 'Zonas de riesgo no mitigable y faja marginal (SINAGERD)',
+     'Alerta legal: Las fajas marginales e inundables son intangibles e inhabitables, requiriendo verificación de autorización del ANA.',
+     'PDUPDM-04', TRUE, 'SINAGERD - Ley 29664', FALSE, TRUE,
+     'Alerta legal relevante: posible afectación a faja marginal.')
+ON CONFLICT (id) DO UPDATE SET
+    project_code = EXCLUDED.project_code,
+    finding_key = EXCLUDED.finding_key,
+    title = EXCLUDED.title,
+    description = EXCLUDED.description,
+    normative_chunk_id = EXCLUDED.normative_chunk_id,
+    has_precise_reference = EXCLUDED.has_precise_reference,
+    custom_article_or_section = EXCLUDED.custom_article_or_section,
+    complies = EXCLUDED.complies,
+    requires_human_review = EXCLUDED.requires_human_review,
+    notes = EXCLUDED.notes;
+

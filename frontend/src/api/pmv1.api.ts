@@ -2,6 +2,7 @@ import type {
   EvaluationAccepted,
   EvaluationResponse,
   HumanApprovalStatusResponse,
+  LegalAssessmentResponse,
   LegalPrecheckResponse,
   NormativeSearchResponse,
   PMV1ProjectCreate,
@@ -155,6 +156,22 @@ export function evaluateEnvironmentalAssessment(
   idempotencyKey?: string,
 ): Promise<EnvironmentalAssessmentResponse> {
   return apiFetch<EnvironmentalAssessmentResponse>(`/api/v1/projects/${projectId}/environmental-assessment`, {
+    method: 'POST',
+    auth: true,
+    idempotencyKey,
+  })
+}
+export function getLegalAssessment(projectId: string): Promise<LegalAssessmentResponse> {
+  return apiFetch<LegalAssessmentResponse>(`/api/v1/projects/${projectId}/legal-assessment`, {
+    auth: true,
+  })
+}
+
+export function evaluateLegalAssessment(
+  projectId: string,
+  idempotencyKey?: string,
+): Promise<LegalAssessmentResponse> {
+  return apiFetch<LegalAssessmentResponse>(`/api/v1/projects/${projectId}/legal-assessment`, {
     method: 'POST',
     auth: true,
     idempotencyKey,

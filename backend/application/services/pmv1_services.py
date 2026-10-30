@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import socket
+import hashlib
 import re
 import secrets
 import string
@@ -274,6 +275,209 @@ class NormativeSearchEngine:
         return round(score, 2)
 
 
+
+
+class LegalAssessmentEngine:
+    """Motor de evaluación y contraste de citas normativas verificables (HU2.2).
+
+    Cumple estrictamente los criterios de aceptación:
+    - CA-HU2.2-01: Cuando el sustento identifica un artículo o sección precisa,
+      el informe jurídico muestra denominación de la norma, versión, artículo o sección
+      y fragmento correspondiente para poder cotejarlo.
+    - CA-HU2.2-02: Cuando el material recuperado no permite ubicar el artículo o fragmento
+      exacto, el sistema indica 'Cita no verificable' y marca el hallazgo para revisión humana,
+      sin inventar un número de artículo ficticio y sin confirmar cumplimiento.
+    """
+
+    @classmethod
+    def build_citation(
+        cls,
+        finding_row: dict[str, Any],
+        chunk: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        has_precise = bool(finding_row.get("has_precise_reference", True))
+        custom_loc = finding_row.get("custom_article_or_section")
+
+        # 1. Caso sin referencia precisa o sin fragmento normativo
+        if not has_precise or not chunk:
+            return {
+                "fragment_id": chunk.get("id") if chunk else None,
+                "document_name": chunk.get("document_name") if chunk else "Fuente no especificada",
+                "short_code": chunk.get("short_code") if chunk else None,
+                "version": chunk.get("version") if chunk else "No determinada",
+                "article_or_section": None,  # ESTRICTAMENTE NONE: jamás se fabrica un artículo
+                "fragment_content": chunk.get("content") if chunk else None,
+                "citation_status": "no_verificable",
+                "is_verifiable": False,
+                "status_label": "Cita no verificable",
+                "limitation_note": (
+                    "El sustento no identifica un artículo o sección precisa en la normativa vigente. "
+                    "Conforme a CA-HU2.2-02, el hallazgo se marca para revisión humana sin crear un número de artículo ficticio."
+                ),
+                "in_force": chunk.get("in_force", True) if chunk else False,
+                "is_simulated": (chunk.get("data_origin") == "simulated") if chunk else True,
+                "data_origin": chunk.get("data_origin", "simulated") if chunk else "simulated",
+                "citation_hash": None,
+            }
+
+        # 2. Caso norma no vigente / derogada / sustituida
+        if not chunk.get("in_force", True):
+            return {
+                "fragment_id": chunk.get("id"),
+                "document_name": chunk.get("document_name"),
+                "short_code": chunk.get("short_code"),
+                "version": chunk.get("version"),
+                "article_or_section": None,  # No aplicable como cita vigente
+                "fragment_content": chunk.get("content"),
+                "citation_status": "no_verificable",
+                "is_verifiable": False,
+                "status_label": "Cita no verificable (Norma sustituida o derogada)",
+                "limitation_note": (
+                    f"La norma '{chunk.get('document_name')}' ({chunk.get('version')}) está marcada como derogada o sustituida. "
+                    "No es admisible como sustento legal aplicable para obra pública vigente (CA-HU2.2-02)."
+                ),
+                "in_force": False,
+                "is_simulated": chunk.get("data_origin") == "simulated",
+                "data_origin": chunk.get("data_origin", "public"),
+                "citation_hash": None,
+            }
+
+        # 3. Caso norma vigente: resolución de ubicación precisa
+        if custom_loc and str(custom_loc).strip():
+            loc = str(custom_loc).strip()
+        else:
+            loc = NormativeSearchEngine.resolve_location(chunk)
+
+        # Validar si loc contiene realmente un artículo o sección identificable
+        is_identifiable_loc = bool(
+            re.search(
+                r"(Art|Título|Titulo|Capítulo|Capitulo|Sección|Seccion|Reglamento|Ley DUS|RNE|SINAGERD|Índice|Indice)",
+                loc,
+                re.IGNORECASE,
+            )
+        ) and not loc.startswith("Fragmento ID")
+
+        if not is_identifiable_loc:
+            return {
+                "fragment_id": chunk.get("id"),
+                "document_name": chunk.get("document_name"),
+                "short_code": chunk.get("short_code"),
+                "version": chunk.get("version"),
+                "article_or_section": None,  # Nunca inventar artículo ficticio
+                "fragment_content": chunk.get("content"),
+                "citation_status": "no_verificable",
+                "is_verifiable": False,
+                "status_label": "Cita no verificable",
+                "limitation_note": (
+                    "El fragmento normativo no contiene un artículo, sección o acápite identificable. "
+                    "Conforme a CA-HU2.2-02, no se fabrica un número de artículo y se requiere revisión humana."
+                ),
+                "in_force": True,
+                "is_simulated": chunk.get("data_origin") == "simulated",
+                "data_origin": chunk.get("data_origin", "public"),
+                "citation_hash": None,
+            }
+
+        # 4. Caso exitoso: Cita exacta y comprobable (CA-HU2.2-01)
+        citation_raw = f"{chunk['id']}:{chunk.get('version')}:{loc}:{chunk.get('content')}"
+        c_hash = hashlib.sha256(citation_raw.encode("utf-8")).hexdigest()
+
+        return {
+            "fragment_id": chunk.get("id"),
+            "document_name": chunk.get("document_name"),
+            "short_code": chunk.get("short_code"),
+            "version": chunk.get("version"),
+            "article_or_section": loc,
+            "fragment_content": chunk.get("content"),
+            "citation_status": "verificable",
+            "is_verifiable": True,
+            "status_label": "Cita exacta y comprobable",
+            "limitation_note": None,
+            "in_force": True,
+            "is_simulated": chunk.get("data_origin") == "simulated",
+            "data_origin": chunk.get("data_origin", "public"),
+            "citation_hash": c_hash,
+        }
+
+    @classmethod
+    def evaluate(
+        cls,
+        project_id: UUID,
+        project_code: str,
+        project_version_id: UUID | None,
+        finding_rows: list[dict[str, Any]],
+        chunks_by_id: dict[str, dict[str, Any]],
+    ) -> dict[str, Any]:
+        assessment_id = uuid4()
+        findings_output: list[dict[str, Any]] = []
+        verifiable_count = 0
+        unverifiable_count = 0
+
+        for r in finding_rows:
+            chunk_id = r.get("normative_chunk_id")
+            chunk = chunks_by_id.get(str(chunk_id)) if chunk_id else None
+            citation = cls.build_citation(r, chunk)
+
+            # Regla de confirmación jurídica: un hallazgo no verificable NUNCA puede estar jurídicamente confirmado
+            complies = r.get("complies")
+            if not citation["is_verifiable"]:
+                complies = None  # abstención / requiere revisión humana
+                requires_review = True
+            else:
+                requires_review = bool(r.get("requires_human_review", False))
+
+            if citation["is_verifiable"]:
+                verifiable_count += 1
+            else:
+                unverifiable_count += 1
+
+            findings_output.append({
+                "finding_id": str(r.get("id") or uuid4()),
+                "finding_key": r.get("finding_key", "general"),
+                "title": r.get("title", "Hallazgo legal"),
+                "description": r.get("description", ""),
+                "complies": complies,
+                "requires_human_review": requires_review,
+                "citation": citation,
+            })
+
+        total = len(findings_output)
+        if total == 0:
+            status = "insufficient"
+            status_label = "Información jurídica insuficiente"
+            summary = "El expediente no registra antecedentes jurídicos ni hallazgos normativos vinculados."
+            requires_human = True
+        elif unverifiable_count > 0:
+            status = "requires_review"
+            status_label = "Requiere revisión humana"
+            summary = (
+                f"Revisión jurídica preliminar: {verifiable_count} cita(s) exacta(s) y {unverifiable_count} "
+                "cita(s) no verificable(s). Se requiere cotejo manual por el Asesor Jurídico."
+            )
+            requires_human = True
+        else:
+            status = "verified"
+            status_label = "Citas normativas verificadas"
+            summary = f"Revisión jurídica completa con {verifiable_count} cita(s) exacta(s) y comprobable(s)."
+            requires_human = False
+
+        return {
+            "assessment_id": str(assessment_id),
+            "project_id": str(project_id),
+            "project_code": project_code,
+            "project_version_id": str(project_version_id) if project_version_id else None,
+            "status": status,
+            "status_label": status_label,
+            "summary": summary,
+            "findings": findings_output,
+            "total_findings": total,
+            "verifiable_citations_count": verifiable_count,
+            "unverifiable_citations_count": unverifiable_count,
+            "requires_human_review": requires_human,
+            "evaluated_at": datetime.now(timezone.utc),
+            "is_simulated_corpus": True,
+        }
+
 class PlatformService:
     def __init__(
         self,
@@ -532,15 +736,163 @@ class PlatformService:
             "result": result,
         }
 
-    def record_legal_abstention(self, project_id: UUID, actor_id: UUID) -> None:
+    def record_legal_abstention(self, project_id: UUID, actor_id: UUID) -> dict[str, Any]:
+        """Mantiene compatibilidad con legal_precheck y devuelve el informe jurídico enriquecido con citas (HU2.2)."""
         self.get_project(project_id)
         with psycopg.connect(self.db_url) as conn:
             conn.execute(
                 """INSERT INTO audit_events
                 (actor_user_id,action,entity_type,entity_id,details)
                 VALUES (%s,'LEGAL_PRECHECK_REQUIRES_REVIEW','project',%s,%s)""",
-                (actor_id, project_id, Jsonb({"reason": "no_versioned_legal_corpus"})),
+                (actor_id, project_id, Jsonb({"reason": "legal_assessment_performed"})),
             )
+        assessment = self.get_legal_assessment(project_id)
+        obs = [
+            f"{f['title']}: {f['citation']['limitation_note']}"
+            for f in assessment["findings"]
+            if not f["citation"]["is_verifiable"]
+        ] or [f["description"] for f in assessment["findings"]]
+        return {
+            "project_id": project_id,
+            "status": assessment["status"],
+            "complies": False if any(f.get("complies") is False for f in assessment["findings"]) else None,
+            "sources": [
+                f"{f['citation']['document_name']} ({f['citation']['version']}) - {f['citation']['article_or_section'] or 'Cita no verificable'}"
+                for f in assessment["findings"]
+            ],
+            "requires_review": assessment["requires_human_review"],
+            "observations": obs,
+            "assessment": assessment,
+            "findings": assessment["findings"],
+        }
+
+    def evaluate_legal_assessment(
+        self,
+        project_id: UUID,
+        actor_id: UUID,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        """Ejecuta y persiste la evaluación jurídica del expediente con citas comprobables (HU2.2)."""
+        project = self.get_project(project_id)
+        if not _is_db_available(self.db_url):
+            raise ServicioNoDisponibleError("Base de datos no disponible")
+
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
+            v_row = conn.execute(
+                "SELECT id FROM project_versions WHERE project_id = %s ORDER BY version_number DESC LIMIT 1",
+                (project_id,),
+            ).fetchone()
+            version_id = v_row["id"] if v_row else None
+
+            finding_rows = conn.execute(
+                "SELECT * FROM project_legal_findings WHERE project_id = %s ORDER BY created_at ASC",
+                (project_id,),
+            ).fetchall()
+
+            chunk_ids = [r["normative_chunk_id"] for r in finding_rows if r.get("normative_chunk_id")]
+            chunks_by_id: dict[str, dict[str, Any]] = {}
+            if chunk_ids:
+                chunks = conn.execute(
+                    "SELECT * FROM normative_documents WHERE id = ANY(%s)",
+                    (chunk_ids,),
+                ).fetchall()
+                chunks_by_id = {str(c["id"]): dict(c) for c in chunks}
+
+            assessment = LegalAssessmentEngine.evaluate(
+                project_id=project_id,
+                project_code=project["code"],
+                project_version_id=version_id,
+                finding_rows=[dict(r) for r in finding_rows],
+                chunks_by_id=chunks_by_id,
+            )
+
+            assessment_id = UUID(assessment["assessment_id"])
+            row_ins = conn.execute(
+                """
+                INSERT INTO legal_assessments
+                (id, project_id, project_code, project_version_id, status, summary, findings_json,
+                 total_findings, verifiable_citations_count, unverifiable_citations_count,
+                 requires_human_review, evaluated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (project_id) DO UPDATE SET
+                    status = EXCLUDED.status,
+                    summary = EXCLUDED.summary,
+                    findings_json = EXCLUDED.findings_json,
+                    total_findings = EXCLUDED.total_findings,
+                    verifiable_citations_count = EXCLUDED.verifiable_citations_count,
+                    unverifiable_citations_count = EXCLUDED.unverifiable_citations_count,
+                    requires_human_review = EXCLUDED.requires_human_review,
+                    evaluated_at = EXCLUDED.evaluated_at
+                RETURNING id
+                """,
+                (
+                    assessment_id,
+                    project_id,
+                    project["code"],
+                    version_id,
+                    assessment["status"],
+                    assessment["summary"],
+                    Jsonb(assessment["findings"]),
+                    assessment["total_findings"],
+                    assessment["verifiable_citations_count"],
+                    assessment["unverifiable_citations_count"],
+                    assessment["requires_human_review"],
+                    assessment["evaluated_at"],
+                ),
+            ).fetchone()
+            if row_ins:
+                assessment["assessment_id"] = str(row_ins["id"])
+
+            conn.execute(
+                """INSERT INTO audit_events
+                (actor_user_id, action, entity_type, entity_id, details)
+                VALUES (%s, 'LEGAL_ASSESSMENT_EVALUATED', 'project', %s, %s)""",
+                (
+                    actor_id,
+                    project_id,
+                    Jsonb({
+                        "project_code": project["code"],
+                        "total_findings": assessment["total_findings"],
+                        "verifiable_count": assessment["verifiable_citations_count"],
+                        "unverifiable_count": assessment["unverifiable_citations_count"],
+                    }),
+                ),
+            )
+
+            return assessment
+
+    def get_legal_assessment(self, project_id: UUID) -> dict[str, Any]:
+        """Recupera la evaluación jurídica del expediente o la evalúa si no existe."""
+        project = self.get_project(project_id)
+        if not _is_db_available(self.db_url):
+            raise ServicioNoDisponibleError("Base de datos no disponible")
+
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            row = conn.execute(
+                "SELECT * FROM legal_assessments WHERE project_id = %s",
+                (project_id,),
+            ).fetchone()
+            if row:
+                return {
+                    "assessment_id": str(row["id"]),
+                    "project_id": str(row["project_id"]),
+                    "project_code": row["project_code"],
+                    "project_version_id": str(row["project_version_id"]) if row.get("project_version_id") else None,
+                    "status": row["status"],
+                    "status_label": "Citas normativas verificadas" if row["status"] == "verified" else (
+                        "Información jurídica insuficiente" if row["status"] == "insufficient" else "Requiere revisión humana"
+                    ),
+                    "summary": row["summary"],
+                    "findings": row["findings_json"],
+                    "total_findings": row["total_findings"],
+                    "verifiable_citations_count": row["verifiable_citations_count"],
+                    "unverifiable_citations_count": row["unverifiable_citations_count"],
+                    "requires_human_review": row["requires_human_review"],
+                    "evaluated_at": row["evaluated_at"],
+                    "is_simulated_corpus": True,
+                }
+
+        return self.evaluate_legal_assessment(project_id, UUID("10000000-0000-4000-a000-000000000003"))
 
     def request_zoning_precheck(
         self, project_id: UUID, actor_id: UUID, idempotency_key: str

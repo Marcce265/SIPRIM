@@ -147,3 +147,15 @@ Las migraciones DDL (`03_migration_hu1.4.sql` y `03_migration_hu1.6.sql`) contie
     - Sin impacto preferente ni barreras: `0.0 pts` (Neutro).
     - Datos etarios insuficientes: `None` / No determinado · Sin ventaja automática (`CA-HU1.5-02`).
   - **Puntaje Social Consolidado:** Suma de base y componentes verificados (acotado entre 0 y 100). Si faltan datos en un grupo, su efecto queda `None` (no determinado) y no se otorga dictamen favorable sin evidencia.
+
+### HU2.2: Citar el Artículo Exacto de la Normativa
+`platform_db` incorpora:
+- `project_legal_findings`: Registros de hallazgos jurídicos vinculados a expedientes con trazabilidad hacia fragmentos de `normative_documents`.
+- `legal_assessments`: Evaluaciones jurídicas consolidadas con snapshot inmutable (`findings_json`), métricas de citas verificables y no verificables, y trazabilidad criptográfica (`citation_hash`).
+- Restricciones de integridad:
+  - `chk_legal_finding_unverifiable`: Garantiza que cuando `has_precise_reference = FALSE`, el hallazgo nunca pueda registrar `complies = TRUE` (`CA-HU2.2-02`), impidiendo que un hallazgo sin cita comprobable aparezca como jurídicamente confirmado.
+  - `chk_legal_finding_no_fabricated_article`: Impide registrar un artículo o sección cuando `has_precise_reference = FALSE`, evitando la fabricación de artículos ficticios a nivel de base de datos.
+- Criterios de aceptación cumplidos:
+  - **`CA-HU2.2-01` (Cita exacta y comprobable):** El informe muestra denominación de la norma, versión, artículo o sección precisa y fragmento textual almacenado en el corpus.
+  - **`CA-HU2.2-02` (Falta de referencia precisa):** Si el material recuperado no permite ubicar artículo o sección exacta, o si la norma está derogada/sustituida, el sistema indica **“Cita no verificable”**, marca el hallazgo para revisión humana obligatoria y no crea un número de artículo ficticio.
+

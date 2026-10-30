@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -63,6 +63,11 @@ class FakeAuth:
             return {
                 "sub": "10000000-0000-4000-a000-000000000001",
                 "roles": ["ADMIN"],
+            }
+        if token == "token-citizen":
+            return {
+                "sub": "10000000-0000-4000-a000-000000000099",
+                "roles": ["CITIZEN"],
             }
         return {
             "sub": "10000000-0000-4000-a000-000000000002",
@@ -730,6 +735,53 @@ class FakePlatform:
     def get_environmental_assessment(self, project_id: UUID) -> dict[str, Any]:
         return self.evaluate_environmental_assessment(project_id, UUID("10000000-0000-4000-a000-000000000002"))
 
+    def get_legal_assessment(self, project_id: UUID) -> dict[str, Any]:
+        return {
+            "assessment_id": uuid4(),
+            "project_id": project_id,
+            "project_code": "PRY-A",
+            "project_version_id": VERSION_ID,
+            "status": "verified",
+            "status_label": "Citas normativas verificadas",
+            "summary": "Todas las citas normativas cuentan con artículo y fragmento exacto cotejable.",
+            "total_findings": 1,
+            "verifiable_citations_count": 1,
+            "unverifiable_citations_count": 0,
+            "requires_human_review": False,
+            "evaluated_at": datetime.now(timezone.utc),
+            "findings": [
+                {
+                    "finding_id": str(uuid4()),
+                    "finding_key": "contratacion_publica",
+                    "title": "Procedimiento de selección para obra pública y valor por dinero",
+                    "description": "Licitación pública conforme a ley.",
+                    "complies": True,
+                    "requires_human_review": False,
+                    "citation": {
+                        "fragment_id": "LEY32069-03",
+                        "document_name": "Ley General de Contrataciones Públicas (Ley 32069)",
+                        "short_code": "LEY-32069",
+                        "version": "1.0",
+                        "article_or_section": "Arts. 53 y 54",
+                        "fragment_content": "Artículo 53.- De las actuaciones preparatorias y expedientes técnicos para obras municipales...",
+                        "citation_status": "verificable",
+                        "is_verifiable": True,
+                        "status_label": "Cita verificable",
+                        "limitation_note": None,
+                        "in_force": True,
+                        "is_simulated": True,
+                        "data_origin": "simulated",
+                        "citation_hash": "a" * 64,
+                    },
+                }
+            ],
+        }
+
+    def evaluate_legal_assessment(
+        self, project_id: UUID, actor_id: UUID, idempotency_key: str | None = None
+    ) -> dict[str, Any]:
+        return self.get_legal_assessment(project_id)
+
 
 
 @pytest.fixture
@@ -1375,3 +1427,51 @@ def test_environmental_assessment_hu17_pry_b_insufficient_no_automatic_advantage
     assert body["green_area"]["has_sufficient_data"] is False
     assert body["green_area"]["score_effect_pts"] is None
     assert body["green_area"]["score_effect_pts"] != 0.0
+
+
+def test_hu22_get_legal_assessment_authorized(client: TestClient) -> None:
+    """CA-HU2.2-01: Asesor Jurídico y Planificador pueden consultar el informe con citas exactas."""
+    # 1. Asesor Jurídico puede consultar
+    resp_legal = client.get(
+        f"/api/v1/projects/{PROJECT_ID}/legal-assessment",
+        headers={"Authorization": "Bearer token-legal"},
+    )
+    assert resp_legal.status_code == 200
+    body = resp_legal.json()
+    assert body["status"] == "verified"
+    assert len(body["findings"]) == 1
+    assert body["findings"][0]["citation"]["article_or_section"] == "Arts. 53 y 54"
+    assert body["findings"][0]["citation"]["is_verifiable"] is True
+
+    # 2. Planificador también puede consultar
+    resp_planner = client.get(
+        f"/api/v1/projects/{PROJECT_ID}/legal-assessment",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert resp_planner.status_code == 200
+
+
+def test_hu22_evaluate_legal_assessment_authorized(client: TestClient) -> None:
+    """CA-HU2.2-01: Ejecución de la revisión jurídica devuelve citas exactas."""
+    resp = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/legal-assessment",
+        headers={"Authorization": "Bearer token-legal"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["verifiable_citations_count"] == 1
+    assert body["unverifiable_citations_count"] == 0
+
+
+def test_hu22_legal_assessment_permissions(client: TestClient) -> None:
+    """HU2.2: Verificación de control de acceso por roles (401 si anónimo, 403 si rol no autorizado)."""
+    # Sin autenticación -> 401
+    resp_unauth = client.get(f"/api/v1/projects/{PROJECT_ID}/legal-assessment")
+    assert resp_unauth.status_code == 401
+
+    # Rol no autorizado (ciudadano) -> 403
+    resp_forbidden = client.get(
+        f"/api/v1/projects/{PROJECT_ID}/legal-assessment",
+        headers={"Authorization": "Bearer token-citizen"},
+    )
+    assert resp_forbidden.status_code == 403

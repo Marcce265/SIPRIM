@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { getProject, legalPrecheck } from '../../api/pmv1.api'
+import { evaluateLegalAssessment, getLegalAssessment, getProject } from '../../api/pmv1.api'
 import { ProyectoCard } from '../../components/proyecto/ProyectoCard'
 import { Alert } from '../../components/ui/Alert'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { TechnicalDetails } from '../../components/ui/TechnicalDetails'
-import type { LegalPrecheckResponse, PMV1ProjectResponse } from '../../types/pmv1'
+import type { LegalAssessmentResponse, PMV1ProjectResponse } from '../../types/pmv1'
 import { getPhysicalExpediente } from '../../utils/physicalExpedienteStorage'
 import { mapPmV1ToProyecto } from '../../utils/pmv1Mapper'
 
 export function RevisionJuridicaPage() {
   const { projectId = '' } = useParams()
   const [project, setProject] = useState<PMV1ProjectResponse | null>(null)
-  const [result, setResult] = useState<LegalPrecheckResponse | null>(null)
+  const [assessment, setAssessment] = useState<LegalAssessmentResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -23,6 +23,12 @@ export function RevisionJuridicaPage() {
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : 'No se pudo cargar el expediente.')
       })
+
+    getLegalAssessment(projectId)
+      .then(setAssessment)
+      .catch(() => {
+        // No evaluado previamente
+      })
   }, [projectId])
 
   const runReview = async () => {
@@ -30,7 +36,8 @@ export function RevisionJuridicaPage() {
     setLoading(true)
     setError(null)
     try {
-      setResult(await legalPrecheck(projectId))
+      const res = await evaluateLegalAssessment(projectId)
+      setAssessment(res)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo ejecutar la revisión jurídica.')
     } finally {
@@ -38,14 +45,13 @@ export function RevisionJuridicaPage() {
     }
   }
 
-  const sources = result?.sources ?? []
   const physicalExpediente = projectId ? getPhysicalExpediente(projectId) : null
 
   return (
     <div className="form-page pmv1-flow">
       <PageHeader
         title="Detalle de revisión jurídica"
-        description="Evaluación preliminar de conformidad con contratación pública para PMV1 · HU1.10."
+        description="Evaluación de conformidad normativa y citas exactas para el Asesor Jurídico (PMV 2 · HU2.2 / HU1.10)."
       />
 
       {error && <Alert variant="error">{error}</Alert>}
@@ -55,88 +61,189 @@ export function RevisionJuridicaPage() {
       <section className="flow-panel legal-flow-panel">
         <div className="flow-panel-heading">
           <div>
-            <span className="story-label">PMV1 · HU1.10</span>
-            <h2>Conformidad con contratación pública</h2>
+            <span className="story-label">PMV 2 · HU2.2 / HU1.10</span>
+            <h2>Conformidad legal y citas normativas exactas</h2>
           </div>
-          <span className="review-badge">Revisión jurídica</span>
+          <span className="review-badge">Revisión Asesoría Jurídica</span>
         </div>
         <p className="flow-hint">
-          Contrasta los antecedentes del expediente con el sustento normativo disponible,
-          sin reemplazar la decisión de Asesoría Jurídica.
+          Contrasta los antecedentes del expediente con el corpus normativo versionado y cita el artículo o sección exacta aplicable para su cotejo por el Asesor Jurídico, advirtiendo citas no verificables sin fabricar artículos.
         </p>
+
         <button
           type="button"
           className="btn btn-primary"
           disabled={loading || !project}
           onClick={() => void runReview()}
         >
-          {loading ? 'Analizando…' : 'Ejecutar revisión jurídica'}
+          {loading
+            ? 'Analizando normativa…'
+            : assessment
+            ? 'Actualizar revisión jurídica'
+            : 'Ejecutar revisión jurídica'}
         </button>
 
-        {result && (
+        {assessment && (
           <article className="legal-result" aria-live="polite">
             <header className="legal-result-header">
               <div>
-                <span className="result-eyebrow">Resultado preliminar</span>
-                <h3>Conformidad no determinada</h3>
+                <span className="result-eyebrow">Informe Jurídico Preliminar · HU2.2</span>
+                <h3>{assessment.status_label}</h3>
               </div>
-              <span className="status-pill status-review">Requiere revisión</span>
+              <span
+                className={`status-pill ${
+                  assessment.status === 'verified'
+                    ? 'status-review'
+                    : assessment.status === 'requires_review'
+                    ? 'status-review'
+                    : 'status-review'
+                }`}
+              >
+                {assessment.requires_human_review ? 'Requiere revisión' : 'Cotejo conforme'}
+              </span>
             </header>
 
-            <p className="legal-conclusion">
-              No se afirma cumplimiento ni incumplimiento definitivo. La decisión debe ser
-              validada por un asesor jurídico con antecedentes y fuentes verificables.
-            </p>
+            <p className="legal-conclusion">{assessment.summary}</p>
 
             <dl className="legal-checks">
               <div>
                 <dt>Antecedentes contractuales</dt>
                 <dd>
                   {physicalExpediente
-                    ? `${physicalExpediente.fileName} adjunto; contenido pendiente de verificación.`
-                    : 'No se adjuntaron antecedentes contractuales verificables.'}
+                    ? `${physicalExpediente.fileName} adjunto; contenido para cotejo.`
+                    : 'No se adjuntaron antecedentes contractuales físicos o digitalizados.'}
                 </dd>
               </div>
               <div>
-                <dt>Sustento normativo</dt>
+                <dt>Citas comprobables (CA-HU2.2-01)</dt>
                 <dd>
-                  {sources.length > 0
-                    ? `${sources.length} fuente(s) identificada(s) para revisión.`
-                    : 'Faltan norma, versión y fragmento verificable.'}
+                  {assessment.verifiable_citations_count} cita(s) con artículo exacto y versión.
                 </dd>
               </div>
               <div>
-                <dt>Decisión automática</dt>
-                <dd>No emitida · validación humana obligatoria</dd>
+                <dt>Citas no verificables (CA-HU2.2-02)</dt>
+                <dd>
+                  {assessment.unverifiable_citations_count > 0
+                    ? `${assessment.unverifiable_citations_count} hallazgo(s) sin cita verificable.`
+                    : 'Ninguna (todas comprobables).'}
+                </dd>
               </div>
             </dl>
 
-            <section className="legal-observations" aria-labelledby="legal-observations-title">
-              <h4 id="legal-observations-title">Observaciones detectadas</h4>
-              <ul>
-                {result.observations.map((observation) => (
-                  <li key={observation}>{observation}</li>
-                ))}
-              </ul>
+            <section className="legal-findings-section" aria-labelledby="legal-findings-title">
+              <h4 id="legal-findings-title" style={{ margin: '1rem 0 0.5rem', color: '#0f172a' }}>
+                Hallazgos jurídicos y citas normativas vinculadas
+              </h4>
+
+              {assessment.findings.map((finding) => (
+                <div
+                  key={finding.finding_id}
+                  className={`legal-finding-card ${
+                    finding.citation.is_verifiable ? 'is-verifiable' : 'is-unverifiable'
+                  }`}
+                >
+                  <div className="legal-finding-header">
+                    <div>
+                      <h4 className="legal-finding-title">{finding.title}</h4>
+                      <p className="legal-finding-desc">{finding.description}</p>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
+                      <span
+                        className={`social-badge-status ${
+                          finding.citation.is_verifiable ? 'sufficient' : 'insufficient'
+                        }`}
+                      >
+                        {finding.citation.status_label}
+                      </span>
+                      {finding.requires_human_review ? (
+                        <span className="green-measures-pill pill-warn">
+                          ⚠️ Revisión humana obligatoria
+                        </span>
+                      ) : (
+                        <span className="green-measures-pill pill-ok">
+                          Cotejo conforme
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {finding.citation.is_verifiable ? (
+                    <div className="legal-citation-box">
+                      <div className="social-score-tag" style={{ marginBottom: '0.35rem' }}>
+                        CA-HU2.2-01 · Cita exacta y comprobable
+                      </div>
+                      <div style={{ fontSize: '0.86rem', color: '#0f172a', marginBottom: '0.35rem' }}>
+                        <strong>Denominación de la norma:</strong> {finding.citation.document_name}
+                      </div>
+                      <div style={{ fontSize: '0.84rem', color: '#475569', marginBottom: '0.35rem' }}>
+                        <strong>Versión de la norma:</strong> {finding.citation.version}
+                      </div>
+                      <div>
+                        <strong>Ubicación precisa:</strong>{' '}
+                        <span className="citation-article-badge">
+                          {finding.citation.article_or_section}
+                        </span>
+                      </div>
+                      <div style={{ marginTop: '0.5rem' }}>
+                        <strong style={{ fontSize: '0.8rem', color: '#475569' }}>
+                          Fragmento normativo para cotejo:
+                        </strong>
+                        <blockquote className="citation-fragment-quote">
+                          “{finding.citation.fragment_content}”
+                        </blockquote>
+                      </div>
+
+                      <div className="citation-meta">
+                        <div>
+                          <strong>Fuente:</strong> {finding.citation.data_origin}
+                          {finding.citation.is_simulated && (
+                            <span className="social-simulated-pill">Simulado</span>
+                          )}
+                        </div>
+                        {finding.citation.citation_hash && (
+                          <div>
+                            <strong>Trazabilidad SHA-256:</strong>{' '}
+                            <span className="citation-hash-pill">
+                              {finding.citation.citation_hash.slice(0, 16)}…
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="citation-unverifiable-callout">
+                      <div style={{ fontWeight: 700, marginBottom: '0.25rem', color: '#b45309' }}>
+                        ⚠️ Cita no verificable (CA-HU2.2-02)
+                      </div>
+                      <p style={{ margin: '0.35rem 0', lineHeight: 1.45 }}>
+                        {finding.citation.limitation_note}
+                      </p>
+                      <div style={{ marginTop: '0.35rem', fontSize: '0.82rem' }}>
+                        <strong>Ubicación de artículo:</strong> No identificable (no se fabrica ningún número de artículo)
+                      </div>
+                      <div style={{ marginTop: '0.25rem', fontSize: '0.82rem' }}>
+                        <strong>Referencia documental:</strong>{' '}
+                        {finding.citation.document_name || 'No identificada'}{' '}
+                        {finding.citation.version ? `(${finding.citation.version})` : ''}
+                      </div>
+                      {finding.citation.fragment_content && (
+                        <div style={{ marginTop: '0.4rem', fontSize: '0.8rem' }}>
+                          <strong>Fragmento histórico / referencial:</strong>
+                          <blockquote className="citation-fragment-quote" style={{ margin: '0.25rem 0' }}>
+                            “{finding.citation.fragment_content}”
+                          </blockquote>
+                        </div>
+                      )}
+                      <div style={{ marginTop: '0.5rem', fontWeight: 600, color: '#92400e', fontSize: '0.8rem' }}>
+                        Estado del hallazgo: No confirmado jurídicamente · Requiere revisión humana por el Asesor Jurídico
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </section>
 
-            <section className="legal-evidence" aria-labelledby="legal-evidence-title">
-              <h4 id="legal-evidence-title">Trazabilidad normativa</h4>
-              {sources.length > 0 ? (
-                <ul>
-                  {sources.map((source) => (
-                    <li key={source}>{source}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p>
-                  No hay una norma, versión y fragmento de sustento vinculados a este
-                  resultado. Derive el expediente a Asesoría Jurídica antes de continuar.
-                </p>
-              )}
-            </section>
-
-            <TechnicalDetails data={result} />
+            <TechnicalDetails data={assessment} />
           </article>
         )}
       </section>

@@ -11,6 +11,7 @@ from backend.application.dto.pmv1_dto import (
     HumanApprovalCreate,
     HumanApprovalResponse,
     HumanApprovalStatusResponse,
+    LegalAssessmentResponse,
     LegalPrecheckResponse,
     LoginRequest,
     LoginResponse,
@@ -41,6 +42,7 @@ from backend.infrastructure.config.dependencies import (
     get_platform_service,
     require_admin,
     require_legal_advisor,
+    require_legal_or_planner,
     require_planner,
 )
 
@@ -69,7 +71,7 @@ def create_project(
 @router.get("/projects/by-code/{code}", response_model=PMV1ProjectResponse)
 def get_project_by_code(
     code: Annotated[str, Path(min_length=3, max_length=40)],
-    _: Annotated[dict[str, Any], Depends(require_planner)],
+    _: Annotated[dict[str, Any], Depends(require_legal_or_planner)],
     service: Annotated[PlatformService, Depends(get_platform_service)],
 ) -> dict[str, Any]:
     return service.get_project_by_code(code)
@@ -78,7 +80,7 @@ def get_project_by_code(
 @router.get("/projects/{project_id}", response_model=PMV1ProjectResponse)
 def get_project(
     project_id: Annotated[UUID, Path()],
-    _: Annotated[dict[str, Any], Depends(require_planner)],
+    _: Annotated[dict[str, Any], Depends(require_legal_or_planner)],
     service: Annotated[PlatformService, Depends(get_platform_service)],
 ) -> dict[str, Any]:
     return service.get_project(project_id)
@@ -180,11 +182,40 @@ def get_evaluation(
 )
 def legal_precheck(
     project_id: Annotated[UUID, Path()],
-    user: Annotated[dict[str, Any], Depends(require_planner)],
+    user: Annotated[dict[str, Any], Depends(require_legal_or_planner)],
     service: Annotated[PlatformService, Depends(get_platform_service)],
 ) -> dict[str, Any]:
-    service.record_legal_abstention(project_id, UUID(user["sub"]))
+    res = service.record_legal_abstention(project_id, UUID(user["sub"]))
+    if isinstance(res, dict):
+        return res
     return {"project_id": project_id}
+
+
+@router.get(
+    "/projects/{project_id}/legal-assessment", response_model=LegalAssessmentResponse
+)
+def get_legal_assessment(
+    project_id: Annotated[UUID, Path()],
+    _: Annotated[dict[str, Any], Depends(require_legal_or_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+) -> dict[str, Any]:
+    return service.get_legal_assessment(project_id)
+
+
+@router.post(
+    "/projects/{project_id}/legal-assessment", response_model=LegalAssessmentResponse
+)
+def evaluate_legal_assessment(
+    project_id: Annotated[UUID, Path()],
+    user: Annotated[dict[str, Any], Depends(require_legal_or_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+    idempotency_key: Annotated[
+        str | None, Header(alias="Idempotency-Key", max_length=120)
+    ] = None,
+) -> dict[str, Any]:
+    return service.evaluate_legal_assessment(
+        project_id, UUID(user["sub"]), idempotency_key=idempotency_key
+    )
 
 
 @router.post(

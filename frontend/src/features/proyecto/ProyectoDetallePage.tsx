@@ -996,20 +996,19 @@ export function ProyectoDetallePage() {
           <section className="flow-panel legal-flow-panel">
             <div className="flow-panel-heading">
               <div>
-                <span className="story-label">PMV1 · HU1.10</span>
-                <h2>3. Conformidad con contratación pública</h2>
+                <span className="story-label">PMV 2 · HU2.2 / HU1.10</span>
+                <h2>3. Conformidad jurídica y citas normativas exactas</h2>
               </div>
-              <span className="review-badge">Revisión jurídica</span>
+              <span className="review-badge">Asesoría Jurídica</span>
             </div>
             <p className="flow-hint">
-              Abra la vista dedicada para ejecutar el análisis y consultar faltantes,
-              observaciones y trazabilidad normativa.
+              Contrasta los antecedentes del expediente con el corpus normativo versionado, citando el artículo o sección exacta de la norma aplicable para su cotejo directo, o advirtiendo cita no verificable sin fabricar artículos (Asesoría Jurídica).
             </p>
             <Link
               to={`/proyectos/${projectId}/revision-juridica`}
               className="btn btn-primary"
             >
-              Abrir detalle de revisión jurídica
+              Abrir detalle de revisión jurídica y citas exactas
             </Link>
           </section>
 

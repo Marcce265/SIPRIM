@@ -226,3 +226,12 @@ def require_admin(
     if _is_superadmin(roles) or "ADMIN" in roles:
         return user
     raise AccesoDenegadoError("Se requiere el rol ADMIN")
+
+def require_legal_or_planner(
+    user: Annotated[dict[str, Any], Depends(get_current_user)],
+) -> dict[str, Any]:
+    roles = _user_roles(user)
+    if _is_superadmin(roles) or "LEGAL_ADVISOR" in roles or "PLANNER" in roles or "ADMIN" in roles:
+        return user
+    raise AccesoDenegadoError("Se requiere rol LEGAL_ADVISOR o PLANNER")
+

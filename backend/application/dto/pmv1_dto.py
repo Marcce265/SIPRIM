@@ -110,13 +110,15 @@ class EvaluationResponse(BaseModel):
 class LegalPrecheckResponse(BaseModel):
     project_id: UUID
     status: str = "requires_review"
-    complies: None = None
+    complies: bool | None = None
     sources: list[str] = []
     requires_review: bool = True
     observations: list[str] = [
         "El PMV1 no contiene un corpus normativo versionado para emitir un dictamen de la Ley de Contrataciones.",
         "Se requiere revision de un asesor juridico; el sistema se abstiene de afirmar cumplimiento.",
     ]
+    assessment: "LegalAssessmentResponse | None" = None
+    findings: list["LegalFindingItem"] = []
 
 
 class ZoningEvidence(BaseModel):
@@ -369,5 +371,52 @@ class EnvironmentalAssessmentResponse(BaseModel):
     environmental_score: float | None = None
     score_explanation: str | None = None
     evaluated_at: datetime
+    duplicated: bool = False
+
+# =========================================================
+# PMV 2 - HU2.2: Citas Jurídicas Verificables
+# =========================================================
+class NormativeCitationItem(BaseModel):
+    fragment_id: str | None = None
+    document_name: str | None = None
+    short_code: str | None = None
+    version: str | None = None
+    article_or_section: str | None = None
+    fragment_content: str | None = None
+    citation_status: Literal["verificable", "no_verificable"]
+    is_verifiable: bool
+    status_label: str
+    limitation_note: str | None = None
+    in_force: bool = True
+    is_simulated: bool = False
+    data_origin: str = "public"
+    citation_hash: str | None = None
+
+
+class LegalFindingItem(BaseModel):
+    finding_id: UUID
+    finding_key: str
+    title: str
+    description: str
+    complies: bool | None = None
+    requires_human_review: bool = True
+    citation: NormativeCitationItem
+
+
+class LegalAssessmentResponse(BaseModel):
+    assessment_id: UUID
+    project_id: UUID
+    project_code: str
+    project_version_id: UUID | None = None
+    status: Literal["requires_review", "verified", "insufficient"]
+    status_label: str
+    summary: str
+    findings: list[LegalFindingItem]
+    total_findings: int
+    verifiable_citations_count: int
+    unverifiable_citations_count: int
+    requires_human_review: bool
+    evaluated_at: datetime
+    is_simulated_corpus: bool = True
     duplicated: bool = False
 
