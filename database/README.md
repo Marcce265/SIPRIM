@@ -130,3 +130,20 @@ Las migraciones DDL (`03_migration_hu1.4.sql` y `03_migration_hu1.6.sql`) contie
   - **Afectación mitigada con reposición equivalente:** Efecto neutro (`0.0 pts`).
   - **Información insuficiente (`CA-HU1.7-02`):** Sin ventaja ambiental automática ni bonificación (`None` / no determinado).
   - **Interacción con riesgo alto:** La bonificación nunca convierte en favorable un expediente con riesgo ambiental alto (`favorable` es estrictamente `None` / condicionado a revisión humana obligatoria).
+
+
+### HU1.5: Equidad de Género y Edad
+`platform_db` incorpora:
+- `project_demographic_equity_records`: Registros de indicadores demográficos agregados por dimensión (`genero` y `edad`), población beneficiaria agregada, porcentaje agregado, criterios de equidad, beneficios declarados vs. evidencia verificable y medidas con enfoque de inclusión.
+- Restricción `chk_equity_insufficient`: Exige que si `has_sufficient_data = FALSE`, los campos de población agregada, porcentaje agregado y efecto en el puntaje sean estrictamente `NULL` y el tipo de efecto sea `'indeterminado'`. Esto impide inferir proporciones demográficas o asignar bonificaciones automáticas sin evidencia (`CA-HU1.5-02`).
+- Regla de demostración para el prototipo PMV2:
+  - **Base de accesibilidad social (HU1.4):** 3 categorías completas (70.0 pts), parcial (50.0 pts), insuficiente (`None`).
+  - **Dimensión Género (`genero`):**
+    - Cobertura directa o medidas con perspectiva de género acreditadas: `+15.0 pts` (Favorable).
+    - Sin medidas afirmativas pero sin discriminación: `0.0 pts` (Neutro).
+    - Datos demográficos insuficientes: `None` / No determinado · Sin ventaja automática (`CA-HU1.5-02`).
+  - **Dimensión Edad (`edad`):**
+    - Cobertura a niñez (<12) o adultos mayores (≥65) con diseño universal/rampas: `+15.0 pts` (Favorable).
+    - Sin impacto preferente ni barreras: `0.0 pts` (Neutro).
+    - Datos etarios insuficientes: `None` / No determinado · Sin ventaja automática (`CA-HU1.5-02`).
+  - **Puntaje Social Consolidado:** Suma de base y componentes verificados (acotado entre 0 y 100). Si faltan datos en un grupo, su efecto queda `None` (no determinado) y no se otorga dictamen favorable sin evidencia.

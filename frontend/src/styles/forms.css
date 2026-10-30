@@ -1024,7 +1024,249 @@ textarea.form-field-input {
   color: #991b1b;
 }
 
+/* HU1.5: Panel de Equidad Demográfica y Puntuación Social Ponderada */
+.pmv1-flow .social-score-card {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-md);
+  border-left: 4px solid #0284c7;
+}
+
+.pmv1-flow .social-score-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.pmv1-flow .social-score-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #0284c7;
+  letter-spacing: 0.05em;
+}
+
+.pmv1-flow .social-score-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.pmv1-flow .social-score-badge.score-good {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.pmv1-flow .social-score-badge.score-low {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.pmv1-flow .social-score-badge.score-neutral {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.pmv1-flow .social-score-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.85rem;
+}
+
+.pmv1-flow .social-score-item {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.pmv1-flow .social-score-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pmv1-flow .social-score-val {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.pmv1-flow .social-score-explanation {
+  margin: 0.6rem 0 0;
+  font-size: 0.85rem;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.pmv1-flow .equity-panel {
+  margin-top: 1.25rem;
+  padding: 1.15rem 1.25rem;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.pmv1-flow .equity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.6rem;
+}
+
+.pmv1-flow .equity-subtitle {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin-bottom: 1rem;
+  line-height: 1.45;
+}
+
+.pmv1-flow .equity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+.pmv1-flow .equity-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+.pmv1-flow .equity-card.is-sufficient {
+  border-top: 3px solid #16a34a;
+}
+
+.pmv1-flow .equity-card.is-insufficient {
+  border-top: 3px solid #d97706;
+  background: #fffdfa;
+}
+
+.pmv1-flow .equity-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.pmv1-flow .equity-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.pmv1-flow .equity-target-group {
+  font-size: 0.83rem;
+  color: #475569;
+  margin-bottom: 0.65rem;
+  font-style: italic;
+}
+
+.pmv1-flow .equity-metrics-box {
+  margin: 0.4rem 0 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: #f8fafc;
+  border-radius: var(--radius-sm);
+  border: 1px solid #e2e8f0;
+}
+
+.pmv1-flow .equity-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.pmv1-flow .equity-metric-row + .equity-metric-row {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.pmv1-flow .equity-metric-label {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.pmv1-flow .equity-metric-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pmv1-flow .equity-insufficient-callout {
+  margin: 0.4rem 0 0.75rem;
+  padding: 0.75rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  color: #92400e;
+  line-height: 1.45;
+}
+
+.pmv1-flow .equity-detail-item {
+  margin-bottom: 0.6rem;
+  font-size: 0.83rem;
+  line-height: 1.4;
+}
+
+.pmv1-flow .equity-detail-label {
+  display: block;
+  font-weight: 700;
+  color: #334155;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.15rem;
+}
+
+.pmv1-flow .equity-effect-box {
+  margin-top: auto;
+  padding-top: 0.65rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.pmv1-flow .equity-effect-pill {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.pmv1-flow .equity-effect-pill.favorable {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.pmv1-flow .equity-effect-pill.neutro {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.pmv1-flow .equity-effect-pill.indeterminado {
+  background: #fef3c7;
+  color: #b45309;
+}
+
 @media (max-width: 640px) {
+  .pmv1-flow .equity-grid {
+    grid-template-columns: 1fr;
+  }
+
   .pmv1-flow .green-details-grid {
     grid-template-columns: 1fr;
   }

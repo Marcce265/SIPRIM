@@ -311,3 +311,119 @@ ON CONFLICT (id) DO UPDATE SET
     source_name = EXCLUDED.source_name,
     data_origin = EXCLUDED.data_origin,
     description = EXCLUDED.description;
+
+
+-- =========================================================
+-- Semillas de datos demográficos de equidad de género y edad (HU1.5)
+-- Conjunto explícitamente simulado para el distrito de El Tambo.
+-- PRY-A: Caso completo con datos fiables de género y edad (+30 pts favorables).
+-- PRY-B: Caso con información insuficiente en género y edad (sin bonificación ni proporciones inferidas).
+-- PRY-C: Caso mixto (género neutro 0.0 pts, edad insuficiente null).
+-- PRY-D: Caso vial con medidas acreditadas (+20 pts favorables).
+-- =========================================================
+INSERT INTO project_demographic_equity_records
+    (id, project_id, project_code, dimension, has_sufficient_data, target_group,
+     aggregated_population, aggregated_percentage, equity_criterion, declared_benefit,
+     verifiable_data, has_favorable_evidence, score_effect_pts, effect_type,
+     effect_explanation, source_name, data_origin, description)
+VALUES
+    -- PRY-A (Género: Datos suficientes, efecto favorable +15 pts)
+    ('92000000-0000-4000-a000-000000000001', 'a0000000-0000-4000-a000-00000000000a', 'PRY-A', 'genero', TRUE,
+     'Mujeres y niñas del área de influencia directa', 2450, 51.20,
+     'Priorización de equipamiento deportivo seguro con enfoque de género, vestuarios diferenciados e iluminación integral',
+     'El expediente contempla iluminación perimétrica continua, vestuarios y servicios higiénicos diferenciados, y módulos para actividades recreativas infantiles y femeninas.',
+     'Censo 2017 INEI en sector 04 El Tambo: 2,450 mujeres residentes (51.2% del total poblacional). El diseño arquitectónico incluye iluminación LED en senderos y visibilidad abierta eliminando puntos ciegos.',
+     TRUE, 15.00, 'favorable',
+     'Efecto favorable (+15.0 pts): el proyecto beneficia directamente a 2,450 mujeres y niñas (51.2% de la población del entorno) mediante infraestructura deportiva segura, vestuarios diferenciados y eliminación de puntos ciegos.',
+     'Dataset territorial simulado SIPRIM El Tambo - INEI Censo 2017 / SISFOH (Simulado)', 'simulated',
+     'Equidad de género: impacto positivo directo acreditado en población femenina.'),
+
+    -- PRY-A (Edad: Datos suficientes, efecto favorable +15 pts)
+    ('92000000-0000-4000-a000-000000000002', 'a0000000-0000-4000-a000-00000000000a', 'PRY-A', 'edad', TRUE,
+     'Primera infancia, niñez (<12) y adultos mayores (≥65)', 1840, 38.60,
+     'Acceso universal y diseño adaptado para niñez y personas adultas mayores (criterio de vulnerabilidad etaria)',
+     'Senderos peatonales nivelados, rampas accesibles con pendiente ≤6%, juegos infantiles inclusivos y circuito biosaludable gerontológico.',
+     'Padrón distrital El Tambo: 1,150 niños de 0 a 11 años (24.1%) y 690 adultos mayores de 65 años (14.5%) en radio de influencia directa. Planos verifican rampas y ausencia de barreras arquitectónicas.',
+     TRUE, 15.00, 'favorable',
+     'Efecto favorable (+15.0 pts): el proyecto atiende prioritariamente a 1,840 personas de grupos etarios vulnerables (38.6% del entorno vecinal) incorporando diseño universal, rampas accesibles y equipamiento gerontológico.',
+     'Dataset territorial simulado SIPRIM El Tambo - Padrón Demográfico Municipal (Simulado)', 'simulated',
+     'Equidad de edad: inclusión prioritaria de niñez y adultos mayores con diseño universal acreditado.'),
+
+    -- PRY-B (Género: Información insuficiente, sin ventaja automática)
+    ('92000000-0000-4000-a000-000000000003', 'a0000000-0000-4000-a000-00000000000b', 'PRY-B', 'genero', FALSE,
+     'Población femenina vecinal', NULL, NULL,
+     'Criterio de equidad de género en servicios de salud básica',
+     'Mención genérica en memoria descriptiva sin estudio demográfico ni focalización de género.',
+     NULL, FALSE, NULL, 'indeterminado',
+     'Información insuficiente: no se dispone de datos demográficos fiables desagregados por sexo para el área del proyecto. Conforme a CA-HU1.5-02, no se infieren proporciones ni se otorga bonificación sin evidencia.',
+     'Catastro Municipal El Tambo (Sin padrón desagregado por sexo)', 'simulated',
+     'Información insuficiente: sin datos fiables de género.'),
+
+    -- PRY-B (Edad: Información insuficiente, sin ventaja automática)
+    ('92000000-0000-4000-a000-000000000004', 'a0000000-0000-4000-a000-00000000000b', 'PRY-B', 'edad', FALSE,
+     'Grupos etarios vulnerables (niñez y adultos mayores)', NULL, NULL,
+     'Criterio de equidad etaria en atención primaria',
+     'Sin información etaria registrada en el expediente técnico.',
+     NULL, FALSE, NULL, 'indeterminado',
+     'Información insuficiente: sin datos etarios verificables en el padrón vecinal. Conforme a CA-HU1.5-02, no se infieren distribuciones por edad ni se asigna resultado favorable sin evidencia.',
+     'Catastro Municipal El Tambo (Sin censo etario focalizado)', 'simulated',
+     'Información insuficiente: sin datos fiables de edad.'),
+
+    -- PRY-C (Género: Datos suficientes, efecto neutro 0.0 pts)
+    ('92000000-0000-4000-a000-000000000005', 'a0000000-0000-4000-a000-00000000000c', 'PRY-C', 'genero', TRUE,
+     'Población del entorno industrial Shullcas', 620, 48.50,
+     'Equidad de género en zona de servicios industriales',
+     'Actividad industrial sin impacto diferenciado por sexo.',
+     'Zona industrial ribereña de baja densidad residencial; sin medidas afirmativas de género.',
+     FALSE, 0.00, 'neutro',
+     'Efecto neutro (0.0 pts): intervención sin medidas de género afirmativas ni afectación discriminatoria sobre la población femenina (48.5%).',
+     'Dataset territorial simulado SIPRIM El Tambo (Simulado)', 'simulated',
+     'Equidad de género neutra sin medidas afirmativas.'),
+
+    -- PRY-C (Edad: Información insuficiente, efecto indeterminado)
+    ('92000000-0000-4000-a000-000000000006', 'a0000000-0000-4000-a000-00000000000c', 'PRY-C', 'edad', FALSE,
+     'Grupos etarios de la quebrada Shullcas', NULL, NULL,
+     'Equidad etaria en zona periurbana',
+     'Sin estudio de composición etaria.',
+     NULL, FALSE, NULL, 'indeterminado',
+     'Información insuficiente: sin datos etarios fiables en faja marginal. Conforme a CA-HU1.5-02, no se infieren proporciones sin evidencia.',
+     'Catastro Municipal El Tambo (Sin cobertura etaria)', 'simulated',
+     'Información insuficiente: sin datos de edad.'),
+
+    -- PRY-D (Género: Datos suficientes, efecto favorable +10 pts)
+    ('92000000-0000-4000-a000-000000000007', 'a0000000-0000-4000-a000-00000000000d', 'PRY-D', 'genero', TRUE,
+     'Mujeres usuarias de la vía metropolitana', 3100, 52.00,
+     'Seguridad peatonal y paraderos seguros con perspectiva de género',
+     'Ampliación vial con paraderos iluminados y cámaras de seguridad.',
+     'Padrón distrital corredor Ferrocarril: 3,100 mujeres beneficiarias directas (52.0%). Paraderos incluyen botones de pánico e iluminación focalizada.',
+     TRUE, 10.00, 'favorable',
+     'Efecto favorable (+10.0 pts): el proyecto contempla paraderos seguros e iluminación focalizada para 3,100 mujeres usuarias (52.0%).',
+     'Dataset de transporte simulado SIPRIM El Tambo (Simulado)', 'simulated',
+     'Equidad de género en seguridad vial.'),
+
+    -- PRY-D (Edad: Datos suficientes, efecto favorable +10 pts)
+    ('92000000-0000-4000-a000-000000000008', 'a0000000-0000-4000-a000-00000000000d', 'PRY-D', 'edad', TRUE,
+     'Adultos mayores y escolares que cruzan el eje vial', 1750, 29.40,
+     'Seguridad vial y accesibilidad para personas mayores y escolares',
+     'Cruces semaforizados con pulsador sonoro y rampas en esquinas.',
+     'Corredor con 3 instituciones educativas y centro del adulto mayor: 1,750 personas de edad prioritaria (29.4%). Rampas de pendiente 6% y tiempo semafórico extendido para cruce seguro.',
+     TRUE, 10.00, 'favorable',
+     'Efecto favorable (+10.0 pts): cruces peatonales accesibles con semáforo sonoro y tiempo extendido para 1,750 niños y adultos mayores (29.4%).',
+     'Dataset de seguridad vial simulado SIPRIM El Tambo (Simulado)', 'simulated',
+     'Equidad etaria en seguridad vial.')
+ON CONFLICT (id) DO UPDATE SET
+    dimension = EXCLUDED.dimension,
+    has_sufficient_data = EXCLUDED.has_sufficient_data,
+    target_group = EXCLUDED.target_group,
+    aggregated_population = EXCLUDED.aggregated_population,
+    aggregated_percentage = EXCLUDED.aggregated_percentage,
+    equity_criterion = EXCLUDED.equity_criterion,
+    declared_benefit = EXCLUDED.declared_benefit,
+    verifiable_data = EXCLUDED.verifiable_data,
+    has_favorable_evidence = EXCLUDED.has_favorable_evidence,
+    score_effect_pts = EXCLUDED.score_effect_pts,
+    effect_type = EXCLUDED.effect_type,
+    effect_explanation = EXCLUDED.effect_explanation,
+    source_name = EXCLUDED.source_name,
+    data_origin = EXCLUDED.data_origin,
+    description = EXCLUDED.description;

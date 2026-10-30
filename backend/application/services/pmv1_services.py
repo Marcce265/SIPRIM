@@ -995,7 +995,8 @@ class PlatformService:
             if cleaned_key:
                 prev = conn.execute(
                     """
-                    SELECT id, project_id, project_version_id, status, summary, results_json, evaluated_at, idempotency_key
+                    SELECT id, project_id, project_version_id, status, summary, results_json,
+                           equity_json, social_score, score_explanation, evaluated_at, idempotency_key
                     FROM social_accessibility_assessments
                     WHERE idempotency_key = %s
                     """,
@@ -1011,6 +1012,9 @@ class PlatformService:
                         "status": prev["status"],
                         "summary": prev["summary"],
                         "categories": prev["results_json"]["categories"],
+                        "equity": prev.get("equity_json") or prev["results_json"].get("equity"),
+                        "social_score": float(prev["social_score"]) if prev.get("social_score") is not None else None,
+                        "score_explanation": prev.get("score_explanation"),
                         "evaluated_at": prev["evaluated_at"],
                         "duplicated": True,
                     }
@@ -1028,11 +1032,27 @@ class PlatformService:
                 (project_id, project["code"]),
             ).fetchall()
 
+            equity_rows = conn.execute(
+                """
+                SELECT id, project_id, project_code, dimension, has_sufficient_data,
+                       target_group, aggregated_population, aggregated_percentage,
+                       equity_criterion, declared_benefit, verifiable_data,
+                       has_favorable_evidence, score_effect_pts, effect_type,
+                       effect_explanation, source_name, data_origin, description,
+                       (data_origin = 'simulated') AS is_simulated
+                FROM project_demographic_equity_records
+                WHERE project_id = %s OR project_code = %s
+                ORDER BY dimension ASC
+                """,
+                (project_id, project["code"]),
+            ).fetchall()
+
             assessment = SocialAccessibilityEngine.evaluate(
                 project_id=project_id,
                 project_code=project["code"],
                 project_version_id=project.get("project_version_id"),
                 indicator_rows=[dict(r) for r in rows],
+                equity_rows=[dict(r) for r in equity_rows],
             )
 
             assessment_id = uuid4()
@@ -1042,8 +1062,9 @@ class PlatformService:
             conn.execute(
                 """
                 INSERT INTO social_accessibility_assessments
-                (id, project_id, project_version_id, requested_by_user_id, idempotency_key, status, summary, results_json, evaluated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                (id, project_id, project_version_id, requested_by_user_id, idempotency_key,
+                 status, summary, results_json, equity_json, social_score, score_explanation, evaluated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     assessment_id,
@@ -1053,7 +1074,10 @@ class PlatformService:
                     effective_key,
                     assessment["status"],
                     assessment["summary"],
-                    Jsonb({"categories": assessment["categories"]}),
+                    Jsonb({"categories": assessment["categories"], "equity": assessment.get("equity")}),
+                    Jsonb(assessment["equity"]) if assessment.get("equity") else None,
+                    assessment.get("social_score"),
+                    assessment.get("score_explanation"),
                     now,
                 ),
             )
@@ -1096,7 +1120,8 @@ class PlatformService:
         with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
             latest = conn.execute(
                 """
-                SELECT id, project_id, project_version_id, status, summary, results_json, evaluated_at
+                SELECT id, project_id, project_version_id, status, summary, results_json,
+                       equity_json, social_score, score_explanation, evaluated_at
                 FROM social_accessibility_assessments
                 WHERE project_id = %s
                 ORDER BY evaluated_at DESC
@@ -1113,6 +1138,9 @@ class PlatformService:
                     "status": latest["status"],
                     "summary": latest["summary"],
                     "categories": latest["results_json"]["categories"],
+                    "equity": latest.get("equity_json") or latest["results_json"].get("equity"),
+                    "social_score": float(latest["social_score"]) if latest.get("social_score") is not None else None,
+                    "score_explanation": latest.get("score_explanation"),
                     "evaluated_at": latest["evaluated_at"],
                     "duplicated": False,
                 }
@@ -1130,11 +1158,27 @@ class PlatformService:
                 (project_id, project["code"]),
             ).fetchall()
 
+            equity_rows = conn.execute(
+                """
+                SELECT id, project_id, project_code, dimension, has_sufficient_data,
+                       target_group, aggregated_population, aggregated_percentage,
+                       equity_criterion, declared_benefit, verifiable_data,
+                       has_favorable_evidence, score_effect_pts, effect_type,
+                       effect_explanation, source_name, data_origin, description,
+                       (data_origin = 'simulated') AS is_simulated
+                FROM project_demographic_equity_records
+                WHERE project_id = %s OR project_code = %s
+                ORDER BY dimension ASC
+                """,
+                (project_id, project["code"]),
+            ).fetchall()
+
             assessment = SocialAccessibilityEngine.evaluate(
                 project_id=project_id,
                 project_code=project["code"],
                 project_version_id=project.get("project_version_id"),
                 indicator_rows=[dict(r) for r in rows],
+                equity_rows=[dict(r) for r in equity_rows],
             )
             return {
                 **assessment,
@@ -1405,12 +1449,13 @@ class PlatformService:
 
 
 class SocialAccessibilityEngine:
-    """Motor de evaluación de accesibilidad territorial en salud, educación y transporte (HU1.4).
+    """Motor de evaluación social territorial: accesibilidad (HU1.4) y equidad demográfica (HU1.5).
 
     Garantiza el cumplimiento estricto de los criterios de aceptación:
-    - CA-HU1.4-01: Presenta por separado salud, educación y transporte, identificando fuente u origen simulado.
-    - CA-HU1.4-02: Cuando falten datos, muestra 'Información insuficiente' y estrictamente NINGÚN valor
-      ni unidad inventados (value=None, unit=None).
+    - CA-HU1.4-01 / CA-HU1.4-02: Presenta por separado salud, educación y transporte.
+    - CA-HU1.5-01: Muestra cómo los indicadores agregados de género y edad influyen en el resultado social.
+    - CA-HU1.5-02: Cuando falten datos fiables, señala la limitación, no infiere proporciones y no asigna
+      resultado favorable sin evidencia (efecto no determinado / None, nunca 0.0 pts ni ventaja automática).
     """
 
     CANONICAL_CATEGORIES: ClassVar[tuple[tuple[str, str], ...]] = (
@@ -1467,12 +1512,143 @@ class SocialAccessibilityEngine:
         }
 
     @classmethod
+    def _evaluate_dimension(
+        cls,
+        dim_key: Literal["genero", "edad"],
+        dim_label: str,
+        row: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        default_target = "Mujeres y niñas del área de influencia" if dim_key == "genero" else "Niñez (<12) y adultos mayores (≥65)"
+        default_criterion = (
+            "Priorización de equipamiento seguro y reducción de brechas con enfoque de género"
+            if dim_key == "genero"
+            else "Acceso universal y equipamiento adaptado para niñez y personas adultas mayores"
+        )
+        default_source = "Catastro Municipal El Tambo (Sin cobertura demográfica desagregada)"
+
+        if not row or not row.get("has_sufficient_data") or row.get("aggregated_percentage") is None:
+            return {
+                "dimension": dim_key,
+                "dimension_label": dim_label,
+                "target_group": row.get("target_group") if row else default_target,
+                "has_sufficient_data": False,
+                "aggregated_population": None,
+                "aggregated_percentage": None,
+                "equity_criterion": row.get("equity_criterion") if row else default_criterion,
+                "declared_benefit": row.get("declared_benefit") if row else None,
+                "verifiable_data": None,
+                "has_favorable_evidence": False,
+                "score_effect_pts": None,
+                "effect_type": "indeterminado",
+                "effect_explanation": (
+                    f"Información insuficiente: no se dispone de datos demográficos fiables para {dim_label.lower()}. "
+                    "Conforme a la regla de precaución (CA-HU1.5-02), no se infieren proporciones ni se otorga bonificación sin evidencia."
+                ),
+                "source_name": row.get("source_name") if row else default_source,
+                "data_origin": row.get("data_origin", "simulated") if row else "simulated",
+                "is_simulated": True,
+            }
+
+        pop = int(row["aggregated_population"]) if row.get("aggregated_population") is not None else None
+        pct = float(row["aggregated_percentage"])
+        pts = float(row["score_effect_pts"]) if row.get("score_effect_pts") is not None else 0.0
+        effect_t = str(row.get("effect_type", "neutro"))
+        fav_ev = bool(row.get("has_favorable_evidence", False))
+        expl = row.get("effect_explanation") or f"Efecto {effect_t} ({pts:+.1f} pts) en {dim_label.lower()}."
+
+        return {
+            "dimension": dim_key,
+            "dimension_label": dim_label,
+            "target_group": row.get("target_group") or default_target,
+            "has_sufficient_data": True,
+            "aggregated_population": pop,
+            "aggregated_percentage": pct,
+            "equity_criterion": row.get("equity_criterion") or default_criterion,
+            "declared_benefit": row.get("declared_benefit"),
+            "verifiable_data": row.get("verifiable_data"),
+            "has_favorable_evidence": fav_ev,
+            "score_effect_pts": pts,
+            "effect_type": effect_t,
+            "effect_explanation": expl,
+            "source_name": row.get("source_name") or default_source,
+            "data_origin": row.get("data_origin", "simulated"),
+            "is_simulated": row.get("data_origin", "simulated") == "simulated",
+        }
+
+    @classmethod
+    def _evaluate_demographic_equity(
+        cls,
+        equity_rows: list[dict[str, Any]] | None,
+        base_score: float | None,
+    ) -> tuple[dict[str, Any], float | None, str]:
+        rows_by_dim = {str(r["dimension"]).lower(): r for r in (equity_rows or [])}
+        gender_item = cls._evaluate_dimension("genero", "Equidad de Género", rows_by_dim.get("genero"))
+        age_item = cls._evaluate_dimension("edad", "Equidad de Edad", rows_by_dim.get("edad"))
+
+        has_sufficient_data = gender_item["has_sufficient_data"] and age_item["has_sufficient_data"]
+        any_sufficient = gender_item["has_sufficient_data"] or age_item["has_sufficient_data"]
+
+        if has_sufficient_data:
+            g_pts = gender_item["score_effect_pts"] or 0.0
+            a_pts = age_item["score_effect_pts"] or 0.0
+            equity_pts = g_pts + a_pts
+            summary_eq = (
+                f"Evaluación de equidad completa: género ({gender_item['effect_type']}, {g_pts:+.1f} pts) "
+                f"y edad ({age_item['effect_type']}, {a_pts:+.1f} pts)."
+            )
+        elif any_sufficient:
+            equity_pts = None
+            dim_ok = "género" if gender_item["has_sufficient_data"] else "edad"
+            dim_missing = "edad" if not age_item["has_sufficient_data"] else "género"
+            summary_eq = (
+                f"Evaluación de equidad parcial: datos suficientes en {dim_ok}, pero información insuficiente en {dim_missing}. "
+                "No se infieren proporciones ni ventaja automática para el grupo faltante (CA-HU1.5-02)."
+            )
+        else:
+            equity_pts = None
+            summary_eq = (
+                "Información insuficiente en género y edad: no se dispone de datos demográficos fiables. "
+                "Conforme a CA-HU1.5-02, no se infieren proporciones ni se otorga bonificación automática sin evidencia."
+            )
+
+        equity_dict = {
+            "has_sufficient_data": has_sufficient_data,
+            "gender": gender_item,
+            "age": age_item,
+            "equity_score_pts": equity_pts,
+            "effect_summary": summary_eq,
+        }
+
+        if base_score is None or not any_sufficient:
+            final_social_score = None
+            score_expl = (
+                "Puntaje social no determinado: información insuficiente en accesibilidad territorial o datos demográficos "
+                "de equidad para ponderación cuantitativa (CA-HU1.4-02 / CA-HU1.5-02)."
+            )
+        else:
+            g_pts = gender_item["score_effect_pts"] if gender_item["score_effect_pts"] is not None else 0.0
+            a_pts = age_item["score_effect_pts"] if age_item["score_effect_pts"] is not None else 0.0
+            final_social_score = min(100.0, max(0.0, base_score + g_pts + a_pts))
+
+            g_desc = f"{gender_item['score_effect_pts']:+.1f} pts" if gender_item["score_effect_pts"] is not None else "No determinado"
+            a_desc = f"{age_item['score_effect_pts']:+.1f} pts" if age_item["score_effect_pts"] is not None else "No determinado"
+
+            score_expl = (
+                f"Puntaje social preliminar: {final_social_score:.1f}/100 pts "
+                f"(Base accesibilidad: {base_score:.1f} pts, Género: {g_desc}, Edad: {a_desc}). "
+                "Regla de demostración para el prototipo PMV2 (HU1.5)."
+            )
+
+        return equity_dict, final_social_score, score_expl
+
+    @classmethod
     def evaluate(
         cls,
         project_id: UUID,
         project_code: str,
         project_version_id: UUID | None,
         indicator_rows: list[dict[str, Any]],
+        equity_rows: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         rows_by_category = {str(r["category"]).lower(): r for r in indicator_rows}
         categories_output: list[dict[str, Any]] = []
@@ -1486,23 +1662,50 @@ class SocialAccessibilityEngine:
             categories_output.append(item)
 
         if insufficient_count == 0:
-            status = "complete"
-            summary = (
-                "Análisis de accesibilidad social completo. Se identificaron indicadores territoriales "
-                "para salud, educación y transporte."
-            )
+            base_score = 70.0
+            cat_summary = "Análisis de accesibilidad social completo (salud, educación y transporte)."
         elif insufficient_count == len(cls.CANONICAL_CATEGORIES):
-            status = "insufficient"
-            summary = (
-                "Información insuficiente: no se dispone de datos territoriales de cobertura "
-                "para ninguna de las categorías sociales (salud, educación, transporte)."
-            )
+            base_score = None
+            cat_summary = "Información insuficiente: no se dispone de datos de cobertura para salud, educación o transporte."
         else:
-            status = "partial"
-            summary = (
+            base_score = 50.0
+            cat_summary = (
                 f"Análisis de accesibilidad social parcial: {len(cls.CANONICAL_CATEGORIES) - insufficient_count} "
                 f"categoría(s) con datos suficientes y {insufficient_count} con Información insuficiente."
             )
+
+        if equity_rows is not None:
+            equity_dict, social_score, score_expl = cls._evaluate_demographic_equity(
+                equity_rows=equity_rows,
+                base_score=base_score,
+            )
+            # Estado global integrado con equidad
+            if insufficient_count == 0 and equity_dict["has_sufficient_data"]:
+                status = "complete"
+                summary = f"{cat_summary} Se integraron indicadores demográficos de género y edad con criterios de equidad."
+            elif insufficient_count == len(cls.CANONICAL_CATEGORIES) and not equity_dict["has_sufficient_data"]:
+                status = "insufficient"
+                summary = "Información insuficiente en accesibilidad y equidad social: no se emite resultado favorable por defecto."
+            else:
+                status = "partial"
+                summary = f"{cat_summary} {equity_dict['effect_summary']}"
+        else:
+            equity_dict = None
+            social_score = base_score
+            score_expl = (
+                f"Puntaje Base de Accesibilidad Territorial: {base_score:.1f} pts."
+                if base_score is not None
+                else "Información insuficiente de accesibilidad."
+            )
+            if insufficient_count == 0:
+                status = "complete"
+                summary = cat_summary
+            elif insufficient_count == len(cls.CANONICAL_CATEGORIES):
+                status = "insufficient"
+                summary = cat_summary
+            else:
+                status = "partial"
+                summary = cat_summary
 
         return {
             "project_id": project_id,
@@ -1511,6 +1714,9 @@ class SocialAccessibilityEngine:
             "status": status,
             "summary": summary,
             "categories": categories_output,
+            "equity": equity_dict,
+            "social_score": social_score,
+            "score_explanation": score_expl,
             "evaluated_at": datetime.now(timezone.utc),
         }
 

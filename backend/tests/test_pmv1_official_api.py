@@ -327,6 +327,49 @@ class FakePlatform:
             ]
             summary = "Análisis de accesibilidad social parcial: 1 categoría(s) con datos suficientes y 2 con Información insuficiente."
             status = "partial"
+            equity = {
+                "has_sufficient_data": False,
+                "gender": {
+                    "dimension": "genero",
+                    "dimension_label": "Equidad de Género",
+                    "target_group": "Mujeres y niñas de la zona de influencia",
+                    "has_sufficient_data": False,
+                    "aggregated_population": None,
+                    "aggregated_percentage": None,
+                    "equity_criterion": "Presencia de espacios seguros y accesibles para mujeres y niñas",
+                    "declared_benefit": None,
+                    "verifiable_data": None,
+                    "has_favorable_evidence": False,
+                    "score_effect_pts": None,
+                    "effect_type": "indeterminado",
+                    "effect_explanation": "Información insuficiente · Sin ventaja automática",
+                    "source_name": "INEI CPV 2017 (Sin cobertura demográfica)",
+                    "data_origin": "simulated",
+                    "is_simulated": True,
+                },
+                "age": {
+                    "dimension": "edad",
+                    "dimension_label": "Equidad por Grupos de Edad",
+                    "target_group": "Adultos mayores (60+ años) y primera infancia (0-5 años)",
+                    "has_sufficient_data": False,
+                    "aggregated_population": None,
+                    "aggregated_percentage": None,
+                    "equity_criterion": "Accesibilidad universal y equipamiento para adultos mayores e infancia",
+                    "declared_benefit": None,
+                    "verifiable_data": None,
+                    "has_favorable_evidence": False,
+                    "score_effect_pts": None,
+                    "effect_type": "indeterminado",
+                    "effect_explanation": "Información insuficiente · Sin ventaja automática",
+                    "source_name": "INEI CPV 2017 (Sin cobertura etaria)",
+                    "data_origin": "simulated",
+                    "is_simulated": True,
+                },
+                "equity_score_pts": None,
+                "effect_summary": "Sin datos demográficos suficientes. No se infieren proporciones sin evidencia.",
+            }
+            social_score = None
+            score_explanation = "Evaluación social con datos insuficientes en accesibilidad y equidad. No se asigna ventaja social automática."
         else:
             cats = [
                 {
@@ -371,6 +414,49 @@ class FakePlatform:
             ]
             summary = "Análisis de accesibilidad social completo. Se identificaron indicadores territoriales para salud, educación y transporte."
             status = "complete"
+            equity = {
+                "has_sufficient_data": True,
+                "gender": {
+                    "dimension": "genero",
+                    "dimension_label": "Equidad de Género",
+                    "target_group": "Mujeres y niñas de la zona de influencia directa",
+                    "has_sufficient_data": True,
+                    "aggregated_population": 4250,
+                    "aggregated_percentage": 51.5,
+                    "equity_criterion": "Espacios iluminados, seguros y paraderos con perspectiva de género",
+                    "declared_benefit": "Expediente declara luminarias LED, cámaras de seguridad y diseño con perspectiva de género",
+                    "verifiable_data": "Censo INEI: 4,250 mujeres (51.5%). Registro distrital de puntos críticos con baja iluminación mitigados.",
+                    "has_favorable_evidence": True,
+                    "score_effect_pts": 15.0,
+                    "effect_type": "favorable",
+                    "effect_explanation": "Favorable (+15.0 pts) · Mitigación de riesgos de tránsito para mujeres y niñas",
+                    "source_name": "INEI CPV 2017 / Municipalidad El Tambo (Simulado)",
+                    "data_origin": "simulated",
+                    "is_simulated": True,
+                },
+                "age": {
+                    "dimension": "edad",
+                    "dimension_label": "Equidad por Grupos de Edad",
+                    "target_group": "Adultos mayores (60+ años) e infancia (0-14 años)",
+                    "has_sufficient_data": True,
+                    "aggregated_population": 3120,
+                    "aggregated_percentage": 37.8,
+                    "equity_criterion": "Rampas con pendiente normativa, señalética podotáctil y zonas de descanso",
+                    "declared_benefit": "Expediente contempla rampas universales con pendiente <8%, veredas podotáctiles y mobiliario accesible",
+                    "verifiable_data": "Padrón distrital: 1,820 adultos mayores (22.1%) y 1,300 menores (15.7%). Alta demanda de accesibilidad física.",
+                    "has_favorable_evidence": True,
+                    "score_effect_pts": 15.0,
+                    "effect_type": "favorable",
+                    "effect_explanation": "Favorable (+15.0 pts) · Cumplimiento de accesibilidad universal para adultos mayores y primera infancia",
+                    "source_name": "INEI CPV 2017 / OMAPED El Tambo (Simulado)",
+                    "data_origin": "simulated",
+                    "is_simulated": True,
+                },
+                "equity_score_pts": 30.0,
+                "effect_summary": "Equidad demográfica favorable: impacto positivo acreditado en género (+15.0) y edad (+15.0).",
+            }
+            social_score = 100.0
+            score_explanation = "Puntaje Base Accesibilidad HU1.4: 70.0 pts. Bonificación Equidad Género HU1.5: +15.0 pts. Bonificación Grupos Edad HU1.5: +15.0 pts. Puntaje Social Total: 100.0 / 100 pts."
 
         return {
             "project_id": project_id,
@@ -379,6 +465,9 @@ class FakePlatform:
             "status": status,
             "summary": summary,
             "categories": cats,
+            "equity": equity,
+            "social_score": social_score,
+            "score_explanation": score_explanation,
             "evaluated_at": datetime.now(timezone.utc),
             "duplicated": idempotency_key == "social-repeat",
         }
@@ -1103,6 +1192,14 @@ def test_social_assessment_pry_a_complete(client: TestClient) -> None:
     assert cats["educacion"]["value"] == 320.0
     assert cats["transporte"]["has_sufficient_data"] is True
     assert cats["transporte"]["value"] == 6.0
+    # HU1.5 assertions for complete case
+    assert body["social_score"] == 100.0
+    assert body["equity"] is not None
+    assert body["equity"]["has_sufficient_data"] is True
+    assert body["equity"]["gender"]["aggregated_population"] == 4250
+    assert body["equity"]["gender"]["aggregated_percentage"] == 51.5
+    assert body["equity"]["gender"]["score_effect_pts"] == 15.0
+    assert body["equity"]["age"]["score_effect_pts"] == 15.0
 
 
 def test_social_assessment_pry_b_insufficient_no_numbers(client: TestClient) -> None:
@@ -1131,6 +1228,14 @@ def test_social_assessment_pry_b_insufficient_no_numbers(client: TestClient) -> 
     assert cats["transporte"]["message"] == "Información insuficiente"
     assert cats["transporte"]["value"] is None
     assert cats["transporte"]["unit"] is None
+    # HU1.5 assertions for CA-HU1.5-02 (insufficient data, no inferred proportions, no automatic bonus)
+    assert body["social_score"] is None
+    assert body["equity"] is not None
+    assert body["equity"]["has_sufficient_data"] is False
+    assert body["equity"]["gender"]["aggregated_population"] is None
+    assert body["equity"]["gender"]["aggregated_percentage"] is None
+    assert body["equity"]["gender"]["score_effect_pts"] is None
+    assert body["equity"]["age"]["score_effect_pts"] is None
 
 
 def test_get_social_assessment(client: TestClient) -> None:

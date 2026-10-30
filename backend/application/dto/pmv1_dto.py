@@ -264,6 +264,33 @@ class SocialAccessibilityCategoryItem(BaseModel):
     message: str
 
 
+class DemographicEquityDimensionItem(BaseModel):
+    dimension: Literal["genero", "edad"]
+    dimension_label: str
+    target_group: str
+    has_sufficient_data: bool
+    aggregated_population: int | None = None
+    aggregated_percentage: float | None = None
+    equity_criterion: str
+    declared_benefit: str | None = None
+    verifiable_data: str | None = None
+    has_favorable_evidence: bool = False
+    score_effect_pts: float | None = None
+    effect_type: Literal["favorable", "neutro", "desfavorable", "indeterminado"] = "indeterminado"
+    effect_explanation: str
+    source_name: str
+    data_origin: str = "simulated"
+    is_simulated: bool = True
+
+
+class DemographicEquityItem(BaseModel):
+    has_sufficient_data: bool
+    gender: DemographicEquityDimensionItem
+    age: DemographicEquityDimensionItem
+    equity_score_pts: float | None = None
+    effect_summary: str
+
+
 class SocialAccessibilityResponse(BaseModel):
     project_id: UUID
     project_code: str
@@ -271,6 +298,9 @@ class SocialAccessibilityResponse(BaseModel):
     status: str
     summary: str
     categories: list[SocialAccessibilityCategoryItem]
+    equity: DemographicEquityItem | None = None
+    social_score: float | None = None
+    score_explanation: str | None = None
     evaluated_at: datetime
     duplicated: bool = False
 

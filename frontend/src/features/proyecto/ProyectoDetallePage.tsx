@@ -283,13 +283,13 @@ export function ProyectoDetallePage() {
           <section className="flow-panel social-flow-panel">
             <div className="flow-panel-heading">
               <div>
-                <span className="story-label">PMV 2 · HU1.4</span>
-                <h2>Accesibilidad a salud, educación y transporte</h2>
+                <span className="story-label">PMV 2 · HU1.4 / HU1.5</span>
+                <h2>Accesibilidad territorial y equidad demográfica</h2>
               </div>
               <span className="review-badge">Análisis territorial social</span>
             </div>
             <p className="flow-hint">
-              Evaluación multidimensional de accesibilidad territorial para priorizar zonas desatendidas (El Tambo, Huancayo).
+              Evaluación social integrada de accesibilidad a servicios esenciales (salud, educación, transporte) y equidad demográfica por género y grupos de edad con datos agregados y delimitación territorial (El Tambo, Huancayo).
             </p>
 
             {hasRole('PLANNER') && (
@@ -301,10 +301,10 @@ export function ProyectoDetallePage() {
                   onClick={() => void runSocialAssessment()}
                 >
                   {busy === 'social'
-                    ? 'Evaluando accesibilidad…'
+                    ? 'Evaluando accesibilidad y equidad…'
                     : socialAssessment
-                    ? 'Actualizar evaluación de accesibilidad'
-                    : 'Evaluar accesibilidad social'}
+                    ? 'Actualizar evaluación social'
+                    : 'Evaluar accesibilidad y equidad social'}
                 </button>
               </div>
             )}
@@ -365,6 +365,308 @@ export function ProyectoDetallePage() {
                     </div>
                   ))}
                 </div>
+
+                {/* Panel de Puntuación Social Ponderada HU1.4 + HU1.5 */}
+                <div className="social-score-card">
+                  <div className="social-score-header">
+                    <div>
+                      <span className="social-score-tag">HU1.4 + HU1.5 · Puntuación Social Integrada</span>
+                      <h3 style={{ margin: '0.2rem 0', fontSize: '1.15rem', color: '#0f172a' }}>
+                        Puntaje Social:{' '}
+                        {socialAssessment.social_score !== null && socialAssessment.social_score !== undefined
+                          ? `${socialAssessment.social_score.toFixed(1)} / 100`
+                          : 'No determinado'}
+                      </h3>
+                    </div>
+                    {socialAssessment.social_score !== null && socialAssessment.social_score !== undefined ? (
+                      <span
+                        className={`social-score-badge ${
+                          socialAssessment.social_score >= 70 ? 'score-good' : 'score-low'
+                        }`}
+                      >
+                        {socialAssessment.social_score >= 70 ? 'Favorable' : 'Bajo'}
+                      </span>
+                    ) : (
+                      <span className="social-score-badge score-neutral">
+                        Sin ventaja automática
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="social-score-breakdown">
+                    <div className="social-score-item">
+                      <span className="social-score-label">Base Accesibilidad (HU1.4):</span>
+                      <span className="social-score-val">
+                        {socialAssessment.status === 'complete'
+                          ? '70.0 pts (Integral)'
+                          : socialAssessment.status === 'partial'
+                          ? '50.0 pts (Parcial)'
+                          : 'No determinado (Insuficiente)'}
+                      </span>
+                    </div>
+                    <div className="social-score-item">
+                      <span className="social-score-label">Efecto Género (HU1.5):</span>
+                      <span className="social-score-val">
+                        {socialAssessment.equity?.gender?.score_effect_pts !== null &&
+                        socialAssessment.equity?.gender?.score_effect_pts !== undefined
+                          ? socialAssessment.equity.gender.score_effect_pts > 0
+                            ? `+${socialAssessment.equity.gender.score_effect_pts.toFixed(1)} pts (${socialAssessment.equity.gender.effect_type})`
+                            : socialAssessment.equity.gender.score_effect_pts < 0
+                            ? `${socialAssessment.equity.gender.score_effect_pts.toFixed(1)} pts (${socialAssessment.equity.gender.effect_type})`
+                            : '0.0 pts (Neutro)'
+                          : 'No determinado · Sin ventaja automática'}
+                      </span>
+                    </div>
+                    <div className="social-score-item">
+                      <span className="social-score-label">Efecto Grupos de Edad (HU1.5):</span>
+                      <span className="social-score-val">
+                        {socialAssessment.equity?.age?.score_effect_pts !== null &&
+                        socialAssessment.equity?.age?.score_effect_pts !== undefined
+                          ? socialAssessment.equity.age.score_effect_pts > 0
+                            ? `+${socialAssessment.equity.age.score_effect_pts.toFixed(1)} pts (${socialAssessment.equity.age.effect_type})`
+                            : socialAssessment.equity.age.score_effect_pts < 0
+                            ? `${socialAssessment.equity.age.score_effect_pts.toFixed(1)} pts (${socialAssessment.equity.age.effect_type})`
+                            : '0.0 pts (Neutro)'
+                          : 'No determinado · Sin ventaja automática'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {socialAssessment.score_explanation && (
+                    <p className="social-score-explanation">
+                      <strong>Explicación del resultado:</strong> {socialAssessment.score_explanation}
+                    </p>
+                  )}
+                </div>
+
+                {/* Panel de Equidad Demográfica HU1.5 */}
+                {socialAssessment.equity && (
+                  <div className="equity-panel">
+                    <div className="equity-header">
+                      <div>
+                        <span className="story-label" style={{ fontSize: '0.75rem' }}>PMV 2 · HU1.5</span>
+                        <h3 style={{ margin: '0.15rem 0', fontSize: '1rem', color: '#0f172a' }}>
+                          Equidad Demográfica: Género y Grupos de Edad
+                        </h3>
+                      </div>
+                      <span
+                        className={`green-status-badge ${
+                          socialAssessment.equity.has_sufficient_data ? 'status-ok' : 'status-warn'
+                        }`}
+                      >
+                        {socialAssessment.equity.has_sufficient_data
+                          ? socialAssessment.equity.effect_summary
+                          : 'Información insuficiente'}
+                      </span>
+                    </div>
+
+                    <p className="equity-subtitle">
+                      Datos demográficos agregados a nivel territorial sin información personal identificable. Fuente oficial censal INEI CPV de demostración para el distrito de El Tambo.
+                    </p>
+
+                    <div className="equity-grid">
+                      {/* Dimensión Género */}
+                      <div
+                        className={`equity-card ${
+                          socialAssessment.equity.gender.has_sufficient_data ? 'is-sufficient' : 'is-insufficient'
+                        }`}
+                      >
+                        <div className="equity-card-header">
+                          <h4 className="equity-card-title">{socialAssessment.equity.gender.dimension_label}</h4>
+                          <span
+                            className={`social-badge-status ${
+                              socialAssessment.equity.gender.has_sufficient_data ? 'sufficient' : 'insufficient'
+                            }`}
+                          >
+                            {socialAssessment.equity.gender.has_sufficient_data
+                              ? 'Dato disponible'
+                              : 'Información insuficiente'}
+                          </span>
+                        </div>
+
+                        <div className="equity-target-group">
+                          <strong>Grupo objetivo:</strong> {socialAssessment.equity.gender.target_group}
+                        </div>
+
+                        {socialAssessment.equity.gender.has_sufficient_data ? (
+                          <div className="equity-metrics-box">
+                            <div className="equity-metric-row">
+                              <span className="equity-metric-label">Población agregada:</span>
+                              <span className="equity-metric-value">
+                                {socialAssessment.equity.gender.aggregated_population?.toLocaleString()} hab.
+                              </span>
+                            </div>
+                            <div className="equity-metric-row">
+                              <span className="equity-metric-label">Proporción poblacional:</span>
+                              <span className="equity-metric-value">
+                                {socialAssessment.equity.gender.aggregated_percentage}%
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="equity-insufficient-callout">
+                            <strong>⚠️ Limitación metodológica (CA-HU1.5-02):</strong>
+                            <p style={{ margin: '0.25rem 0 0' }}>
+                              No existen datos demográficos fiables ni medidas específicas en el expediente. No se infieren proporciones sin evidencia ni se asigna conclusión favorable por presunción.
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="equity-detail-item">
+                          <span className="equity-detail-label">Criterio de Equidad:</span>
+                          <div>{socialAssessment.equity.gender.equity_criterion}</div>
+                        </div>
+
+                        <div className="equity-detail-item">
+                          <span className="equity-detail-label">Medidas Declaradas en Expediente:</span>
+                          <div>
+                            {socialAssessment.equity.gender.declared_benefit ||
+                              'No se declaran medidas específicas de género en el expediente técnico'}
+                          </div>
+                        </div>
+
+                        <div className="equity-detail-item">
+                          <span className="equity-detail-label">Evidencia Territorial / Sustento:</span>
+                          <div>
+                            {socialAssessment.equity.gender.verifiable_data ||
+                              'Sin evidencia territorial verificable'}
+                          </div>
+                        </div>
+
+                        <div className="equity-effect-box">
+                          <div style={{ marginBottom: '0.35rem', fontSize: '0.8rem', color: '#64748b' }}>
+                            <strong>Efecto en la evaluación social:</strong>
+                          </div>
+                          <div>
+                            <span
+                              className={`equity-effect-pill ${socialAssessment.equity.gender.effect_type}`}
+                            >
+                              {socialAssessment.equity.gender.score_effect_pts !== null &&
+                              socialAssessment.equity.gender.score_effect_pts !== undefined
+                                ? `${socialAssessment.equity.gender.effect_type} (${socialAssessment.equity.gender.score_effect_pts >= 0 ? '+' : ''}${socialAssessment.equity.gender.score_effect_pts.toFixed(1)} pts)`
+                                : 'No determinado · Sin ventaja automática'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="social-card-meta">
+                          <div>
+                            <strong>Fuente:</strong>
+                            <div className="social-source-tag">
+                              {socialAssessment.equity.gender.source_name}
+                              {socialAssessment.equity.gender.is_simulated && (
+                                <span className="social-simulated-pill">Simulado</span>
+                              )}
+                            </div>
+                          </div>
+                          <div style={{ marginTop: '0.35rem' }}>
+                            <strong>Origen del dato:</strong> {socialAssessment.equity.gender.data_origin}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Dimensión Grupos de Edad */}
+                      <div
+                        className={`equity-card ${
+                          socialAssessment.equity.age.has_sufficient_data ? 'is-sufficient' : 'is-insufficient'
+                        }`}
+                      >
+                        <div className="equity-card-header">
+                          <h4 className="equity-card-title">{socialAssessment.equity.age.dimension_label}</h4>
+                          <span
+                            className={`social-badge-status ${
+                              socialAssessment.equity.age.has_sufficient_data ? 'sufficient' : 'insufficient'
+                            }`}
+                          >
+                            {socialAssessment.equity.age.has_sufficient_data
+                              ? 'Dato disponible'
+                              : 'Información insuficiente'}
+                          </span>
+                        </div>
+
+                        <div className="equity-target-group">
+                          <strong>Grupo objetivo:</strong> {socialAssessment.equity.age.target_group}
+                        </div>
+
+                        {socialAssessment.equity.age.has_sufficient_data ? (
+                          <div className="equity-metrics-box">
+                            <div className="equity-metric-row">
+                              <span className="equity-metric-label">Población agregada:</span>
+                              <span className="equity-metric-value">
+                                {socialAssessment.equity.age.aggregated_population?.toLocaleString()} hab.
+                              </span>
+                            </div>
+                            <div className="equity-metric-row">
+                              <span className="equity-metric-label">Proporción poblacional:</span>
+                              <span className="equity-metric-value">
+                                {socialAssessment.equity.age.aggregated_percentage}%
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="equity-insufficient-callout">
+                            <strong>⚠️ Limitación metodológica (CA-HU1.5-02):</strong>
+                            <p style={{ margin: '0.25rem 0 0' }}>
+                              No existen datos de grupos de edad fiables ni adecuaciones de accesibilidad universal verificables. No se infieren proporciones sin evidencia ni se asigna conclusión favorable por presunción.
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="equity-detail-item">
+                          <span className="equity-detail-label">Criterio de Equidad:</span>
+                          <div>{socialAssessment.equity.age.equity_criterion}</div>
+                        </div>
+
+                        <div className="equity-detail-item">
+                          <span className="equity-detail-label">Medidas Declaradas en Expediente:</span>
+                          <div>
+                            {socialAssessment.equity.age.declared_benefit ||
+                              'No se declaran medidas de accesibilidad por edad en el expediente técnico'}
+                          </div>
+                        </div>
+
+                        <div className="equity-detail-item">
+                          <span className="equity-detail-label">Evidencia Territorial / Sustento:</span>
+                          <div>
+                            {socialAssessment.equity.age.verifiable_data ||
+                              'Sin evidencia territorial verificable'}
+                          </div>
+                        </div>
+
+                        <div className="equity-effect-box">
+                          <div style={{ marginBottom: '0.35rem', fontSize: '0.8rem', color: '#64748b' }}>
+                            <strong>Efecto en la evaluación social:</strong>
+                          </div>
+                          <div>
+                            <span
+                              className={`equity-effect-pill ${socialAssessment.equity.age.effect_type}`}
+                            >
+                              {socialAssessment.equity.age.score_effect_pts !== null &&
+                              socialAssessment.equity.age.score_effect_pts !== undefined
+                                ? `${socialAssessment.equity.age.effect_type} (${socialAssessment.equity.age.score_effect_pts >= 0 ? '+' : ''}${socialAssessment.equity.age.score_effect_pts.toFixed(1)} pts)`
+                                : 'No determinado · Sin ventaja automática'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="social-card-meta">
+                          <div>
+                            <strong>Fuente:</strong>
+                            <div className="social-source-tag">
+                              {socialAssessment.equity.age.source_name}
+                              {socialAssessment.equity.age.is_simulated && (
+                                <span className="social-simulated-pill">Simulado</span>
+                              )}
+                            </div>
+                          </div>
+                          <div style={{ marginTop: '0.35rem' }}>
+                            <strong>Origen del dato:</strong> {socialAssessment.equity.age.data_origin}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <TechnicalDetails data={socialAssessment} />
               </>

@@ -131,6 +131,33 @@ export interface SocialAccessibilityCategoryItem {
   message: string
 }
 
+export interface DemographicEquityDimensionItem {
+  dimension: 'genero' | 'edad'
+  dimension_label: string
+  target_group: string
+  has_sufficient_data: boolean
+  aggregated_population?: number | null
+  aggregated_percentage?: number | null
+  equity_criterion: string
+  declared_benefit?: string | null
+  verifiable_data?: string | null
+  has_favorable_evidence: boolean
+  score_effect_pts?: number | null
+  effect_type: 'favorable' | 'neutro' | 'desfavorable' | 'indeterminado'
+  effect_explanation: string
+  source_name: string
+  data_origin: string
+  is_simulated: boolean
+}
+
+export interface DemographicEquityItem {
+  has_sufficient_data: boolean
+  gender: DemographicEquityDimensionItem
+  age: DemographicEquityDimensionItem
+  equity_score_pts?: number | null
+  effect_summary: string
+}
+
 export interface SocialAccessibilityResponse {
   project_id: string
   project_code: string
@@ -138,6 +165,9 @@ export interface SocialAccessibilityResponse {
   status: 'complete' | 'partial' | 'insufficient'
   summary: string
   categories: SocialAccessibilityCategoryItem[]
+  equity?: DemographicEquityItem | null
+  social_score?: number | null
+  score_explanation?: string | null
   evaluated_at: string
   duplicated?: boolean
 }
