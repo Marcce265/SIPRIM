@@ -274,3 +274,47 @@ class SocialAccessibilityResponse(BaseModel):
     evaluated_at: datetime
     duplicated: bool = False
 
+class EnvironmentalImpactItem(BaseModel):
+    component: str
+    component_label: str
+    description: str
+    severity: Literal["baja", "moderada", "alta", "indeterminada"]
+    substantiation: str
+    mitigations: list[str]
+
+
+class EnvironmentalMitigationItem(BaseModel):
+    component: str
+    measure: str
+    type: str
+    origin: str
+
+
+class EnvironmentalDeclaredVsEvidence(BaseModel):
+    declared_by_applicant: str | None
+    declared_measures: str | None
+    verifiable_evidence: str | None
+    evidence_source: str
+    is_simulated: bool = True
+    proximity_to_water_meters: float | None = None
+    is_in_protected_or_risk_area: bool = False
+
+
+class EnvironmentalAssessmentResponse(BaseModel):
+    project_id: UUID
+    project_code: str
+    project_version_id: UUID | None = None
+    status: Literal["sufficient", "insufficient"]
+    risk_level: Literal["low", "moderate", "high", "insufficient"]
+    risk_level_label: str
+    risk_observation: str | None = None
+    requires_human_review: bool
+    favorable: bool | None = None
+    favorable_label: str
+    summary: str
+    declared_vs_evidence: EnvironmentalDeclaredVsEvidence
+    impacts: list[EnvironmentalImpactItem]
+    mitigations: list[EnvironmentalMitigationItem]
+    evaluated_at: datetime
+    duplicated: bool = False
+

@@ -7,6 +7,7 @@ import type {
   PMV1ProjectCreate,
   PMV1ProjectResponse,
   PMV1ValidationResponse,
+  EnvironmentalAssessmentResponse,
   SocialAccessibilityResponse,
   ZoningPrecheckResponse,
 } from '../types/pmv1'
@@ -137,6 +138,23 @@ export function evaluateSocialAccessibility(
   idempotencyKey?: string,
 ): Promise<SocialAccessibilityResponse> {
   return apiFetch<SocialAccessibilityResponse>(`/api/v1/projects/${projectId}/social-assessment`, {
+    method: 'POST',
+    auth: true,
+    idempotencyKey,
+  })
+}
+
+export function getEnvironmentalAssessment(projectId: string): Promise<EnvironmentalAssessmentResponse> {
+  return apiFetch<EnvironmentalAssessmentResponse>(`/api/v1/projects/${projectId}/environmental-assessment`, {
+    auth: true,
+  })
+}
+
+export function evaluateEnvironmentalAssessment(
+  projectId: string,
+  idempotencyKey?: string,
+): Promise<EnvironmentalAssessmentResponse> {
+  return apiFetch<EnvironmentalAssessmentResponse>(`/api/v1/projects/${projectId}/environmental-assessment`, {
     method: 'POST',
     auth: true,
     idempotencyKey,

@@ -386,6 +386,139 @@ class FakePlatform:
     def get_social_accessibility(self, project_id: UUID) -> dict[str, Any]:
         return self.evaluate_social_accessibility(project_id, UUID("10000000-0000-4000-a000-000000000002"))
 
+    def evaluate_environmental_assessment(
+        self, project_id: UUID, actor_id: UUID, idempotency_key: str | None = None
+    ) -> dict[str, Any]:
+        if idempotency_key == "env-conflict":
+            raise ConfiguracionPMV1Error("Idempotency-Key ya fue utilizada para otro expediente")
+
+        is_pry_b = str(project_id).endswith("b")
+        is_pry_c = str(project_id).endswith("c")
+
+        if is_pry_b:
+            return {
+                "project_id": project_id,
+                "project_code": "PRY-B",
+                "project_version_id": VERSION_ID,
+                "status": "insufficient",
+                "risk_level": "insufficient",
+                "risk_level_label": "Información insuficiente",
+                "risk_observation": None,
+                "requires_human_review": False,
+                "favorable": None,
+                "favorable_label": "Sin conclusión favorable: información insuficiente",
+                "summary": "Información insuficiente: el expediente no cuenta con datos ambientales esenciales, Declaración de Impacto Ambiental (DIA) ni línea base territorial verificable.",
+                "declared_vs_evidence": {
+                    "declared_by_applicant": None,
+                    "declared_measures": None,
+                    "verifiable_evidence": None,
+                    "evidence_source": "Catastro Municipal El Tambo (Sin cobertura)",
+                    "is_simulated": True,
+                    "proximity_to_water_meters": None,
+                    "is_in_protected_or_risk_area": False,
+                },
+                "impacts": [],
+                "mitigations": [],
+                "evaluated_at": datetime.now(timezone.utc),
+                "duplicated": idempotency_key == "env-repeat",
+            }
+
+        if is_pry_c:
+            return {
+                "project_id": project_id,
+                "project_code": "PRY-C",
+                "project_version_id": VERSION_ID,
+                "status": "sufficient",
+                "risk_level": "high",
+                "risk_level_label": "Riesgo Alto",
+                "risk_observation": "OBSERVACIÓN DE RIESGO AMBIENTAL ALTO: Ubicación a 25 metros del Río Shullcas en faja marginal intangible no mitigable. Se prohíbe la aprobación automática. Requiere consideración técnica ambiental humana obligatoria antes de cualquier decisión favorable.",
+                "requires_human_review": True,
+                "favorable": None,
+                "favorable_label": "No favorable - Requiere revisión técnica ambiental humana obligatoria",
+                "summary": "Alerta ambiental: se identificó un nivel de riesgo ambiental ALTO. El expediente requiere pronunciamiento técnico humano formal antes de una decisión favorable.",
+                "declared_vs_evidence": {
+                    "declared_by_applicant": "Almacenamiento de vehículos sin impacto ambiental.",
+                    "declared_measures": "Piso de afirmado compacto.",
+                    "verifiable_evidence": "Predio ubicado a 25 metros del Río Shullcas en faja marginal intangible no mitigable (PDM Huancayo / CENEPRED-SIGRID).",
+                    "evidence_source": "Dataset ambiental simulado SIPRIM El Tambo - PDM Huancayo / SIGRID (Simulado)",
+                    "is_simulated": True,
+                    "proximity_to_water_meters": 25.0,
+                    "is_in_protected_or_risk_area": True,
+                },
+                "impacts": [
+                    {
+                        "component": "recurso_hidrico",
+                        "component_label": "Recurso Hídrico y Faja Marginal",
+                        "description": "Riesgo severo de contaminación por vertimientos de hidrocarburos y alteración fluvial.",
+                        "severity": "alta",
+                        "substantiation": "Ubicación en faja marginal no mitigable (<30 m de cauce).",
+                        "mitigations": [
+                            "Reubicación fuera de la faja marginal intangible",
+                            "Instalación de trampas de grasa certificadas",
+                        ],
+                    }
+                ],
+                "mitigations": [
+                    {
+                        "component": "recurso_hidrico",
+                        "measure": "Delimitación estricta y retiro obligatorio del cauce fluvial según plano PDM Huancayo.",
+                        "type": "preventiva",
+                        "origin": "requerimiento_tecnico",
+                    }
+                ],
+                "evaluated_at": datetime.now(timezone.utc),
+                "duplicated": idempotency_key == "env-repeat",
+            }
+
+        return {
+            "project_id": project_id,
+            "project_code": "PRY-A",
+            "project_version_id": VERSION_ID,
+            "status": "sufficient",
+            "risk_level": "moderate",
+            "risk_level_label": "Riesgo Moderado",
+            "risk_observation": None,
+            "requires_human_review": False,
+            "favorable": True,
+            "favorable_label": "Favorable condicionado a cumplimiento de mitigaciones",
+            "summary": "Evaluación ambiental con riesgo MODERADO: impactos de obra mitigables mediante las medidas ambientales programadas.",
+            "declared_vs_evidence": {
+                "declared_by_applicant": "Polvo y ruido temporal durante obras civiles.",
+                "declared_measures": "Aspersión diaria y cerco perimétrico con malla antipolvo.",
+                "verifiable_evidence": "Ubicación en zona urbana consolidada, fuera de áreas naturales o de riesgo fluvial.",
+                "evidence_source": "Dataset ambiental simulado SIPRIM El Tambo - PDM Huancayo (Simulado)",
+                "is_simulated": True,
+                "proximity_to_water_meters": 420.0,
+                "is_in_protected_or_risk_area": False,
+            },
+            "impacts": [
+                {
+                    "component": "aire_acustico",
+                    "component_label": "Emisiones Atmosféricas y Ruido",
+                    "description": "Generación temporal de polvo y niveles sonoros moderados.",
+                    "severity": "moderada",
+                    "substantiation": "Obras en trama urbana consolidada.",
+                    "mitigations": [
+                        "Aspersión de agua diaria",
+                        "Horario de trabajo diurno restringido",
+                    ],
+                }
+            ],
+            "mitigations": [
+                {
+                    "component": "aire_acustico",
+                    "measure": "Riego periódico de calzadas y cerco con lona antipolvo.",
+                    "type": "preventiva",
+                    "origin": "propuesta_expediente",
+                }
+            ],
+            "evaluated_at": datetime.now(timezone.utc),
+            "duplicated": idempotency_key == "env-repeat",
+        }
+
+    def get_environmental_assessment(self, project_id: UUID) -> dict[str, Any]:
+        return self.evaluate_environmental_assessment(project_id, UUID("10000000-0000-4000-a000-000000000002"))
+
 
 
 @pytest.fixture
@@ -887,4 +1020,80 @@ def test_get_social_assessment(client: TestClient) -> None:
     body = response.json()
     assert body["status"] == "complete"
     assert len(body["categories"]) == 3
+
+def test_environmental_assessment_requires_auth(client: TestClient) -> None:
+    response = client.post(f"/api/v1/projects/{PROJECT_ID}/environmental-assessment")
+    assert response.status_code == 401
+
+
+def test_environmental_assessment_requires_planner_role(client: TestClient) -> None:
+    response = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/environmental-assessment",
+        headers={"Authorization": "Bearer token-legal"},
+    )
+    assert response.status_code == 403
+
+
+def test_environmental_assessment_pry_a_complete(client: TestClient) -> None:
+    response = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/environmental-assessment",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "sufficient"
+    assert body["risk_level"] == "moderate"
+    assert body["favorable"] is True
+    assert body["requires_human_review"] is False
+    assert len(body["impacts"]) >= 1
+    assert len(body["mitigations"]) >= 1
+    d_vs_e = body["declared_vs_evidence"]
+    assert d_vs_e["declared_by_applicant"] is not None
+    assert d_vs_e["verifiable_evidence"] is not None
+    assert d_vs_e["is_simulated"] is True
+
+
+def test_environmental_assessment_pry_c_high_risk_requires_human_review(client: TestClient) -> None:
+    project_c_id = UUID("a0000000-0000-4000-a000-00000000000c")
+    response = client.post(
+        f"/api/v1/projects/{project_c_id}/environmental-assessment",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "sufficient"
+    assert body["risk_level"] == "high"
+    assert body["requires_human_review"] is True
+    # NO aprobación automática
+    assert body["favorable"] is not True
+    assert body["risk_observation"] is not None
+    assert "OBSERVACIÓN DE RIESGO AMBIENTAL ALTO" in body["risk_observation"]
+
+
+def test_environmental_assessment_pry_b_insufficient_no_favorable(client: TestClient) -> None:
+    project_b_id = UUID("a0000000-0000-4000-a000-00000000000b")
+    response = client.post(
+        f"/api/v1/projects/{project_b_id}/environmental-assessment",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "insufficient"
+    assert body["risk_level"] == "insufficient"
+    assert body["risk_level_label"] == "Información insuficiente"
+    # NUNCA favorable por defecto
+    assert body["favorable"] is None
+    assert body["favorable"] is not True
+    assert "Información insuficiente" in body["summary"]
+
+
+def test_get_environmental_assessment(client: TestClient) -> None:
+    response = client.get(
+        f"/api/v1/projects/{PROJECT_ID}/environmental-assessment",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "sufficient"
+    assert body["risk_level"] == "moderate"
 

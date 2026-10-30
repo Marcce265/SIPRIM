@@ -20,6 +20,7 @@ from backend.application.dto.pmv1_dto import (
     PMV1ProjectCreate,
     PMV1ProjectResponse,
     PMV1ValidationResponse,
+    EnvironmentalAssessmentResponse,
     SocialAccessibilityResponse,
     ZoningPrecheckResponse,
 )
@@ -306,4 +307,37 @@ def get_social_assessment(
     service: Annotated[PlatformService, Depends(get_platform_service)],
 ) -> dict[str, Any]:
     return service.get_social_accessibility(project_id=project_id)
+
+@router.post(
+    "/projects/{project_id}/environmental-assessment",
+    response_model=EnvironmentalAssessmentResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Evalúa el impacto ambiental territorial de la obra (HU1.6)",
+)
+def evaluate_environmental_assessment(
+    project_id: Annotated[UUID, Path()],
+    user: Annotated[dict[str, Any], Depends(require_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+    idempotency_key: Annotated[
+        str | None, Header(alias="Idempotency-Key", max_length=120)
+    ] = None,
+) -> dict[str, Any]:
+    return service.evaluate_environmental_assessment(
+        project_id=project_id,
+        actor_id=UUID(user["sub"]),
+        idempotency_key=idempotency_key,
+    )
+
+
+@router.get(
+    "/projects/{project_id}/environmental-assessment",
+    response_model=EnvironmentalAssessmentResponse,
+    summary="Consulta la evaluación de impacto ambiental territorial del proyecto (HU1.6)",
+)
+def get_environmental_assessment(
+    project_id: Annotated[UUID, Path()],
+    _: Annotated[dict[str, Any], Depends(require_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+) -> dict[str, Any]:
+    return service.get_environmental_assessment(project_id=project_id)
 

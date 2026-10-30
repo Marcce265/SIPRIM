@@ -1141,6 +1141,218 @@ class PlatformService:
                 "duplicated": False,
             }
 
+    def evaluate_environmental_assessment(
+        self,
+        project_id: UUID,
+        actor_id: UUID,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        """Evalúa el impacto ambiental territorial del proyecto (HU1.6)."""
+        project = self.get_project(project_id)
+        cleaned_key = idempotency_key.strip() if idempotency_key and idempotency_key.strip() else None
+
+        if not _is_db_available(self.db_url):
+            if not self.enable_demo_fallback:
+                raise ServicioNoDisponibleError(
+                    "Servicio de evaluación ambiental no disponible: la base de datos no responde."
+                )
+
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
+            if cleaned_key:
+                prev = conn.execute(
+                    """
+                    SELECT id, project_id, project_version_id, status, risk_level,
+                           risk_observation, requires_human_review, favorable, summary,
+                           declared_vs_evidence_json, impacts_json, mitigations_json,
+                           evaluated_at, idempotency_key
+                    FROM environmental_assessments
+                    WHERE idempotency_key = %s
+                    """,
+                    (cleaned_key,),
+                ).fetchone()
+                if prev:
+                    if prev["project_id"] != project_id:
+                        raise ConfiguracionPMV1Error("Idempotency-Key ya fue utilizada para otro expediente")
+                    return {
+                        "project_id": prev["project_id"],
+                        "project_code": project["code"],
+                        "project_version_id": prev["project_version_id"],
+                        "status": prev["status"],
+                        "risk_level": prev["risk_level"],
+                        "risk_level_label": {
+                            "low": "Riesgo Bajo",
+                            "moderate": "Riesgo Moderado",
+                            "high": "Riesgo Alto",
+                            "insufficient": "Información insuficiente",
+                        }.get(prev["risk_level"], prev["risk_level"]),
+                        "risk_observation": prev["risk_observation"],
+                        "requires_human_review": prev["requires_human_review"],
+                        "favorable": prev["favorable"],
+                        "favorable_label": "Favorable condicionado a cumplimiento de mitigaciones" if prev["favorable"] is True else (
+                            "No favorable - Requiere revisión técnica ambiental humana obligatoria" if prev["risk_level"] == "high" else
+                            "Sin conclusión favorable: información insuficiente"
+                        ),
+                        "summary": prev["summary"],
+                        "declared_vs_evidence": prev["declared_vs_evidence_json"],
+                        "impacts": prev["impacts_json"],
+                        "mitigations": prev["mitigations_json"],
+                        "evaluated_at": prev["evaluated_at"],
+                        "duplicated": True,
+                    }
+
+            rows = conn.execute(
+                """
+                SELECT id, project_id, project_code, has_sufficient_data,
+                       environmental_component, declared_impacts, declared_measures,
+                       verifiable_evidence, proximity_to_water_meters,
+                       is_in_protected_or_risk_area, source_name, data_origin, description
+                FROM project_environmental_records
+                WHERE project_id = %s OR project_code = %s
+                ORDER BY created_at ASC
+                """,
+                (project_id, project["code"]),
+            ).fetchall()
+
+            assessment = EnvironmentalAssessmentEngine.evaluate(
+                project_id=project_id,
+                project_code=project["code"],
+                project_version_id=project.get("project_version_id"),
+                records=[dict(r) for r in rows],
+            )
+
+            assessment_id = uuid4()
+            effective_key = cleaned_key or f"env-assessment-{assessment_id}"
+            now = assessment["evaluated_at"]
+
+            conn.execute(
+                """
+                INSERT INTO environmental_assessments
+                (id, project_id, project_version_id, assessed_by_user_id, idempotency_key,
+                 status, risk_level, risk_observation, requires_human_review, favorable,
+                 summary, declared_vs_evidence_json, impacts_json, mitigations_json, evaluated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    assessment_id,
+                    project_id,
+                    project["project_version_id"],
+                    actor_id,
+                    effective_key,
+                    assessment["status"],
+                    assessment["risk_level"],
+                    assessment["risk_observation"],
+                    assessment["requires_human_review"],
+                    assessment["favorable"],
+                    assessment["summary"],
+                    Jsonb(assessment["declared_vs_evidence"]),
+                    Jsonb(assessment["impacts"]),
+                    Jsonb(assessment["mitigations"]),
+                    now,
+                ),
+            )
+
+            conn.execute(
+                """
+                INSERT INTO audit_events
+                (actor_user_id, action, entity_type, entity_id, details)
+                VALUES (%s, 'ENVIRONMENTAL_ASSESSMENT_EVALUATED', 'environmental_assessment', %s, %s)
+                """,
+                (
+                    actor_id,
+                    assessment_id,
+                    Jsonb(
+                        {
+                            "project_id": str(project_id),
+                            "project_code": project["code"],
+                            "risk_level": assessment["risk_level"],
+                            "requires_human_review": assessment["requires_human_review"],
+                            "favorable": assessment["favorable"],
+                        }
+                    ),
+                ),
+            )
+
+        return {
+            **assessment,
+            "duplicated": False,
+        }
+
+    def get_environmental_assessment(self, project_id: UUID) -> dict[str, Any]:
+        """Obtiene la última evaluación ambiental o genera el análisis preliminar si aún no fue guardado."""
+        project = self.get_project(project_id)
+
+        if not _is_db_available(self.db_url):
+            if not self.enable_demo_fallback:
+                raise ServicioNoDisponibleError(
+                    "Servicio de evaluación ambiental no disponible: la base de datos no responde."
+                )
+
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            latest = conn.execute(
+                """
+                SELECT id, project_id, project_version_id, status, risk_level,
+                       risk_observation, requires_human_review, favorable, summary,
+                       declared_vs_evidence_json, impacts_json, mitigations_json, evaluated_at
+                FROM environmental_assessments
+                WHERE project_id = %s
+                ORDER BY evaluated_at DESC
+                LIMIT 1
+                """,
+                (project_id,),
+            ).fetchone()
+
+            if latest:
+                return {
+                    "project_id": latest["project_id"],
+                    "project_code": project["code"],
+                    "project_version_id": latest["project_version_id"],
+                    "status": latest["status"],
+                    "risk_level": latest["risk_level"],
+                    "risk_level_label": {
+                        "low": "Riesgo Bajo",
+                        "moderate": "Riesgo Moderado",
+                        "high": "Riesgo Alto",
+                        "insufficient": "Información insuficiente",
+                    }.get(latest["risk_level"], latest["risk_level"]),
+                    "risk_observation": latest["risk_observation"],
+                    "requires_human_review": latest["requires_human_review"],
+                    "favorable": latest["favorable"],
+                    "favorable_label": "Favorable condicionado a cumplimiento de mitigaciones" if latest["favorable"] is True else (
+                        "No favorable - Requiere revisión técnica ambiental humana obligatoria" if latest["risk_level"] == "high" else
+                        "Sin conclusión favorable: información insuficiente"
+                    ),
+                    "summary": latest["summary"],
+                    "declared_vs_evidence": latest["declared_vs_evidence_json"],
+                    "impacts": latest["impacts_json"],
+                    "mitigations": latest["mitigations_json"],
+                    "evaluated_at": latest["evaluated_at"],
+                    "duplicated": False,
+                }
+
+            rows = conn.execute(
+                """
+                SELECT id, project_id, project_code, has_sufficient_data,
+                       environmental_component, declared_impacts, declared_measures,
+                       verifiable_evidence, proximity_to_water_meters,
+                       is_in_protected_or_risk_area, source_name, data_origin, description
+                FROM project_environmental_records
+                WHERE project_id = %s OR project_code = %s
+                ORDER BY created_at ASC
+                """,
+                (project_id, project["code"]),
+            ).fetchall()
+
+            assessment = EnvironmentalAssessmentEngine.evaluate(
+                project_id=project_id,
+                project_code=project["code"],
+                project_version_id=project.get("project_version_id"),
+                records=[dict(r) for r in rows],
+            )
+            return {
+                **assessment,
+                "duplicated": False,
+            }
+
 
 class SocialAccessibilityEngine:
     """Motor de evaluación de accesibilidad territorial en salud, educación y transporte (HU1.4).
@@ -1250,6 +1462,203 @@ class SocialAccessibilityEngine:
             "summary": summary,
             "categories": categories_output,
             "evaluated_at": datetime.now(timezone.utc),
+        }
+
+
+class EnvironmentalAssessmentEngine:
+    """Motor de evaluación de impacto ambiental territorial (HU1.6).
+
+    Cumple estrictamente los criterios de aceptación:
+    - CA-HU1.6-01: Muestra impactos identificados, nivel de riesgo estimado, sustento y
+      posibles mitigaciones, diferenciando lo declarado en el expediente de la evidencia verificable.
+    - CA-HU1.6-02: Ante posible impacto alto, registra una observación de riesgo que requiere
+      consideración humana obligatoria antes de cualquier decisión favorable (prohibiendo aprobación automática).
+    - CA-HU1.6-03: Si faltan datos ambientales esenciales, muestra 'Información insuficiente'
+      y nunca una conclusión favorable por defecto (favorable=None/False).
+    """
+
+    @classmethod
+    def evaluate(
+        cls,
+        project_id: UUID,
+        project_code: str,
+        project_version_id: UUID | None,
+        records: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        now = datetime.now(timezone.utc)
+
+        if not records or any(not r.get("has_sufficient_data") for r in records):
+            rec = records[0] if records else None
+            declared_vs_evidence = {
+                "declared_by_applicant": rec.get("declared_impacts") if rec else None,
+                "declared_measures": rec.get("declared_measures") if rec else None,
+                "verifiable_evidence": None,
+                "evidence_source": rec.get("source_name") if rec else "Catastro Municipal El Tambo (Sin cobertura)",
+                "is_simulated": True,
+                "proximity_to_water_meters": None,
+                "is_in_protected_or_risk_area": False,
+            }
+            return {
+                "project_id": project_id,
+                "project_code": project_code,
+                "project_version_id": project_version_id,
+                "status": "insufficient",
+                "risk_level": "insufficient",
+                "risk_level_label": "Información insuficiente",
+                "risk_observation": None,
+                "requires_human_review": False,
+                "favorable": None,
+                "favorable_label": "Sin conclusión favorable: información insuficiente",
+                "summary": "Información insuficiente: el expediente no cuenta con datos ambientales esenciales, Declaración de Impacto Ambiental (DIA) ni línea base territorial verificable.",
+                "declared_vs_evidence": declared_vs_evidence,
+                "impacts": [],
+                "mitigations": [],
+                "evaluated_at": now,
+            }
+
+        is_high_risk = False
+        high_risk_reasons = []
+        impacts: list[dict[str, Any]] = []
+        mitigations: list[dict[str, Any]] = []
+
+        all_declared_impacts = []
+        all_declared_measures = []
+        all_verifiable_evidence = []
+        sources = set()
+        min_water_dist: float | None = None
+        in_protected_area = False
+
+        for r in records:
+            if r.get("declared_impacts"):
+                all_declared_impacts.append(r["declared_impacts"])
+            if r.get("declared_measures"):
+                all_declared_measures.append(r["declared_measures"])
+            if r.get("verifiable_evidence"):
+                all_verifiable_evidence.append(r["verifiable_evidence"])
+            if r.get("source_name"):
+                sources.add(r["source_name"])
+
+            prox = r.get("proximity_to_water_meters")
+            if prox is not None:
+                prox_val = float(prox)
+                if min_water_dist is None or prox_val < min_water_dist:
+                    min_water_dist = prox_val
+                if prox_val < 50.0:
+                    is_high_risk = True
+                    high_risk_reasons.append(f"Distancia crítica a cuerpo de agua o faja marginal ({prox_val:.1f} m < 50 m reglamentarios).")
+
+            if r.get("is_in_protected_or_risk_area"):
+                in_protected_area = True
+                is_high_risk = True
+                high_risk_reasons.append("Ubicación en zona de riesgo alto/no mitigable o faja marginal intangible según PDM Huancayo / CENEPRED.")
+
+            comp = r.get("environmental_component", "integral")
+            if "hidrico" in comp or in_protected_area:
+                impacts.append({
+                    "component": "recurso_hidrico",
+                    "component_label": "Recurso Hídrico y Faja Marginal",
+                    "description": "Riesgo de contaminación por vertimientos, escorrentía con contaminantes y alteración del régimen fluvial.",
+                    "severity": "alta" if is_high_risk else "moderada",
+                    "substantiation": r.get("verifiable_evidence") or "Proximidad a cauce o faja marginal fluvial.",
+                    "mitigations": [
+                        "Reubicación fuera de la faja marginal intangible según PDM Huancayo",
+                        "Instalación de trampas de grasa y desarenadores certificados",
+                        "Plan de contingencia obligatorio ante crecidas fluviales"
+                    ]
+                })
+                mitigations.append({
+                    "component": "recurso_hidrico",
+                    "measure": "Delimitación estricta y retiro obligatorio del cauce fluvial según plano PDM Huancayo.",
+                    "type": "preventiva",
+                    "origin": "requerimiento_tecnico"
+                })
+            else:
+                impacts.append({
+                    "component": "aire_acustico",
+                    "component_label": "Emisiones Atmosféricas y Ruido",
+                    "description": "Generación temporal de polvo y niveles sonoros diurnos durante obras civiles preliminares.",
+                    "severity": "moderada",
+                    "substantiation": r.get("verifiable_evidence") or "Obra en zona urbana consolidada.",
+                    "mitigations": [
+                        "Aspersión periódica de agua para control de polvo",
+                        "Cerco perimétrico con malla antipolvo",
+                        "Horario de trabajo diurno controlado (08:00 - 17:00 h)"
+                    ]
+                })
+                impacts.append({
+                    "component": "suelo_residuos",
+                    "component_label": "Gestión de Residuos de Demolición",
+                    "description": "Generación de escombros y material excedente de obra civil.",
+                    "severity": "baja",
+                    "substantiation": "Residuos inertes de concreto y afirmado.",
+                    "mitigations": [
+                        "Transporte cubierto hacia escombrera autorizada municipal",
+                        "Segregación en obra de materiales reutilizables"
+                    ]
+                })
+                mitigations.append({
+                    "component": "aire_acustico",
+                    "measure": "Aspersión diaria y cerco perimétrico con malla antipolvo.",
+                    "type": "preventiva",
+                    "origin": "propuesta_expediente"
+                })
+                mitigations.append({
+                    "component": "suelo_residuos",
+                    "measure": "Disposición final exclusiva en escombrera autorizada por la Municipalidad de El Tambo.",
+                    "type": "correctiva",
+                    "origin": "requerimiento_tecnico"
+                })
+
+        source_str = " | ".join(sorted(sources)) if sources else "Dataset ambiental simulado SIPRIM El Tambo (Simulado)"
+        declared_vs_evidence = {
+            "declared_by_applicant": " // ".join(all_declared_impacts) if all_declared_impacts else None,
+            "declared_measures": " // ".join(all_declared_measures) if all_declared_measures else None,
+            "verifiable_evidence": " // ".join(all_verifiable_evidence) if all_verifiable_evidence else None,
+            "evidence_source": source_str,
+            "is_simulated": True,
+            "proximity_to_water_meters": min_water_dist,
+            "is_in_protected_or_risk_area": in_protected_area,
+        }
+
+        if is_high_risk:
+            risk_observation = (
+                "OBSERVACIÓN DE RIESGO AMBIENTAL ALTO: " + " ".join(high_risk_reasons) +
+                " Se prohíbe la aprobación automática. Requiere consideración técnica ambiental humana obligatoria antes de cualquier decisión favorable."
+            )
+            return {
+                "project_id": project_id,
+                "project_code": project_code,
+                "project_version_id": project_version_id,
+                "status": "sufficient",
+                "risk_level": "high",
+                "risk_level_label": "Riesgo Alto",
+                "risk_observation": risk_observation,
+                "requires_human_review": True,
+                "favorable": None,
+                "favorable_label": "No favorable - Requiere revisión técnica ambiental humana obligatoria",
+                "summary": "Alerta ambiental: se identificó un nivel de riesgo ambiental ALTO. El expediente requiere pronunciamiento técnico humano formal antes de una decisión favorable.",
+                "declared_vs_evidence": declared_vs_evidence,
+                "impacts": impacts,
+                "mitigations": mitigations,
+                "evaluated_at": now,
+            }
+
+        return {
+            "project_id": project_id,
+            "project_code": project_code,
+            "project_version_id": project_version_id,
+            "status": "sufficient",
+            "risk_level": "moderate",
+            "risk_level_label": "Riesgo Moderado",
+            "risk_observation": None,
+            "requires_human_review": False,
+            "favorable": True,
+            "favorable_label": "Favorable condicionado a cumplimiento de mitigaciones",
+            "summary": "Evaluación ambiental con riesgo MODERADO: impactos de obra mitigables mediante las medidas ambientales programadas.",
+            "declared_vs_evidence": declared_vs_evidence,
+            "impacts": impacts,
+            "mitigations": mitigations,
+            "evaluated_at": now,
         }
 
 

@@ -141,4 +141,48 @@ export interface SocialAccessibilityResponse {
   evaluated_at: string
   duplicated?: boolean
 }
+export interface EnvironmentalImpactItem {
+  component: string
+  component_label: string
+  description: string
+  severity: 'baja' | 'moderada' | 'alta' | 'indeterminada'
+  substantiation: string
+  mitigations: string[]
+}
+
+export interface EnvironmentalMitigationItem {
+  component: string
+  measure: string
+  type: string
+  origin: string
+}
+
+export interface EnvironmentalDeclaredVsEvidence {
+  declared_by_applicant: string | null
+  declared_measures: string | null
+  verifiable_evidence: string | null
+  evidence_source: string
+  is_simulated: boolean
+  proximity_to_water_meters?: number | null
+  is_in_protected_or_risk_area: boolean
+}
+
+export interface EnvironmentalAssessmentResponse {
+  project_id: string
+  project_code: string
+  project_version_id?: string | null
+  status: 'sufficient' | 'insufficient'
+  risk_level: 'low' | 'moderate' | 'high' | 'insufficient'
+  risk_level_label: string
+  risk_observation?: string | null
+  requires_human_review: boolean
+  favorable: boolean | null
+  favorable_label: string
+  summary: string
+  declared_vs_evidence: EnvironmentalDeclaredVsEvidence
+  impacts: EnvironmentalImpactItem[]
+  mitigations: EnvironmentalMitigationItem[]
+  evaluated_at: string
+  duplicated?: boolean
+}
 

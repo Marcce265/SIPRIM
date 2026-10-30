@@ -6,7 +6,9 @@ import { Alert } from '../../components/ui/Alert'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { TechnicalDetails } from '../../components/ui/TechnicalDetails'
 import {
+  evaluateEnvironmentalAssessment,
   evaluateSocialAccessibility,
+  getEnvironmentalAssessment,
   getEvaluation,
   getHumanApproval,
   getProject,
@@ -20,6 +22,7 @@ import type {
   EvaluationResponse,
   HumanApprovalStatusResponse,
   PMV1ProjectResponse,
+  EnvironmentalAssessmentResponse,
   PMV1ValidationResponse,
   SocialAccessibilityResponse,
   ZoningPrecheckResponse,
@@ -46,6 +49,8 @@ export function ProyectoDetallePage() {
   const [approval, setApproval] = useState<HumanApprovalStatusResponse | null>(null)
   const [socialAssessment, setSocialAssessment] = useState<SocialAccessibilityResponse | null>(null)
   const [socialError, setSocialError] = useState<string | null>(null)
+  const [environmentalAssessment, setEnvironmentalAssessment] = useState<EnvironmentalAssessmentResponse | null>(null)
+  const [environmentalError, setEnvironmentalError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(flash ?? null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -82,11 +87,22 @@ export function ProyectoDetallePage() {
     }
   }, [projectId])
 
+  const loadEnvironmentalAssessment = useCallback(async () => {
+    if (!projectId) return
+    try {
+      const data = await getEnvironmentalAssessment(projectId)
+      setEnvironmentalAssessment(data)
+    } catch {
+      /* opcional hasta evaluación o consulta */
+    }
+  }, [projectId])
+
   useEffect(() => {
     void loadProject()
     void loadApproval()
     void loadSocialAssessment()
-  }, [loadProject, loadApproval, loadSocialAssessment])
+    void loadEnvironmentalAssessment()
+  }, [loadProject, loadApproval, loadSocialAssessment, loadEnvironmentalAssessment])
 
   const runValidate = async () => {
     if (!projectId) return
@@ -135,6 +151,21 @@ export function ProyectoDetallePage() {
       await pollEvaluation(accepted.evaluation_id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo evaluar.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const runEnvironmentalAssessment = async () => {
+    if (!projectId) return
+    setBusy('environmental')
+    setEnvironmentalError(null)
+    try {
+      const data = await evaluateEnvironmentalAssessment(projectId, newIdempotencyKey('env'))
+      setEnvironmentalAssessment(data)
+      setInfo('Evaluación de impacto ambiental territorial registrada exitosamente.')
+    } catch (err) {
+      setEnvironmentalError(err instanceof Error ? err.message : 'Error al evaluar impacto ambiental.')
     } finally {
       setBusy(null)
     }
@@ -336,6 +367,160 @@ export function ProyectoDetallePage() {
                 </div>
 
                 <TechnicalDetails data={socialAssessment} />
+              </>
+            )}
+          </section>
+
+          <section className="flow-panel environmental-flow-panel">
+            <div className="flow-panel-heading">
+              <div>
+                <span className="story-label">PMV 2 · HU1.6</span>
+                <h2>Evaluación de impacto ambiental</h2>
+              </div>
+              <span className="review-badge">Análisis ambiental territorial</span>
+            </div>
+            <p className="flow-hint">
+              Evaluación del impacto ambiental estimado de la obra, distinguiendo declaraciones en el expediente de la evidencia verificable (El Tambo, Huancayo).
+            </p>
+
+            {hasRole('PLANNER') && (
+              <div style={{ marginBottom: '1rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={busy !== null}
+                  onClick={() => void runEnvironmentalAssessment()}
+                >
+                  {busy === 'environmental'
+                    ? 'Evaluando impacto ambiental…'
+                    : environmentalAssessment
+                    ? 'Actualizar evaluación ambiental'
+                    : 'Evaluar impacto ambiental'}
+                </button>
+              </div>
+            )}
+
+            {environmentalError && <Alert variant="error">{environmentalError}</Alert>}
+
+            {environmentalAssessment && (
+              <>
+                <Alert
+                  variant={
+                    environmentalAssessment.status === 'sufficient' && environmentalAssessment.risk_level !== 'high'
+                      ? 'success'
+                      : 'error'
+                  }
+                >
+                  <div>
+                    <strong>
+                      Nivel de riesgo: {environmentalAssessment.risk_level_label} ·{' '}
+                      {environmentalAssessment.favorable_label}
+                    </strong>
+                  </div>
+                  <div style={{ marginTop: '0.35rem', lineHeight: 1.45 }}>
+                    {environmentalAssessment.summary}
+                  </div>
+                  {environmentalAssessment.risk_observation && (
+                    <div className="env-risk-observation-box">
+                      <strong>⚠️ Observación de riesgo ambiental relevante:</strong>
+                      <p style={{ margin: '0.25rem 0 0' }}>{environmentalAssessment.risk_observation}</p>
+                    </div>
+                  )}
+                  <div style={{ marginTop: '0.35rem', fontSize: '0.8rem', opacity: 0.9 }}>
+                    Evaluado el: {formatDate(environmentalAssessment.evaluated_at)}
+                  </div>
+                </Alert>
+
+                <div className="env-contrast-panel">
+                  <h3>Contraste: Declaración en expediente vs. Evidencia verificable</h3>
+                  <div className="env-contrast-grid">
+                    <div className="env-contrast-col env-col-declared">
+                      <h4>Declarado en el expediente</h4>
+                      <p>
+                        <strong>Impactos declarados:</strong>{' '}
+                        {environmentalAssessment.declared_vs_evidence.declared_by_applicant || 'No declarado'}
+                      </p>
+                      <p>
+                        <strong>Medidas previstas:</strong>{' '}
+                        {environmentalAssessment.declared_vs_evidence.declared_measures || 'No especificadas'}
+                      </p>
+                    </div>
+
+                    <div className="env-contrast-col env-col-evidence">
+                      <h4>Evidencia territorial verificable</h4>
+                      <p>
+                        <strong>Hallazgos cartográficos / normativos:</strong>{' '}
+                        {environmentalAssessment.declared_vs_evidence.verifiable_evidence || (
+                          <span className="env-insufficient-badge">Sin evidencia verificable (Información insuficiente)</span>
+                        )}
+                      </p>
+                      <p>
+                        <strong>Proximidad a fuentes hídricas:</strong>{' '}
+                        {environmentalAssessment.declared_vs_evidence.proximity_to_water_meters !== null &&
+                        environmentalAssessment.declared_vs_evidence.proximity_to_water_meters !== undefined
+                          ? `${environmentalAssessment.declared_vs_evidence.proximity_to_water_meters} metros`
+                          : 'No determinada'}
+                      </p>
+                      <p>
+                        <strong>Zona de riesgo / faja marginal:</strong>{' '}
+                        {environmentalAssessment.declared_vs_evidence.is_in_protected_or_risk_area
+                          ? 'SÍ (Faja marginal intangible / Riesgo alto PDM)'
+                          : 'NO (Fuera de faja marginal)'}
+                      </p>
+                      <div className="social-source-tag">
+                        {environmentalAssessment.declared_vs_evidence.evidence_source}
+                        {environmentalAssessment.declared_vs_evidence.is_simulated && (
+                          <span className="social-simulated-pill">Simulado</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {environmentalAssessment.status === 'insufficient' ? (
+                  <div className="env-insufficient-banner">
+                    <h4>Información insuficiente</h4>
+                    <p>
+                      Faltan datos esenciales para sustentar una valoración ambiental completa. No se emite pronunciamiento favorable por defecto.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <h3 style={{ marginTop: '1.25rem', marginBottom: '0.5rem', fontSize: '1rem', color: '#0f172a' }}>
+                      Impactos identificados y posibles mitigaciones
+                    </h3>
+                    <div className="env-impacts-grid">
+                      {environmentalAssessment.impacts.map((imp, idx) => (
+                        <div key={idx} className={`env-impact-card severity-${imp.severity}`}>
+                          <div className="env-impact-header">
+                            <span className="env-impact-comp">{imp.component_label}</span>
+                            <span className={`env-severity-badge severity-${imp.severity}`}>
+                              Severidad {imp.severity.toUpperCase()}
+                            </span>
+                          </div>
+                          <p className="env-impact-desc">
+                            <strong>Impacto:</strong> {imp.description}
+                          </p>
+                          <p className="env-impact-substantiation">
+                            <strong>Sustento:</strong> {imp.substantiation}
+                          </p>
+                          {imp.mitigations && imp.mitigations.length > 0 && (
+                            <div className="env-impact-mitigations">
+                              <strong>Posibles mitigaciones:</strong>
+                              <ul>
+                                {imp.mitigations.map((m, mIdx) => (
+                                  <li key={mIdx}>{m}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <TechnicalDetails data={environmentalAssessment} />
               </>
             )}
           </section>
