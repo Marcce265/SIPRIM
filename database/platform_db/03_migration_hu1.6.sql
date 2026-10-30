@@ -1,6 +1,7 @@
 -- =========================================================
 -- PMV 2 - Sprint 2 - HU1.6: Migración de Evaluación de Impacto Ambiental
--- Idempotente para instalaciones nuevas o volúmenes existentes.
+-- Idempotente para instalaciones nuevas o existentes.
+-- Estrictamente DDL (sin datos semilla de demostración).
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS project_environmental_records (
@@ -13,15 +14,15 @@ CREATE TABLE IF NOT EXISTS project_environmental_records (
     declared_measures TEXT,
     verifiable_evidence TEXT,
     proximity_to_water_meters NUMERIC(10,2),
-    is_in_protected_or_risk_area BOOLEAN NOT NULL DEFAULT FALSE,
+    is_in_protected_or_risk_area BOOLEAN DEFAULT NULL,
     source_name VARCHAR(240) NOT NULL,
     data_origin VARCHAR(16) NOT NULL DEFAULT 'simulated'
         CHECK (data_origin IN ('declared', 'simulated', 'public')),
     description TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT chk_env_insufficient_no_evidence CHECK (
-        (has_sufficient_data = TRUE AND verifiable_evidence IS NOT NULL) OR
-        (has_sufficient_data = FALSE AND verifiable_evidence IS NULL)
+        (has_sufficient_data = TRUE AND verifiable_evidence IS NOT NULL AND is_in_protected_or_risk_area IS NOT NULL) OR
+        (has_sufficient_data = FALSE AND verifiable_evidence IS NULL AND is_in_protected_or_risk_area IS NULL)
     )
 );
 
@@ -58,61 +59,26 @@ CREATE TABLE IF NOT EXISTS environmental_assessments (
 CREATE INDEX IF NOT EXISTS env_assessments_project_idx ON environmental_assessments(project_id, evaluated_at DESC);
 CREATE INDEX IF NOT EXISTS env_assessments_risk_idx ON environmental_assessments(risk_level);
 
--- Inserción de PRY-C si no existe
-INSERT INTO projects (id, code, created_by_user_id, status) VALUES
-    ('a0000000-0000-4000-a000-00000000000c', 'PRY-C', '10000000-0000-4000-a000-000000000002', 'ready')
-ON CONFLICT (code) DO NOTHING;
+-- =========================================================
+-- Ajustes idempotentes para bases de datos existentes
+-- =========================================================
 
-INSERT INTO project_versions (id, project_id, version_number, title, description, location_description,
-                              proposed_land_use, territorial_data_origin, estimated_budget_pen,
-                              beneficiaries_count, created_by_user_id) VALUES
-    ('b0000000-0000-4000-a000-00000000000c', 'a0000000-0000-4000-a000-00000000000c', 1,
-     'Proyecto C - Taller de maestranza y depósito municipal (prueba)', 'Dato ficticio para el PMV 2 (HU1.6)',
-     'CASO SIMULADO - Faja marginal del Río Shullcas - El Tambo', 'taller / maestranza', 'simulated', 350000.00, 1200,
-     '10000000-0000-4000-a000-000000000002')
-ON CONFLICT (project_id, version_number) DO NOTHING;
+-- Permite que is_in_protected_or_risk_area sea NULL y no fuerce FALSE
+ALTER TABLE project_environmental_records
+    ALTER COLUMN is_in_protected_or_risk_area DROP NOT NULL;
+ALTER TABLE project_environmental_records
+    ALTER COLUMN is_in_protected_or_risk_area SET DEFAULT NULL;
 
--- Semillas de datos ambientales territoriales
-INSERT INTO project_environmental_records
-    (id, project_id, project_code, has_sufficient_data, environmental_component,
-     declared_impacts, declared_measures, verifiable_evidence, proximity_to_water_meters,
-     is_in_protected_or_risk_area, source_name, data_origin, description)
-VALUES
-    -- PRY-A (Impacto moderado/bajo con sustento y mitigaciones)
-    ('81000000-0000-4000-a000-000000000001', 'a0000000-0000-4000-a000-00000000000a', 'PRY-A', TRUE,
-     'aire_acustico_residuos',
-     'El expediente declara generación temporal de polvo, ruido diurno durante obras preliminares y demolición de pavimento deteriorado.',
-     'Aspersión de agua diaria para control de material particulado, cerco perimétrico con malla antipolvo y horario de trabajo restringido de 08:00 a 17:00 h.',
-     'Ubicación en trama urbana consolidada de El Tambo. Distancia superior a 400 m de fajas marginales o cursos hídricos; fuera de áreas naturales protegidas o de conservación (PDM Huancayo / CENEPRED-SIGRID).',
-     420.00, FALSE,
-     'Dataset ambiental simulado SIPRIM El Tambo - PDM Huancayo / CENEPRED (Simulado)', 'simulated',
-     'Losa deportiva en área consolidada. Impactos menores y mitigables mediante buenas prácticas de obra civil.'),
+-- Corrige registros existentes donde un dato ausente se interpretó erróneamente como FALSE
+UPDATE project_environmental_records
+SET is_in_protected_or_risk_area = NULL
+WHERE has_sufficient_data = FALSE AND is_in_protected_or_risk_area = FALSE;
 
-    -- PRY-C (Riesgo ambiental ALTO: Faja marginal del Río Shullcas)
-    ('81000000-0000-4000-a000-000000000002', 'a0000000-0000-4000-a000-00000000000c', 'PRY-C', TRUE,
-     'recurso_hidrico_ecosistema',
-     'El administrado declara almacenamiento temporal de vehículos y depósito de materiales sin vertimientos contaminantes a la quebrada.',
-     'Piso de afirmado compacto y cuneta perimétrica rústica sin trampa de grasas ni canalización certificada.',
-     'Predio emplazado a 25 metros de la faja marginal del Río Shullcas. Zona clasificada como de muy alto riesgo no mitigable e intangible por el PDM Huancayo 2017-2037 (O.M. N.° 636-MPH) y Ley 29664 (SINAGERD); riesgo crítico de escorrentía con hidrocarburos y alteración del ecosistema ribereño.',
-     25.00, TRUE,
-     'Dataset ambiental simulado SIPRIM El Tambo - PDM Huancayo / ANA-ALA Mantaro / SIGRID (Simulado)', 'simulated',
-     'Instalación de maestranza en faja marginal. Riesgo severo de contaminación fluvial y afectación hidrológica no mitigable.'),
-
-    -- PRY-B (Información ambiental insuficiente: falta DIA y línea base)
-    ('81000000-0000-4000-a000-000000000003', 'a0000000-0000-4000-a000-00000000000b', 'PRY-B', FALSE,
-     'integral',
-     NULL,
-     NULL,
-     NULL,
-     NULL, FALSE,
-     'Catastro Municipal El Tambo (Sin Declaración de Impacto Ambiental ni línea base registrada)', 'simulated',
-     'Información insuficiente')
-ON CONFLICT (id) DO UPDATE SET
-    declared_impacts = EXCLUDED.declared_impacts,
-    declared_measures = EXCLUDED.declared_measures,
-    verifiable_evidence = EXCLUDED.verifiable_evidence,
-    proximity_to_water_meters = EXCLUDED.proximity_to_water_meters,
-    is_in_protected_or_risk_area = EXCLUDED.is_in_protected_or_risk_area,
-    source_name = EXCLUDED.source_name,
-    data_origin = EXCLUDED.data_origin,
-    description = EXCLUDED.description;
+-- Actualiza la restricción CHECK para que exija NULL en ausencia de datos suficientes
+ALTER TABLE project_environmental_records
+    DROP CONSTRAINT IF EXISTS chk_env_insufficient_no_evidence;
+ALTER TABLE project_environmental_records
+    ADD CONSTRAINT chk_env_insufficient_no_evidence CHECK (
+        (has_sufficient_data = TRUE AND verifiable_evidence IS NOT NULL AND is_in_protected_or_risk_area IS NOT NULL) OR
+        (has_sufficient_data = FALSE AND verifiable_evidence IS NULL AND is_in_protected_or_risk_area IS NULL)
+    );

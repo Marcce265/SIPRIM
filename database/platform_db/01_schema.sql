@@ -281,20 +281,26 @@ CREATE TABLE IF NOT EXISTS project_environmental_records (
     declared_measures TEXT,
     verifiable_evidence TEXT,
     proximity_to_water_meters NUMERIC(10,2),
-    is_in_protected_or_risk_area BOOLEAN NOT NULL DEFAULT FALSE,
+    is_in_protected_or_risk_area BOOLEAN DEFAULT NULL,
     source_name VARCHAR(240) NOT NULL,
     data_origin VARCHAR(16) NOT NULL DEFAULT 'simulated'
         CHECK (data_origin IN ('declared', 'simulated', 'public')),
     description TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT chk_env_insufficient_no_evidence CHECK (
-        (has_sufficient_data = TRUE AND verifiable_evidence IS NOT NULL) OR
-        (has_sufficient_data = FALSE AND verifiable_evidence IS NULL)
+        (has_sufficient_data = TRUE AND verifiable_evidence IS NOT NULL AND is_in_protected_or_risk_area IS NOT NULL) OR
+        (has_sufficient_data = FALSE AND verifiable_evidence IS NULL AND is_in_protected_or_risk_area IS NULL)
     )
 );
 
 CREATE INDEX IF NOT EXISTS env_records_project_idx ON project_environmental_records(project_id, environmental_component);
 CREATE INDEX IF NOT EXISTS env_records_code_idx ON project_environmental_records(project_code);
+
+-- Ajustes idempotentes para bases de datos existentes con esquemas previos
+ALTER TABLE project_environmental_records
+    ALTER COLUMN is_in_protected_or_risk_area DROP NOT NULL;
+ALTER TABLE project_environmental_records
+    ALTER COLUMN is_in_protected_or_risk_area SET DEFAULT NULL;
 
 CREATE TABLE IF NOT EXISTS environmental_assessments (
     id UUID PRIMARY KEY,

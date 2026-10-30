@@ -380,7 +380,7 @@ export function ProyectoDetallePage() {
               <span className="review-badge">Análisis ambiental territorial</span>
             </div>
             <p className="flow-hint">
-              Evaluación del impacto ambiental estimado de la obra, distinguiendo declaraciones en el expediente de la evidencia verificable (El Tambo, Huancayo).
+              Evaluación del impacto ambiental estimado de la obra, distinguiendo declaraciones en el expediente de la evidencia territorial de demostración (El Tambo, Huancayo).
             </p>
 
             {hasRole('PLANNER') && (
@@ -432,7 +432,7 @@ export function ProyectoDetallePage() {
                 </Alert>
 
                 <div className="env-contrast-panel">
-                  <h3>Contraste: Declaración en expediente vs. Evidencia verificable</h3>
+                  <h3>Contraste: Declaración en expediente vs. Evidencia territorial de demostración</h3>
                   <div className="env-contrast-grid">
                     <div className="env-contrast-col env-col-declared">
                       <h4>Declarado en el expediente</h4>
@@ -447,11 +447,11 @@ export function ProyectoDetallePage() {
                     </div>
 
                     <div className="env-contrast-col env-col-evidence">
-                      <h4>Evidencia territorial verificable</h4>
+                      <h4>Evidencia territorial de demostración (simulada)</h4>
                       <p>
                         <strong>Hallazgos cartográficos / normativos:</strong>{' '}
                         {environmentalAssessment.declared_vs_evidence.verifiable_evidence || (
-                          <span className="env-insufficient-badge">Sin evidencia verificable (Información insuficiente)</span>
+                          <span className="env-insufficient-badge">Sin evidencia territorial (Información insuficiente)</span>
                         )}
                       </p>
                       <p>
@@ -463,9 +463,13 @@ export function ProyectoDetallePage() {
                       </p>
                       <p>
                         <strong>Zona de riesgo / faja marginal:</strong>{' '}
-                        {environmentalAssessment.declared_vs_evidence.is_in_protected_or_risk_area
-                          ? 'SÍ (Faja marginal intangible / Riesgo alto PDM)'
-                          : 'NO (Fuera de faja marginal)'}
+                        {environmentalAssessment.declared_vs_evidence.is_in_protected_or_risk_area === true ? (
+                          'SÍ (Faja marginal intangible / Riesgo alto PDM)'
+                        ) : environmentalAssessment.declared_vs_evidence.is_in_protected_or_risk_area === false ? (
+                          'NO (Fuera de faja marginal)'
+                        ) : (
+                          <span className="env-insufficient-badge">No determinado: información insuficiente</span>
+                        )}
                       </p>
                       <div className="social-source-tag">
                         {environmentalAssessment.declared_vs_evidence.evidence_source}

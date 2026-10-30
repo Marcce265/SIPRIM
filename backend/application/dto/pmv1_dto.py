@@ -297,7 +297,7 @@ class EnvironmentalDeclaredVsEvidence(BaseModel):
     evidence_source: str
     is_simulated: bool = True
     proximity_to_water_meters: float | None = None
-    is_in_protected_or_risk_area: bool = False
+    is_in_protected_or_risk_area: bool | None = None
 
 
 class EnvironmentalAssessmentResponse(BaseModel):

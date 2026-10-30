@@ -164,7 +164,7 @@ export interface EnvironmentalDeclaredVsEvidence {
   evidence_source: string
   is_simulated: boolean
   proximity_to_water_meters?: number | null
-  is_in_protected_or_risk_area: boolean
+  is_in_protected_or_risk_area: boolean | null
 }
 
 export interface EnvironmentalAssessmentResponse {

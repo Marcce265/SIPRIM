@@ -95,3 +95,26 @@ tabla `human_approvals` en `platform_db`:
 - **Actualización de ciclo de vida:** Al emitirse el dictamen, `projects.status` se actualiza
   a `approved`, `rejected` u `observed`.
 - **Vistas en español:** `vista_aprobaciones_humanas` y actualización de `vista_proyectos`.
+
+
+## PMV 2 - Sprint 2: Extensiones Territoriales y Desacoplamiento de Migraciones
+
+### Desacoplamiento de Esquema vs. Semillas de Demostración
+Las migraciones DDL (`03_migration_hu1.4.sql` y `03_migration_hu1.6.sql`) contienen exclusivamente definiciones de tablas, índices, restricciones y modificaciones de esquema (`CREATE TABLE IF NOT EXISTS`, `ALTER TABLE`, `ADD CONSTRAINT`). No insertan ni sobrescriben proyectos ni indicadores de demostración.
+
+- Para aplicar únicamente los cambios de esquema en bases de datos existentes sin sembrar datos simulados:
+  Ejecutar individualmente los archivos de migración DDL (`03_migration_hu1.4.sql`, `03_migration_hu1.6.sql`).
+- Para desarrollo y pruebas locales con datos simulados (PRY-A, PRY-B, PRY-C):
+  `02_seed.sql` contiene las semillas idempotentes.
+
+### HU1.4: Accesibilidad Social Multidimensional
+`platform_db` incorpora:
+- `territorial_social_indicators`: Repositorio de indicadores en salud, educación y transporte.
+- `social_accessibility_assessments`: Evaluaciones registradas formalmente.
+
+### HU1.6: Evaluación de Impacto Ambiental
+`platform_db` incorpora:
+- `project_environmental_records`: Registros de factores ambientales territoriales.
+  La columna `is_in_protected_or_risk_area` es de tres estados (`TRUE`, `FALSE`, o `NULL` / no determinado).
+  La restricción `chk_env_insufficient_no_evidence` exige que si `has_sufficient_data = FALSE`, `is_in_protected_or_risk_area` sea estrictamente `NULL`, impidiendo interpretar la ausencia de datos como ausencia de riesgo.
+- `environmental_assessments`: Evaluaciones con compuerta técnica y restricción que exige revisión técnica humana ante riesgo alto (`chk_high_risk_requires_human_review`).

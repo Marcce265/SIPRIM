@@ -415,7 +415,7 @@ class FakePlatform:
                     "evidence_source": "Catastro Municipal El Tambo (Sin cobertura)",
                     "is_simulated": True,
                     "proximity_to_water_meters": None,
-                    "is_in_protected_or_risk_area": False,
+                    "is_in_protected_or_risk_area": None,
                 },
                 "impacts": [],
                 "mitigations": [],
@@ -1085,6 +1085,8 @@ def test_environmental_assessment_pry_b_insufficient_no_favorable(client: TestCl
     assert body["favorable"] is None
     assert body["favorable"] is not True
     assert "Información insuficiente" in body["summary"]
+    assert body["declared_vs_evidence"]["is_in_protected_or_risk_area"] is None
+    assert body["declared_vs_evidence"]["is_in_protected_or_risk_area"] is not False
 
 
 def test_get_environmental_assessment(client: TestClient) -> None:

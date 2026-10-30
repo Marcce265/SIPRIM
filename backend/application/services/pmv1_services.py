@@ -1496,7 +1496,7 @@ class EnvironmentalAssessmentEngine:
                 "evidence_source": rec.get("source_name") if rec else "Catastro Municipal El Tambo (Sin cobertura)",
                 "is_simulated": True,
                 "proximity_to_water_meters": None,
-                "is_in_protected_or_risk_area": False,
+                "is_in_protected_or_risk_area": None,
             }
             return {
                 "project_id": project_id,
@@ -1509,7 +1509,7 @@ class EnvironmentalAssessmentEngine:
                 "requires_human_review": False,
                 "favorable": None,
                 "favorable_label": "Sin conclusión favorable: información insuficiente",
-                "summary": "Información insuficiente: el expediente no cuenta con datos ambientales esenciales, Declaración de Impacto Ambiental (DIA) ni línea base territorial verificable.",
+                "summary": "Información insuficiente: el expediente no cuenta con datos ambientales esenciales, Declaración de Impacto Ambiental (DIA) ni línea base territorial de demostración disponible.",
                 "declared_vs_evidence": declared_vs_evidence,
                 "impacts": [],
                 "mitigations": [],

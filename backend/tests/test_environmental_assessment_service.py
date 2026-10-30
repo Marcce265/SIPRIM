@@ -110,7 +110,7 @@ def test_environmental_engine_insufficient_data():
             "declared_measures": None,
             "verifiable_evidence": None,
             "proximity_to_water_meters": None,
-            "is_in_protected_or_risk_area": False,
+            "is_in_protected_or_risk_area": None,
             "source_name": "Catastro Municipal El Tambo (Sin DIA ni línea base)",
             "data_origin": "simulated",
         }
@@ -131,6 +131,40 @@ def test_environmental_engine_insufficient_data():
     assert result["favorable"] is not True
     assert "Información insuficiente" in result["summary"]
     assert len(result["impacts"]) == 0
+    assert result["declared_vs_evidence"]["is_in_protected_or_risk_area"] is None
+    assert result["declared_vs_evidence"]["is_in_protected_or_risk_area"] is not False
+
+
+def test_insufficient_evidence_sets_risk_area_as_unknown():
+    """Impide que un dato ambiental ausente se interprete como ausencia de riesgo (False en vez de None)."""
+    # 1. Sin registros: estado desconocido (None), nunca False
+    res_empty = EnvironmentalAssessmentEngine.evaluate(
+        project_id=PROJECT_B_ID,
+        project_code="PRY-B",
+        project_version_id=None,
+        records=[],
+    )
+    assert res_empty["declared_vs_evidence"]["is_in_protected_or_risk_area"] is None
+    assert res_empty["declared_vs_evidence"]["is_in_protected_or_risk_area"] is not False
+
+    # 2. Con registro insuficiente: estado desconocido (None), nunca False
+    res_insufficient = EnvironmentalAssessmentEngine.evaluate(
+        project_id=PROJECT_B_ID,
+        project_code="PRY-B",
+        project_version_id=None,
+        records=[{
+            "environmental_component": "integral",
+            "has_sufficient_data": False,
+            "declared_impacts": None,
+            "declared_measures": None,
+            "verifiable_evidence": None,
+            "proximity_to_water_meters": None,
+            "is_in_protected_or_risk_area": None,
+            "source_name": "Catastro Municipal",
+        }],
+    )
+    assert res_insufficient["declared_vs_evidence"]["is_in_protected_or_risk_area"] is None
+    assert res_insufficient["declared_vs_evidence"]["is_in_protected_or_risk_area"] is not False
 
 
 def test_db_check_constraints_prevent_invalid_environmental_states():
@@ -169,6 +203,19 @@ def test_db_check_constraints_prevent_invalid_environmental_states():
                             'Invalido', '{}', '[]', '[]')
                     """,
                     (uuid4(), PROJECT_C_ID, PROJECT_C_ID, PLANNER_ID),
+                )
+
+        # 4. chk_env_insufficient_no_evidence: has_sufficient_data=FALSE con is_in_protected_or_risk_area=FALSE debe fallar
+        with pytest.raises(CheckViolation):
+            with conn.transaction():
+                conn.execute(
+                    """
+                    INSERT INTO project_environmental_records
+                    (id, project_id, project_code, has_sufficient_data, environmental_component,
+                     is_in_protected_or_risk_area, source_name)
+                    VALUES (%s, %s, 'PRY-TEST', FALSE, 'integral', FALSE, 'test')
+                    """,
+                    (uuid4(), PROJECT_B_ID),
                 )
 
         # 3. chk_high_risk_not_auto_favorable: risk_level='high' con favorable=TRUE debe fallar
@@ -230,6 +277,8 @@ def test_platform_service_environmental_flow():
     assert res_b["risk_level"] == "insufficient"
     assert res_b["favorable"] is None
     assert "Información insuficiente" in res_b["summary"]
+    assert res_b["declared_vs_evidence"]["is_in_protected_or_risk_area"] is None
+    assert res_b["declared_vs_evidence"]["is_in_protected_or_risk_area"] is not False
 
     # 4. get_environmental_assessment recupera la evaluación
     fetched_c = service.get_environmental_assessment(PROJECT_C_ID)

@@ -204,7 +204,7 @@ VALUES
      NULL,
      NULL,
      NULL,
-     NULL, FALSE,
+     NULL, NULL,
      'Catastro Municipal El Tambo (Sin Declaración de Impacto Ambiental ni línea base registrada)', 'simulated',
      'Información insuficiente')
 ON CONFLICT (id) DO UPDATE SET
