@@ -3440,6 +3440,562 @@ class PlatformService:
                 })
             return res
 
+    def get_unified_assessment_summary(
+        self, project_id: UUID, version_id: UUID | None = None
+    ) -> dict[str, Any]:
+        """Genera el resumen unificado de evaluacion multidimensional (HU1.12).
+
+        Cumple estrictamente los criterios de aceptacion:
+        - CA-HU1.12-01: Reune los resultados de las cinco dimensiones (economica, social, ambiental,
+          tecnica y juridica) en una sola vista con la conclusion y justificacion de la version vigente.
+        - CA-HU1.12-02: Expone la puntuacion global consolidada con sus puntuaciones de entrada, pesos
+          y formula explicita y reproducible a partir de la version activa de criterios.
+        - CA-HU1.12-03: Si alguna dimension sigue pendiente, fallo o carece de datos indispensables,
+          identifica la dimension afectada y no presenta una evaluacion incompleta como resultado aprobado.
+        - Rigor normativo: Respeta distinciones de datos simulados (HU1.8) y citas no verificables (HU2.2),
+          y bloquea aprobacion si existen alertas legales activas (HU2.3) o checkpoints pausados (HU3.1/HU3.4).
+        """
+        project = self.get_project(project_id)
+        current_version_id = version_id or project["project_version_id"]
+
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            # Obtener datos de la version consultada
+            v_row = conn.execute(
+                """
+                SELECT id, version_number, title, description, location_description,
+                       proposed_land_use, estimated_budget_pen, beneficiaries_count
+                FROM project_versions
+                WHERE id = %s AND project_id = %s
+                """,
+                (current_version_id, project_id),
+            ).fetchone()
+
+            if not v_row:
+                raise RecursoPMV1NoEncontradoError("Version del expediente no encontrada")
+
+            version_number = v_row["version_number"]
+            dimensions: list[dict[str, Any]] = []
+            missing_dimensions: list[str] = []
+            blocking_reasons: list[str] = []
+
+            # ---------------------------------------------------------
+            # 1. Dimension Economica
+            # ---------------------------------------------------------
+            econ_row = conn.execute(
+                """
+                SELECT e.id AS evaluation_id, e.status, e.error_message, e.requested_at,
+                       r.cost_per_beneficiary_pen, r.score_0_100, r.explanation, r.algorithm_version
+                FROM evaluations e
+                LEFT JOIN economic_result_projections r ON r.evaluation_id = e.id
+                WHERE e.project_version_id = %s
+                ORDER BY e.requested_at DESC
+                LIMIT 1
+                """,
+                (current_version_id,),
+            ).fetchone()
+
+            if not econ_row:
+                econ_status = "pending"
+                econ_label = "Pendiente de evaluacion"
+                econ_conclusion = "Evaluacion economica no ejecutada."
+                econ_justification = "No se ha solicitado la proyeccion de costo por beneficiario para esta version del expediente."
+                econ_score = None
+                econ_eval_at = None
+                missing_dimensions.append("Economica")
+            elif econ_row["status"] == "pending_review":
+                econ_status = "blocked"
+                econ_label = "Detenido en punto de control"
+                econ_conclusion = "Evaluacion economica detenida por riesgo alto en punto de control HITL."
+                econ_justification = econ_row.get("error_message") or "Detencion preventiva conforme a HU3.1."
+                econ_score = None
+                econ_eval_at = econ_row["requested_at"]
+                missing_dimensions.append("Economica (Detenida por HITL)")
+                blocking_reasons.append("Dimension economica detenida por punto de control de riesgo alto.")
+            elif econ_row["status"] == "error":
+                econ_status = "failed"
+                econ_label = "Evaluacion fallida"
+                econ_conclusion = "La evaluacion economica genero un error."
+                econ_justification = econ_row.get("error_message") or "Error en calculo de costo por beneficiario."
+                econ_score = None
+                econ_eval_at = econ_row["requested_at"]
+                missing_dimensions.append("Economica (Fallida)")
+            else:
+                econ_score = float(econ_row["score_0_100"]) if econ_row.get("score_0_100") is not None else None
+                cost_pen = econ_row.get("cost_per_beneficiary_pen")
+                cost_str = f"S/. {cost_pen:.2f}" if cost_pen is not None else "No determinado"
+                econ_status = "completed"
+                econ_label = "Completada"
+                econ_conclusion = (
+                    f"Costo por beneficiario: {cost_str}. Puntuacion normalizada: {econ_score:.1f}/100."
+                    if econ_score is not None
+                    else f"Costo por beneficiario: {cost_str}."
+                )
+                econ_justification = econ_row.get("explanation") or "Proyeccion de costo por beneficiario conforme a umbrales vigentes."
+                econ_eval_at = econ_row["requested_at"]
+
+            dimensions.append({
+                "dimension_code": "economic",
+                "dimension_name": "Economica",
+                "status": econ_status,
+                "status_label": econ_label,
+                "conclusion": econ_conclusion,
+                "justification": econ_justification,
+                "score": econ_score,
+                "is_simulated": False,
+                "warning": None,
+                "has_blocker": (econ_status == "blocked"),
+                "blocker_message": "Pausa en punto de control" if econ_status == "blocked" else None,
+                "evaluated_at": econ_eval_at,
+                "details": {
+                    "cost_per_beneficiary_pen": float(econ_row["cost_per_beneficiary_pen"])
+                    if econ_row and econ_row.get("cost_per_beneficiary_pen") is not None
+                    else None
+                },
+            })
+
+            # ---------------------------------------------------------
+            # 2. Dimension Social
+            # ---------------------------------------------------------
+            soc_row = conn.execute(
+                """
+                SELECT id, status, summary, results_json, equity_json, social_score, score_explanation, evaluated_at
+                FROM social_accessibility_assessments
+                WHERE project_version_id = %s
+                ORDER BY evaluated_at DESC
+                LIMIT 1
+                """,
+                (current_version_id,),
+            ).fetchone()
+
+            if not soc_row:
+                soc_status = "pending"
+                soc_label = "Pendiente de evaluacion"
+                soc_conclusion = "Evaluacion de accesibilidad social no ejecutada."
+                soc_justification = "No se registran indicadores de proximidad a servicios sociales (salud, educacion, transporte) para esta version."
+                soc_score = None
+                soc_eval_at = None
+                soc_simulated = False
+                soc_warning = None
+                missing_dimensions.append("Social")
+            else:
+                soc_score = float(soc_row["social_score"]) if soc_row.get("social_score") is not None else None
+                soc_simulated = bool(
+                    soc_row.get("results_json")
+                    and any(r.get("is_simulated") for r in soc_row["results_json"] if isinstance(r, dict))
+                )
+                soc_warning = (
+                    "Datos de accesibilidad calculados a partir de fuentes simuladas (RENAES/MINEDU)"
+                    if soc_simulated
+                    else None
+                )
+                soc_status = "completed" if soc_row["status"] in ("verified", "evaluated", "completed") else "warning"
+                soc_label = "Completada" if soc_status == "completed" else "Requiere revision"
+                soc_conclusion = soc_row.get("summary") or "Evaluacion social registrada."
+                soc_justification = (
+                    soc_row.get("score_explanation")
+                    or soc_row.get("summary")
+                    or "Analisis de cobertura y equidad social territorial."
+                )
+                soc_eval_at = soc_row["evaluated_at"]
+
+            dimensions.append({
+                "dimension_code": "social",
+                "dimension_name": "Social",
+                "status": soc_status,
+                "status_label": soc_label,
+                "conclusion": soc_conclusion,
+                "justification": soc_justification,
+                "score": soc_score,
+                "is_simulated": soc_simulated,
+                "warning": soc_warning,
+                "has_blocker": False,
+                "blocker_message": None,
+                "evaluated_at": soc_eval_at,
+                "details": {"social_score": soc_score},
+            })
+
+            # ---------------------------------------------------------
+            # 3. Dimension Ambiental
+            # ---------------------------------------------------------
+            env_row = conn.execute(
+                """
+                SELECT id, status, risk_level, risk_observation, requires_human_review, favorable,
+                       summary, declared_vs_evidence_json, impacts_json, green_area_json, environmental_score, evaluated_at
+                FROM environmental_assessments
+                WHERE project_version_id = %s
+                ORDER BY evaluated_at DESC
+                LIMIT 1
+                """,
+                (current_version_id,),
+            ).fetchone()
+
+            if not env_row:
+                env_status = "pending"
+                env_label = "Pendiente de evaluacion"
+                env_conclusion = "Evaluacion de impacto ambiental territorial no ejecutada."
+                env_justification = "No se registran antecedentes ambientales ni verificacion de faja marginal hidrica para esta version."
+                env_score = None
+                env_eval_at = None
+                env_has_blocker = False
+                env_blocker_msg = None
+                env_simulated = False
+                env_warning = None
+                missing_dimensions.append("Ambiental")
+            else:
+                env_score = float(env_row["environmental_score"]) if env_row.get("environmental_score") is not None else None
+                risk = env_row.get("risk_level", "low")
+                req_rev = env_row.get("requires_human_review", False)
+                env_eval_at = env_row["evaluated_at"]
+
+                env_simulated = bool(
+                    (env_row.get("declared_vs_evidence_json") and env_row["declared_vs_evidence_json"].get("is_simulated"))
+                    or (env_row.get("green_area_json") and env_row["green_area_json"].get("is_simulated"))
+                )
+                env_warning = "Datos ambientales calculados a partir de capas cartograficas simuladas" if env_simulated else None
+
+                has_pending_cp = RiskCheckpointEngine.has_pending_checkpoint(conn, current_version_id)
+                env_has_blocker = (risk == "high" and req_rev and has_pending_cp)
+
+                if risk == "insufficient" or env_row.get("status") == "insufficient":
+                    env_status = "failed"
+                    env_label = "Informacion insuficiente"
+                    env_conclusion = "Informacion ambiental insuficiente para dictaminar."
+                    env_justification = env_row.get("risk_observation") or "Faltan datos cartograficos o declarados indispensables."
+                    env_blocker_msg = "Datos ambientales indispensables no provistos."
+                    missing_dimensions.append("Ambiental (Informacion insuficiente)")
+                elif env_has_blocker:
+                    env_status = "blocked"
+                    env_label = "Alerta de Riesgo Alto (HITL)"
+                    env_conclusion = f"Riesgo ambiental territorial ALTO detectado. {env_row.get('summary', '')}"
+                    env_justification = env_row.get("risk_observation") or "Requiere autorizacion y levantamiento de pausa en punto de control (HU3.1/HU3.4)."
+                    env_blocker_msg = "Riesgo ambiental territorial alto activo sin resolver (HU3.1)."
+                    blocking_reasons.append(f"Dimension ambiental con riesgo alto pendiente de revision humana: {env_justification}")
+                else:
+                    env_status = "completed" if risk in ("low", "moderate") or not has_pending_cp else "warning"
+                    env_label = "Completada / Favorable" if env_row.get("favorable") else f"Completada ({risk.capitalize()})"
+                    env_conclusion = f"Nivel de riesgo ambiental: {risk.upper()}. {env_row.get('summary', '')}"
+                    env_justification = env_row.get("risk_observation") or env_row.get("summary") or "Impactos ambientales y medidas de mitigacion verificados."
+                    env_blocker_msg = None
+
+            dimensions.append({
+                "dimension_code": "environmental",
+                "dimension_name": "Ambiental",
+                "status": env_status,
+                "status_label": env_label,
+                "conclusion": env_conclusion,
+                "justification": env_justification,
+                "score": env_score,
+                "is_simulated": env_simulated,
+                "warning": env_warning,
+                "has_blocker": env_has_blocker,
+                "blocker_message": env_blocker_msg,
+                "evaluated_at": env_eval_at,
+                "details": {"risk_level": env_row.get("risk_level") if env_row else None},
+            })
+
+            # ---------------------------------------------------------
+            # 4. Dimension Tecnica (HU1.8)
+            # ---------------------------------------------------------
+            tech_row = conn.execute(
+                """
+                SELECT id, status, overall_result, overall_result_label, is_viable,
+                       technical_score, score_explanation, dimension_conclusion, dimension_justification,
+                       findings_json, criteria_summary, evaluated_at
+                FROM technical_feasibility_assessments
+                WHERE project_version_id = %s
+                ORDER BY evaluated_at DESC
+                LIMIT 1
+                """,
+                (current_version_id,),
+            ).fetchone()
+
+            if not tech_row:
+                tech_status = "pending"
+                tech_label = "Pendiente de evaluacion"
+                tech_conclusion = "Evaluacion de viabilidad tecnica no ejecutada."
+                tech_justification = "No se ha procesado el analisis de diseno geometrico, pendientes ni capacidad portante (HU1.8)."
+                tech_score = None
+                tech_eval_at = None
+                tech_simulated = False
+                tech_warning = None
+                missing_dimensions.append("Tecnica")
+            else:
+                tech_score = float(tech_row["technical_score"]) if tech_row.get("technical_score") is not None else None
+                tech_simulated = bool(
+                    tech_row.get("findings_json")
+                    and any(c.get("is_simulated") for c in tech_row["findings_json"] if isinstance(c, dict))
+                )
+                tech_warning = (
+                    "Datos de viabilidad calculados a partir de expediente tecnico simulado (HU1.8); requiere verificacion en campo."
+                    if tech_simulated
+                    else None
+                )
+                if tech_row["overall_result"] == "cumple":
+                    tech_status = "completed"
+                    tech_label = "Viable (Cumple)"
+                elif tech_row["overall_result"] == "observado":
+                    tech_status = "warning"
+                    tech_label = "Observado"
+                elif tech_row["overall_result"] == "informacion_insuficiente":
+                    tech_status = "failed"
+                    tech_label = "Informacion insuficiente"
+                    missing_dimensions.append("Tecnica (Informacion insuficiente)")
+                else:
+                    tech_status = "failed"
+                    tech_label = tech_row.get("overall_result_label") or "No viable"
+                    missing_dimensions.append(f"Tecnica ({tech_label})")
+
+                tech_conclusion = tech_row["dimension_conclusion"]
+                tech_justification = tech_row["dimension_justification"]
+                tech_eval_at = tech_row["evaluated_at"]
+
+            dimensions.append({
+                "dimension_code": "technical",
+                "dimension_name": "Tecnica",
+                "status": tech_status,
+                "status_label": tech_label,
+                "conclusion": tech_conclusion,
+                "justification": tech_justification,
+                "score": tech_score,
+                "is_simulated": tech_simulated,
+                "warning": tech_warning,
+                "has_blocker": (tech_status == "failed"),
+                "blocker_message": "Viabilidad tecnica observada o no cumplida" if tech_status == "failed" else None,
+                "evaluated_at": tech_eval_at,
+                "details": {"technical_score": tech_score},
+            })
+
+            # ---------------------------------------------------------
+            # 5. Dimension Juridica (HU2.2 & HU2.3)
+            # ---------------------------------------------------------
+            legal_row = conn.execute(
+                """
+                SELECT id, status, summary, verifiable_citations_count, unverifiable_citations_count,
+                       requires_human_review, has_legal_alert, legal_alert_motive, legal_alert_norm,
+                       is_resolved, resolution_justification, evaluated_at, findings_json
+                FROM legal_assessments
+                WHERE project_id = %s AND project_version_id = %s
+                ORDER BY evaluated_at DESC
+                LIMIT 1
+                """,
+                (project_id, current_version_id),
+            ).fetchone()
+
+            if not legal_row:
+                legal_status = "pending"
+                legal_label = "Pendiente de evaluacion"
+                legal_conclusion = "Evaluacion juridica y contraste normativo no ejecutada."
+                legal_justification = "No se ha emitido dictamen normativo ni cotejo de citas juridicas para esta version."
+                legal_eval_at = None
+                legal_has_blocker = False
+                legal_blocker_msg = None
+                legal_warning = None
+                missing_dimensions.append("Juridica")
+            else:
+                has_active_alert = bool(
+                    (legal_row["status"] == "alerta_legal" or legal_row.get("has_legal_alert"))
+                    and not legal_row.get("is_resolved", False)
+                )
+                unverifiable = legal_row.get("unverifiable_citations_count", 0)
+                legal_eval_at = legal_row["evaluated_at"]
+                legal_warning = None
+
+                if has_active_alert:
+                    legal_status = "blocked"
+                    legal_label = "Alerta Legal Activa"
+                    motive = legal_row.get("legal_alert_motive") or "Incompatibilidad territorial"
+                    norm = legal_row.get("legal_alert_norm") or "Plan urbano"
+                    legal_conclusion = f"ALERTA LEGAL (HU2.3): Incompatibilidad normativa/territorial con {norm}."
+                    legal_justification = f"Motivo: {motive}. Conforme a HU2.3, se bloquea la aprobacion y priorizacion definitiva."
+                    legal_has_blocker = True
+                    legal_blocker_msg = f"Alerta Legal activa: {motive} [{norm}]."
+                    blocking_reasons.append(f"Dimension juridica con Alerta Legal activa sin resolver (HU2.3): {motive}")
+                elif unverifiable > 0 or legal_row.get("requires_human_review"):
+                    legal_status = "warning"
+                    legal_label = "Requiere revision humana"
+                    legal_conclusion = legal_row.get("summary") or "Revision juridica con citas no comprobables."
+                    legal_justification = f"Se detectaron {unverifiable} cita(s) no verificable(s) (HU2.2); requiere cotejo manual por el Asesor Juridico."
+                    legal_has_blocker = False
+                    legal_blocker_msg = None
+                    legal_warning = "Contiene citas no comprobables contra normativa oficial."
+                else:
+                    legal_status = "completed"
+                    legal_label = "Citas normativas verificadas"
+                    legal_conclusion = legal_row.get("summary") or "Citas juridicas verificadas."
+                    legal_justification = f"Todas las citas ({legal_row.get('verifiable_citations_count', 0)}) fueron debidamente cotejadas contra el corpus normativo vigente."
+                    legal_has_blocker = False
+                    legal_blocker_msg = None
+                    legal_warning = None
+
+            dimensions.append({
+                "dimension_code": "legal",
+                "dimension_name": "Juridica",
+                "status": legal_status,
+                "status_label": legal_label,
+                "conclusion": legal_conclusion,
+                "justification": legal_justification,
+                "score": None,  # Dimension juridica es cualitativa y de control normativo
+                "is_simulated": False,
+                "warning": legal_warning,
+                "has_blocker": legal_has_blocker,
+                "blocker_message": legal_blocker_msg,
+                "evaluated_at": legal_eval_at,
+                "details": {
+                    "verifiable_citations_count": legal_row.get("verifiable_citations_count", 0) if legal_row else 0,
+                    "unverifiable_citations_count": legal_row.get("unverifiable_citations_count", 0) if legal_row else 0,
+                },
+            })
+
+            # ---------------------------------------------------------
+            # 6. Puntuacion Global Explicable (CA-HU1.12-02 & CA-HU1.12-03)
+            # ---------------------------------------------------------
+            crit_row = conn.execute(
+                """
+                SELECT id, version_number FROM criteria_versions
+                WHERE status = 'active'
+                ORDER BY activated_at DESC LIMIT 1
+                """
+            ).fetchone()
+
+            crit_weights_rows = []
+            if crit_row:
+                crit_weights_rows = conn.execute(
+                    """
+                    SELECT criterion_code, weight_percent
+                    FROM criterion_weights
+                    WHERE criteria_version_id = %s
+                    ORDER BY criterion_code ASC
+                    """,
+                    (crit_row["id"],),
+                ).fetchall()
+
+            raw_weights = {r["criterion_code"]: float(r["weight_percent"]) for r in crit_weights_rows}
+
+            # Normalizar codigos de criterios soportados
+            def _norm_code(c: str) -> str:
+                cu = c.upper().strip()
+                if cu in ("ECONOMIC", "ECONOMICA", "ECONOMICO"):
+                    return "ECONOMIC"
+                if cu in ("SOCIAL", "SOCIALES"):
+                    return "SOCIAL"
+                if cu in ("ENVIRONMENTAL", "AMBIENTAL", "MEDIOAMBIENTAL"):
+                    return "ENVIRONMENTAL"
+                if cu in ("TECHNICAL", "TECNICA", "TECNICO"):
+                    return "TECHNICAL"
+                return cu
+
+            weights_dict = {_norm_code(k): v for k, v in raw_weights.items()}
+
+            input_scores_dict: dict[str, float] = {}
+            if econ_score is not None:
+                input_scores_dict["ECONOMIC"] = round(econ_score, 2)
+            if soc_score is not None:
+                input_scores_dict["SOCIAL"] = round(soc_score, 2)
+            if env_score is not None:
+                input_scores_dict["ENVIRONMENTAL"] = round(env_score, 2)
+            if tech_score is not None:
+                input_scores_dict["TECHNICAL"] = round(tech_score, 2)
+
+            is_complete = (len(missing_dimensions) == 0)
+
+            global_score_val = None
+            is_score_calculated = False
+            formula_text = ""
+            explanation_text = ""
+
+            if not crit_row or not weights_dict:
+                formula_text = "No existe una version activa de criterios y pesos normativos configurada."
+                explanation_text = "No se puede calcular puntuacion global explicable sin ponderaciones activas."
+            elif not is_complete:
+                missing_str = ", ".join(missing_dimensions)
+                formula_text = f"Puntuacion no calculable: faltan dimensiones indispensables ({missing_str})."
+                explanation_text = (
+                    f"Conforme a CA-HU1.12-03, una evaluacion parcial no produce puntuacion global definitiva. "
+                    f"Dimensiones pendientes o no viables: {missing_str}."
+                )
+            else:
+                unscored_criteria = [
+                    code for code in weights_dict
+                    if code in ("ECONOMIC", "SOCIAL", "ENVIRONMENTAL", "TECHNICAL") and code not in input_scores_dict
+                ]
+                if unscored_criteria:
+                    formula_text = f"Puntuacion no calculable: faltan puntuaciones cuantitativas para criterios ponderados ({', '.join(unscored_criteria)})."
+                    explanation_text = "Se requiere registrar puntuacion valida para todos los criterios con peso asignado."
+                else:
+                    weighted_sum = sum(
+                        input_scores_dict[code] * (weights_dict[code] / 100.0)
+                        for code in weights_dict if code in input_scores_dict
+                    )
+                    total_weight = sum(weights_dict[code] for code in weights_dict if code in input_scores_dict)
+                    if total_weight > 0:
+                        calc_score = round(weighted_sum * (100.0 / total_weight), 2)
+                        global_score_val = calc_score
+                        is_score_calculated = True
+
+                        terms = [
+                            f"[{code}: {input_scores_dict[code]:.1f} * {weights_dict[code]:.1f}%]"
+                            for code in weights_dict if code in input_scores_dict
+                        ]
+                        formula_text = f"({' + '.join(terms)}) / {total_weight:.1f}% = {calc_score:.2f} pts"
+                        explanation_text = (
+                            f"Puntuacion global consolidada calculada a partir de la version activa de criterios v{crit_row['version_number']}. "
+                            f"Ponderacion aplicada sobre {len(terms)} criterio(s) cuantitativo(s)."
+                        )
+
+            has_blockers = (len(blocking_reasons) > 0)
+            if has_blockers:
+                summary_status = "blocked"
+                summary_status_label = "Bloqueado por alertas o punto de control"
+            elif not is_complete:
+                summary_status = "incomplete"
+                summary_status_label = "Evaluacion multidimensional incompleta"
+            else:
+                summary_status = "completed"
+                summary_status_label = "Evaluacion multidimensional completa"
+
+            allows_final_approval = (is_complete and not has_blockers)
+
+            resumen_parts = [
+                f"Expediente {project['code']} (version {version_number}): "
+                f"Dimensiones finalizadas: {5 - len(missing_dimensions)}/5."
+            ]
+            if global_score_val is not None:
+                resumen_parts.append(f"Puntuacion consolidada: {global_score_val:.2f}/100.")
+            if has_blockers:
+                resumen_parts.append(f"Requiere resolver: {'; '.join(blocking_reasons)}.")
+            elif not is_complete:
+                resumen_parts.append(f"Pendiente de completar: {', '.join(missing_dimensions)}.")
+            else:
+                resumen_parts.append("Expediente con evaluacion completa y expedita para dictamen humano formal.")
+
+            summary_text = " ".join(resumen_parts)
+
+            return {
+                "project_id": project_id,
+                "project_code": project["code"],
+                "project_version_id": current_version_id,
+                "version_number": version_number,
+                "is_complete": is_complete,
+                "status": summary_status,
+                "status_label": summary_status_label,
+                "summary_text": summary_text,
+                "dimensions": dimensions,
+                "missing_dimensions": missing_dimensions,
+                "global_score": {
+                    "score": global_score_val,
+                    "is_calculated": is_score_calculated,
+                    "formula": formula_text,
+                    "criteria_version_id": crit_row["id"] if crit_row else None,
+                    "criteria_version_number": crit_row["version_number"] if crit_row else None,
+                    "weights": weights_dict,
+                    "input_scores": input_scores_dict,
+                    "explanation": explanation_text,
+                },
+                "allows_final_approval": allows_final_approval,
+                "blocking_reasons": blocking_reasons,
+                "generated_at": datetime.now(timezone.utc),
+            }
+
     def verify_prioritization_allowed(self, project_id: UUID) -> dict[str, Any]:
         """Control de precondiciones para la futura priorización definitiva (HU2.3 / HU3.1 / HU1.12).
 

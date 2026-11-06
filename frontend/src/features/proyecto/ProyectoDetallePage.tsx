@@ -13,6 +13,7 @@ import {
   getHumanApproval,
   evaluateTechnicalFeasibility,
   getTechnicalFeasibility,
+  getUnifiedAssessmentSummary,
   getPertEstimate,
   getProject,
   getProjectCheckpoint,
@@ -31,6 +32,7 @@ import type {
   PertEstimateResponse,
   PMV1ProjectResponse,
   TechnicalFeasibilityResponse,
+  UnifiedAssessmentSummaryResponse,
   EnvironmentalAssessmentResponse,
   PMV1ValidationResponse,
   SocialAccessibilityResponse,
@@ -76,6 +78,9 @@ export function ProyectoDetallePage() {
   const [technicalLoading, setTechnicalLoading] = useState<boolean>(false)
   const [technicalError, setTechnicalError] = useState<string | null>(null)
   const [technicalSuccess, setTechnicalSuccess] = useState<string | null>(null)
+  const [unifiedSummary, setUnifiedSummary] = useState<UnifiedAssessmentSummaryResponse | null>(null)
+  const [unifiedSummaryLoading, setUnifiedSummaryLoading] = useState<boolean>(false)
+  const [unifiedSummaryError, setUnifiedSummaryError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(flash ?? null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -156,6 +161,20 @@ export function ProyectoDetallePage() {
     }
   }, [projectId])
 
+  const loadUnifiedSummary = useCallback(async () => {
+    if (!projectId) return
+    try {
+      setUnifiedSummaryLoading(true)
+      const data = await getUnifiedAssessmentSummary(projectId)
+      setUnifiedSummary(data)
+      setUnifiedSummaryError(null)
+    } catch (err) {
+      setUnifiedSummaryError(err instanceof Error ? err.message : 'No se pudo cargar el resumen unificado.')
+    } finally {
+      setUnifiedSummaryLoading(false)
+    }
+  }, [projectId])
+
   const handleEvaluateTechnical = async () => {
     if (!projectId) return
     setTechnicalLoading(true)
@@ -166,6 +185,7 @@ export function ProyectoDetallePage() {
       setTechnicalAssessment(res)
       setTechnicalSuccess('Preevaluación de viabilidad técnica ejecutada y registrada correctamente.')
       await loadProject()
+      await loadUnifiedSummary()
     } catch (err) {
       setTechnicalError(err instanceof Error ? err.message : 'Error al ejecutar la preevaluación técnica.')
     } finally {
@@ -345,7 +365,8 @@ export function ProyectoDetallePage() {
     void loadEnvironmentalAssessment()
     void loadTechnicalAssessment()
     void loadPertEstimate()
-  }, [loadProject, loadApproval, loadCheckpoint, loadSocialAssessment, loadEnvironmentalAssessment, loadTechnicalAssessment, loadPertEstimate])
+    void loadUnifiedSummary()
+  }, [loadProject, loadApproval, loadCheckpoint, loadSocialAssessment, loadEnvironmentalAssessment, loadTechnicalAssessment, loadPertEstimate, loadUnifiedSummary])
 
   const runValidate = async () => {
     if (!projectId) return
@@ -483,6 +504,7 @@ export function ProyectoDetallePage() {
       await loadProject()
       await loadCheckpoint()
       await loadApproval()
+      await loadUnifiedSummary()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al reanudar desde el punto de control.')
     } finally {
@@ -2059,6 +2081,456 @@ export function ProyectoDetallePage() {
               {busy === 'zoning' ? 'Analizando…' : 'Analizar compatibilidad urbanística'}
             </button>
             {zoning && <TechnicalDetails data={zoning} />}
+          </section>
+
+          {/* PMV 2 - HU1.12: Resumen Unificado de Evaluación Multidimensional */}
+          <section
+            className="flow-panel unified-summary-flow-panel"
+            aria-label="Resumen unificado de evaluación multidimensional (HU1.12)"
+            data-testid="unified-summary-section"
+            style={{ borderLeft: '4px solid #6366f1' }}
+          >
+            <div className="flow-panel-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <span className="story-label" style={{ background: '#e0e7ff', color: '#3730a3', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
+                  PMV 2 · HU1.12
+                </span>
+                <h2 style={{ marginTop: '0.25rem' }}>Resumen unificado de evaluación multidimensional</h2>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                {unifiedSummary && (
+                  <span
+                    className={`badge ${
+                      unifiedSummary.status === 'completed'
+                        ? 'badge-success'
+                        : unifiedSummary.status === 'blocked'
+                        ? 'badge-danger'
+                        : 'badge-warning'
+                    }`}
+                    data-testid="unified-summary-status-badge"
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      background:
+                        unifiedSummary.status === 'completed'
+                          ? '#dcfce7'
+                          : unifiedSummary.status === 'blocked'
+                          ? '#fee2e2'
+                          : '#fef3c7',
+                      color:
+                        unifiedSummary.status === 'completed'
+                          ? '#15803d'
+                          : unifiedSummary.status === 'blocked'
+                          ? '#b91c1c'
+                          : '#b45309',
+                    }}
+                  >
+                    {unifiedSummary.status_label}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem' }}
+                  onClick={() => void loadUnifiedSummary()}
+                  disabled={unifiedSummaryLoading}
+                  title="Actualizar resumen unificado"
+                >
+                  {unifiedSummaryLoading ? 'Actualizando…' : '↻ Actualizar'}
+                </button>
+              </div>
+            </div>
+
+            <p className="flow-hint" style={{ fontSize: '0.95rem', color: '#475569', marginBottom: '1rem' }}>
+              Consolidación ejecutiva de las cinco dimensiones de evaluación (económica, social, ambiental, técnica y jurídica) para la versión vigente del expediente, con puntuación global reproducible según la política activa de criterios (HU1.12).
+            </p>
+
+            {unifiedSummaryError && (
+              <div style={{ marginBottom: '1rem' }}>
+                <Alert variant="error">
+                  {unifiedSummaryError}
+                </Alert>
+              </div>
+            )}
+
+            {unifiedSummary && (
+              <div className="unified-summary-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* 1. Resumen Ejecutivo Integrado */}
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '1rem 1.25rem',
+                    borderLeft: unifiedSummary.allows_final_approval ? '4px solid #10b981' : '4px solid #f59e0b',
+                  }}
+                  data-testid="unified-executive-summary"
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>
+                      Dictamen Ejecutivo Preliminar (Versión {unifiedSummary.version_number})
+                    </span>
+                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                      Generado: {formatDate(unifiedSummary.generated_at)}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 500, lineHeight: 1.5 }}>
+                    {unifiedSummary.summary_text}
+                  </p>
+                </div>
+
+                {/* 2. Puntuación Global Explicable (CA-HU1.12-02) */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '1.25rem',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  }}
+                  data-testid="unified-global-score-card"
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.75rem' }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>Puntuación Global Consolidada</h3>
+                      <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                        {unifiedSummary.global_score.criteria_version_number
+                          ? `Calculada bajo política de criterios v${unifiedSummary.global_score.criteria_version_number} (activa)`
+                          : 'Sin versión activa de criterios configurada'}
+                      </span>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      {unifiedSummary.global_score.is_calculated && typeof unifiedSummary.global_score.score === 'number' ? (
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem' }}>
+                          <span
+                            data-testid="global-score-value"
+                            style={{ fontSize: '2rem', fontWeight: 800, color: '#1e3a8a', lineHeight: 1 }}
+                          >
+                            {unifiedSummary.global_score.score.toFixed(2)}
+                          </span>
+                          <span style={{ fontSize: '1rem', color: '#64748b', fontWeight: 600 }}>/ 100 pts</span>
+                        </div>
+                      ) : (
+                        <span
+                          style={{
+                            background: '#f1f5f9',
+                            color: '#64748b',
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            fontSize: '0.85rem',
+                          }}
+                        >
+                          Puntaje no disponible
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Fórmula matemática explícita */}
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      padding: '0.75rem 1rem',
+                      fontFamily: 'monospace',
+                      fontSize: '0.88rem',
+                      color: '#0f172a',
+                      marginBottom: '0.75rem',
+                      overflowX: 'auto',
+                    }}
+                    data-testid="global-score-formula"
+                  >
+                    <strong>Fórmula: </strong>
+                    {unifiedSummary.global_score.formula}
+                  </div>
+
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569' }}>
+                    {unifiedSummary.global_score.explanation}
+                  </p>
+
+                  {/* Detalle de pesos y puntuaciones de entrada si está calculada */}
+                  {unifiedSummary.global_score.is_calculated && Object.keys(unifiedSummary.global_score.weights).length > 0 && (
+                    <div style={{ marginTop: '0.75rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
+                      {Object.entries(unifiedSummary.global_score.weights).map(([code, weight]) => {
+                        const inputScore = unifiedSummary.global_score.input_scores[code]
+                        return (
+                          <div
+                            key={code}
+                            style={{
+                              background: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '6px',
+                              padding: '0.4rem 0.75rem',
+                              fontSize: '0.8rem',
+                            }}
+                          >
+                            <span style={{ fontWeight: 700, color: '#334155' }}>{code}: </span>
+                            <span style={{ color: '#0369a1' }}>
+                              {inputScore !== undefined ? `${inputScore.toFixed(1)} pts` : 'Sin nota'}
+                            </span>{' '}
+                            <span style={{ color: '#64748b' }}>({weight}% peso)</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Rejilla de las Cinco Dimensiones (CA-HU1.12-01) */}
+                <div>
+                  <h3 style={{ fontSize: '1rem', color: '#1e293b', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Desglose por Dimensión de Evaluación
+                  </h3>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                      gap: '1rem',
+                    }}
+                    data-testid="dimensions-grid"
+                  >
+                    {unifiedSummary.dimensions.map((dim) => {
+                      const isComplete = dim.status === 'completed'
+                      const isBlocked = dim.status === 'blocked'
+                      const isWarning = dim.status === 'warning'
+                      const isFailed = dim.status === 'failed'
+
+                      let borderColor = '#cbd5e1'
+                      let headerBg = '#f8fafc'
+                      if (isComplete) {
+                        borderColor = '#86efac'
+                        headerBg = '#f0fdf4'
+                      } else if (isBlocked || isFailed) {
+                        borderColor = '#fca5a5'
+                        headerBg = '#fef2f2'
+                      } else if (isWarning) {
+                        borderColor = '#fde68a'
+                        headerBg = '#fffbeb'
+                      }
+
+                      return (
+                        <div
+                          key={dim.dimension_code}
+                          data-testid={`dimension-card-${dim.dimension_code}`}
+                          style={{
+                            background: '#ffffff',
+                            border: `1px solid ${borderColor}`,
+                            borderRadius: '8px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {/* Cabecera de tarjeta */}
+                          <div
+                            style={{
+                              background: headerBg,
+                              padding: '0.6rem 0.85rem',
+                              borderBottom: `1px solid ${borderColor}`,
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>
+                              {dim.dimension_name}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: '9999px',
+                                background: isComplete
+                                  ? '#dcfce7'
+                                  : isBlocked || isFailed
+                                  ? '#fee2e2'
+                                  : isWarning
+                                  ? '#fef3c7'
+                                  : '#f1f5f9',
+                                color: isComplete
+                                  ? '#166534'
+                                  : isBlocked || isFailed
+                                  ? '#991b1b'
+                                  : isWarning
+                                  ? '#92400e'
+                                  : '#475569',
+                              }}
+                            >
+                              {dim.status_label}
+                            </span>
+                          </div>
+
+                          {/* Cuerpo */}
+                          <div style={{ padding: '0.85rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {/* Puntuación si cuantitativa */}
+                            {dim.score !== null && dim.score !== undefined ? (
+                              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
+                                <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e3a8a' }}>
+                                  {dim.score.toFixed(1)}
+                                </span>
+                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>/ 100</span>
+                              </div>
+                            ) : dim.dimension_code === 'legal' ? (
+                              <div style={{ fontSize: '0.8rem', color: '#475569', fontStyle: 'italic' }}>
+                                Dimensión de control y cotejo normativo
+                              </div>
+                            ) : null}
+
+                            {/* Conclusión */}
+                            <div style={{ fontSize: '0.85rem', color: '#1e293b' }}>
+                              <strong>Conclusión: </strong>
+                              {dim.conclusion}
+                            </div>
+
+                            {/* Justificación */}
+                            <div style={{ fontSize: '0.82rem', color: '#475569', flex: 1 }}>
+                              <strong>Sustento: </strong>
+                              {dim.justification}
+                            </div>
+
+                            {/* Alerta de bloqueo */}
+                            {dim.has_blocker && dim.blocker_message && (
+                              <div
+                                style={{
+                                  background: '#fee2e2',
+                                  border: '1px solid #f87171',
+                                  borderRadius: '4px',
+                                  padding: '0.4rem 0.6rem',
+                                  fontSize: '0.78rem',
+                                  color: '#991b1b',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                🚫 {dim.blocker_message}
+                              </div>
+                            )}
+
+                            {/* Advertencia / Cita no verificable */}
+                            {dim.warning && (
+                              <div
+                                style={{
+                                  background: '#fffbeb',
+                                  border: '1px solid #fcd34d',
+                                  borderRadius: '4px',
+                                  padding: '0.4rem 0.6rem',
+                                  fontSize: '0.78rem',
+                                  color: '#92400e',
+                                }}
+                              >
+                                ⚠️ {dim.warning}
+                              </div>
+                            )}
+
+                            {/* Distinción clara de datos simulados (HU1.8) */}
+                            {dim.is_simulated && (
+                              <div
+                                style={{
+                                  background: '#f1f5f9',
+                                  border: '1px dashed #94a3b8',
+                                  borderRadius: '4px',
+                                  padding: '0.3rem 0.5rem',
+                                  fontSize: '0.72rem',
+                                  color: '#475569',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                ℹ️ Datos técnicos o territoriales simulados
+                              </div>
+                            )}
+
+                            {/* Metadatos adicionales */}
+                            {dim.evaluated_at && (
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 'auto', paddingTop: '0.25rem' }}>
+                                Evaluado: {formatDate(dim.evaluated_at)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* 4. Alertas de dimensiones incompletas o bloqueos (CA-HU1.12-03) */}
+                {unifiedSummary.missing_dimensions.length > 0 && (
+                  <div
+                    style={{
+                      background: '#fffbeb',
+                      border: '1px solid #f59e0b',
+                      borderRadius: '8px',
+                      padding: '0.85rem 1rem',
+                      color: '#92400e',
+                      fontSize: '0.88rem',
+                    }}
+                    data-testid="missing-dimensions-banner"
+                  >
+                    <strong>Evaluación multidimensional incompleta (CA-HU1.12-03): </strong>
+                    Faltan por completar o subsanar las siguientes dimensiones:{' '}
+                    <strong>{unifiedSummary.missing_dimensions.join(', ')}</strong>. No se permite emitir un dictamen final de aprobación sobre un expediente incompleto.
+                  </div>
+                )}
+
+                {unifiedSummary.blocking_reasons.length > 0 && (
+                  <div
+                    style={{
+                      background: '#fef2f2',
+                      border: '1px solid #ef4444',
+                      borderRadius: '8px',
+                      padding: '0.85rem 1rem',
+                      color: '#991b1b',
+                      fontSize: '0.88rem',
+                    }}
+                    data-testid="blocking-reasons-banner"
+                  >
+                    <strong>Bloqueos normativos y de riesgo activos:</strong>
+                    <ul style={{ margin: '0.4rem 0 0 1.25rem', padding: 0 }}>
+                      {unifiedSummary.blocking_reasons.map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* 5. Estado de habilitación para dictamen */}
+                <div
+                  style={{
+                    background: unifiedSummary.allows_final_approval ? '#f0fdf4' : '#f8fafc',
+                    border: `1px solid ${unifiedSummary.allows_final_approval ? '#86efac' : '#cbd5e1'}`,
+                    borderRadius: '8px',
+                    padding: '0.85rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem',
+                  }}
+                  data-testid="approval-readiness-banner"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.25rem' }}>
+                      {unifiedSummary.allows_final_approval ? '✅' : '🔒'}
+                    </span>
+                    <div>
+                      <strong style={{ color: unifiedSummary.allows_final_approval ? '#15803d' : '#475569' }}>
+                        {unifiedSummary.allows_final_approval
+                          ? 'Expediente habilitado para dictamen formal de aprobación'
+                          : 'Aprobación definitiva y priorización deshabilitadas'}
+                      </strong>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                        {unifiedSummary.allows_final_approval
+                          ? 'Las cinco dimensiones están completadas y validadas sin alertas ni checkpoints pendientes.'
+                          : 'Se requiere completar todas las dimensiones y resolver cualquier alerta o punto de control.'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
 
           <section className="flow-panel">

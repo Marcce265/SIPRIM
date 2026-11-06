@@ -13,6 +13,7 @@ import type {
   PertEstimateCreate,
   PertEstimateResponse,
   TechnicalFeasibilityResponse,
+  UnifiedAssessmentSummaryResponse,
   PMV1ProjectCreate,
   PMV1ProjectResponse,
   PMV1ValidationResponse,
@@ -258,6 +259,19 @@ export function evaluateTechnicalFeasibility(
       method: 'POST',
       auth: true,
       idempotencyKey,
+    },
+  )
+}
+
+export function getUnifiedAssessmentSummary(
+  projectId: string,
+  versionId?: string,
+): Promise<UnifiedAssessmentSummaryResponse> {
+  const query = versionId ? `?version_id=${encodeURIComponent(versionId)}` : ''
+  return apiFetch<UnifiedAssessmentSummaryResponse>(
+    `/api/v1/projects/${projectId}/unified-summary${query}`,
+    {
+      auth: true,
     },
   )
 }

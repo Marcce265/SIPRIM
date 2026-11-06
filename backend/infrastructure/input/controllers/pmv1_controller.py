@@ -31,6 +31,7 @@ from backend.application.dto.pmv1_dto import (
     EnvironmentalAssessmentResponse,
     SocialAccessibilityResponse,
     TechnicalFeasibilityResponse,
+    UnifiedAssessmentSummaryResponse,
     ZoningPrecheckResponse,
 )
 from backend.application.services.pmv1_services import AuthService, PlatformService
@@ -504,4 +505,19 @@ def get_technical_feasibility(
     version_id: Annotated[UUID | None, Query()] = None,
 ) -> dict[str, Any] | None:
     return service.get_technical_feasibility(project_id=project_id, version_id=version_id)
+
+@router.get(
+    "/projects/{project_id}/unified-summary",
+    response_model=UnifiedAssessmentSummaryResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Obtener resumen unificado de evaluacion multidimensional (HU1.12)",
+    tags=["Evaluaciones"],
+)
+def get_unified_assessment_summary(
+    project_id: Annotated[UUID, Path()],
+    _: Annotated[dict[str, Any], Depends(require_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+    version_id: Annotated[UUID | None, Query()] = None,
+) -> dict[str, Any]:
+    return service.get_unified_assessment_summary(project_id=project_id, version_id=version_id)
 

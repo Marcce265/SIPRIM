@@ -629,3 +629,57 @@ class TechnicalFeasibilityResponse(BaseModel):
     dimension_justification: str
     evaluated_at: datetime
     duplicated: bool = False
+
+
+# =========================================================
+# PMV 2 - Sprint 2 - HU1.12: Resumen unificado de evaluación multidimensional
+# =========================================================
+
+class DimensionSummaryItem(BaseModel):
+    """Resumen de una de las cinco dimensiones de evaluación (HU1.12)."""
+
+    dimension_code: str = Field(description="Código de la dimensión ('economic', 'social', 'environmental', 'technical', 'legal')")
+    dimension_name: str = Field(description="Nombre en español de la dimensión")
+    status: str = Field(description="Estado de la dimensión ('completed', 'pending', 'warning', 'failed', 'blocked')")
+    status_label: str = Field(description="Etiqueta legible del estado")
+    conclusion: str = Field(description="Conclusión técnica o ejecutiva de la dimensión")
+    justification: str = Field(description="Justificación y sustento de la conclusión")
+    score: float | None = Field(None, description="Puntuación cuantitativa en escala 0 a 100 si aplica")
+    is_simulated: bool = Field(False, description="Indica si la dimensión involucra datos o corpus simulados")
+    warning: str | None = Field(None, description="Advertencia normativa o de datos no comprobados")
+    has_blocker: bool = Field(False, description="Indica si esta dimensión bloquea la aprobación o priorización")
+    blocker_message: str | None = Field(None, description="Detalle del bloqueo si existe")
+    evaluated_at: datetime | None = Field(None, description="Fecha de emisión de la evaluación")
+    details: dict[str, Any] = Field(default_factory=dict, description="Metadatos complementarios")
+
+
+class GlobalScoreExplanation(BaseModel):
+    """Explicación y desglose de la puntuación global consolidada (HU1.12 - CA-HU1.12-02)."""
+
+    score: float | None = Field(None, description="Puntaje consolidado de 0 a 100, o None si no es calculable")
+    is_calculated: bool = Field(False, description="Indica si existen puntuaciones válidas y versión activa para calcular")
+    formula: str = Field(description="Fórmula matemática explícita y reproducible")
+    criteria_version_id: UUID | None = Field(None, description="ID de la versión de criterios y pesos activa")
+    criteria_version_number: int | None = Field(None, description="Número de versión activa de criterios")
+    weights: dict[str, float] = Field(default_factory=dict, description="Pesos asignados por criterio normativo")
+    input_scores: dict[str, float] = Field(default_factory=dict, description="Puntuaciones de entrada de cada dimensión")
+    explanation: str = Field(description="Explicación metodológica de la valoración consolidada")
+
+
+class UnifiedAssessmentSummaryResponse(BaseModel):
+    """Resumen final unificado de evaluación multidimensional (HU1.12)."""
+
+    project_id: UUID
+    project_code: str
+    project_version_id: UUID
+    version_number: int
+    is_complete: bool = Field(description="True si las 5 dimensiones finalizaron válidamente")
+    status: str = Field(description="Estado general ('completed', 'incomplete', 'blocked')")
+    status_label: str
+    summary_text: str = Field(description="Resumen ejecutivo integrado para el planificador")
+    dimensions: list[DimensionSummaryItem] = Field(description="Consolidación de las 5 dimensiones")
+    missing_dimensions: list[str] = Field(default_factory=list, description="Lista de dimensiones pendientes o fallidas")
+    global_score: GlobalScoreExplanation
+    allows_final_approval: bool = Field(description="True si está habilitado para avanzar a dictamen final")
+    blocking_reasons: list[str] = Field(default_factory=list, description="Motivos de detención o bloqueo si los hay")
+    generated_at: datetime

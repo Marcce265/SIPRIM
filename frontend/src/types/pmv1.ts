@@ -452,3 +452,51 @@ export interface TechnicalFeasibilityResponse {
   duplicated?: boolean
 }
 
+// =========================================================
+// PMV 2 - Sprint 2 - HU1.12: Resumen Unificado de Evaluación Multidimensional
+// =========================================================
+
+export interface DimensionSummaryItem {
+  dimension_code: 'economic' | 'social' | 'environmental' | 'technical' | 'legal' | string
+  dimension_name: string
+  status: 'completed' | 'pending' | 'warning' | 'failed' | 'blocked' | string
+  status_label: string
+  conclusion: string
+  justification: string
+  score?: number | null
+  is_simulated: boolean
+  warning?: string | null
+  has_blocker: boolean
+  blocker_message?: string | null
+  evaluated_at?: string | null
+  details?: Record<string, any>
+}
+
+export interface GlobalScoreExplanation {
+  score?: number | null
+  is_calculated: boolean
+  formula: string
+  criteria_version_id?: string | null
+  criteria_version_number?: number | null
+  weights: Record<string, number>
+  input_scores: Record<string, number>
+  explanation: string
+}
+
+export interface UnifiedAssessmentSummaryResponse {
+  project_id: string
+  project_code: string
+  project_version_id: string
+  version_number: number
+  is_complete: boolean
+  status: 'completed' | 'incomplete' | 'blocked' | string
+  status_label: string
+  summary_text: string
+  dimensions: DimensionSummaryItem[]
+  missing_dimensions: string[]
+  global_score: GlobalScoreExplanation
+  allows_final_approval: boolean
+  blocking_reasons: string[]
+  generated_at: string
+}
+
