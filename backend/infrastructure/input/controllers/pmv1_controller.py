@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, stat
 from backend.application.dto.evaluacion_ia_dto import DictamenIAResponse
 from backend.application.dto.pmv1_dto import (
     CheckpointResponse,
+    CheckpointResumeRequest,
+    CheckpointResumeResponse,
     EvaluationAccepted,
     EvaluationCreate,
     EvaluationResponse,
@@ -95,7 +97,7 @@ def get_project(
 @router.get(
     "/projects/{project_id}/checkpoint",
     response_model=CheckpointResponse | None,
-    summary="Consulta el punto de control persistente del proyecto ante riesgo alto (HU3.1)",
+    summary="Consulta el punto de control persistente del proyecto ante riesgo alto (HU3.1 / HU3.4)",
 )
 def get_project_checkpoint(
     project_id: Annotated[UUID, Path()],
@@ -103,6 +105,30 @@ def get_project_checkpoint(
     service: Annotated[PlatformService, Depends(get_platform_service)],
 ) -> dict[str, Any] | None:
     return service.get_project_checkpoint(project_id)
+
+
+@router.post(
+    "/projects/{project_id}/checkpoint/resume",
+    response_model=CheckpointResumeResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Reanuda la evaluación desde un checkpoint HITL persistente autorizado por Gerencia (HU3.4)",
+)
+def resume_project_checkpoint(
+    project_id: Annotated[UUID, Path()],
+    payload: CheckpointResumeRequest,
+    user: Annotated[dict[str, Any], Depends(require_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+    idempotency_key: Annotated[
+        str, Header(alias="Idempotency-Key", min_length=1, max_length=128)
+    ],
+) -> dict[str, Any]:
+    return service.resume_project_checkpoint(
+        project_id=project_id,
+        actor_id=UUID(user["sub"]),
+        justification=payload.justification,
+        conditions=payload.conditions,
+        idempotency_key=idempotency_key,
+    )
 
 
 @router.post("/projects/{project_id}/validate", response_model=PMV1ValidationResponse)

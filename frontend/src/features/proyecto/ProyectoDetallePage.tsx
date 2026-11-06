@@ -16,6 +16,7 @@ import {
   getPertEstimate,
   getProject,
   getProjectCheckpoint,
+  resumeProjectCheckpoint,
   getSocialAccessibility,
   registerPertEstimate,
   requestEvaluation,
@@ -56,6 +57,10 @@ export function ProyectoDetallePage() {
   const [zoning, setZoning] = useState<ZoningPrecheckResponse | null>(null)
   const [approval, setApproval] = useState<HumanApprovalStatusResponse | null>(null)
   const [checkpoint, setCheckpoint] = useState<CheckpointResponse | null>(null)
+  const [resumeJustification, setResumeJustification] = useState('')
+  const [resumeConditions, setResumeConditions] = useState('')
+  const [resumingCheckpoint, setResumingCheckpoint] = useState(false)
+  const [resumeSuccess, setResumeSuccess] = useState<string | null>(null)
   const [socialAssessment, setSocialAssessment] = useState<SocialAccessibilityResponse | null>(null)
   const [socialError, setSocialError] = useState<string | null>(null)
   const [environmentalAssessment, setEnvironmentalAssessment] = useState<EnvironmentalAssessmentResponse | null>(null)
@@ -457,6 +462,34 @@ export function ProyectoDetallePage() {
   // HU3.2: Garantizar aislamiento estricto por versión del expediente.
   // Un punto de control de una versión anterior u obsoleta no debe presentarse como activo en la versión vigente.
   const rawCheckpoint = checkpoint ?? project?.checkpoint ?? approval?.checkpoint ?? null
+  const handleResumeCheckpoint = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!projectId || resumeJustification.trim().length < 5) return
+    setResumingCheckpoint(true)
+    setError(null)
+    setResumeSuccess(null)
+    try {
+      const res = await resumeProjectCheckpoint(
+        projectId,
+        {
+          justification: resumeJustification.trim(),
+          conditions: resumeConditions.trim() || undefined,
+        },
+        newIdempotencyKey('resume-cp'),
+      )
+      setResumeSuccess(res.message || 'Evaluación reanudada exitosamente desde el punto de control.')
+      setResumeJustification('')
+      setResumeConditions('')
+      await loadProject()
+      await loadCheckpoint()
+      await loadApproval()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al reanudar desde el punto de control.')
+    } finally {
+      setResumingCheckpoint(false)
+    }
+  }
+
   const activeCheckpoint =
     rawCheckpoint && project && rawCheckpoint.project_version_id === project.project_version_id
       ? rawCheckpoint
@@ -614,10 +647,116 @@ export function ProyectoDetallePage() {
 
               <div className="checkpoint-footer-container">
                 <p className="checkpoint-footer-notice">
-                  <strong>Control gerencial (CA-HU3.2-01 / CA-HU3.2-02):</strong> El procesamiento automático ha sido detenido en este punto de control persistente. La evaluación no concluye ni se da por aprobada, y no habrá continuación automática. Mientras la causa no sea resuelta mediante validación humana facultada, este aviso y el estado pendiente permanecerán disponibles al recargar, reingresar o consultar nuevamente el expediente, sin repetir la evaluación ni crear puntos de control duplicados.
+                  <strong>Control gerencial (CA-HU3.2-01 / CA-HU3.2-02 / CA-HU3.4-01):</strong> El procesamiento automático ha sido detenido en este punto de control persistente. La evaluación no concluye ni se da por aprobada automáticamente. Un responsable facultado (Gerente de Planeamiento) puede autorizar la continuación del procesamiento desde este estado conservado sin repetir etapas completadas.
                 </p>
+
+                {/* Formulario de Reanudación de Evaluación desde Checkpoint (HU3.4) */}
+                <form
+                  onSubmit={handleResumeCheckpoint}
+                  style={{
+                    marginTop: '1rem',
+                    padding: '1rem',
+                    background: '#ffffff',
+                    borderRadius: '8px',
+                    border: '1px solid #f87171',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                  }}
+                  data-testid="checkpoint-resume-form"
+                >
+                  <h4 style={{ margin: 0, color: '#991b1b', fontSize: '0.95rem', fontWeight: 700 }}>
+                    Autorizar Continuación y Reanudar Evaluación (HU3.4)
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#4b5563' }}>
+                    Como Gerente de Planeamiento o Administrador, justifique la autorización para levantar la pausa y reanudar el flujo desde el estado conservado.
+                  </p>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: '0.25rem' }}>
+                      Justificación / Sustento de la decisión (mínimo 5 caracteres) *
+                    </label>
+                    <textarea
+                      rows={2}
+                      className="form-field-input"
+                      style={{ width: '100%', fontSize: '0.85rem' }}
+                      placeholder="Ingrese el sustento técnico y legal que justifica la continuación del expediente..."
+                      value={resumeJustification}
+                      onChange={(e) => setResumeJustification(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: '0.25rem' }}>
+                      Condiciones u observaciones operativas (opcional)
+                    </label>
+                    <input
+                      type="text"
+                      className="form-field-input"
+                      style={{ width: '100%', fontSize: '0.85rem' }}
+                      placeholder="Condiciones técnicas impuestas (ej. monitoreo de faja marginal, plan de contingencia)..."
+                      value={resumeConditions}
+                      onChange={(e) => setResumeConditions(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={resumingCheckpoint || resumeJustification.trim().length < 5}
+                    style={{ alignSelf: 'flex-start', background: '#b91c1c', borderColor: '#991b1b' }}
+                  >
+                    {resumingCheckpoint ? 'Reanudando evaluación...' : 'Autorizar y reanudar evaluación'}
+                  </button>
+                </form>
               </div>
             </section>
+          )}
+
+          {/* Banner de Punto de Control Resuelto / Reanudado (HU3.4) */}
+          {activeCheckpoint && activeCheckpoint.status === 'resolved' && (
+            <section
+              className="flow-panel"
+              style={{
+                background: '#f0fdf4',
+                borderColor: '#86efac',
+                padding: '1.25rem',
+                marginBottom: '1.5rem',
+              }}
+              data-testid="checkpoint-resolved-banner"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>✅</span>
+                <h3 style={{ margin: 0, color: '#166534', fontSize: '1.1rem' }}>
+                  Punto de Control Resuelto — Evaluación Reanudada (HU3.4)
+                </h3>
+              </div>
+              <p style={{ margin: '0 0 0.75rem', fontSize: '0.875rem', color: '#15803d' }}>
+                La pausa de riesgo alto fue autorizada y reanudada formalmente por el responsable facultado. El procesamiento continuó conservando los resultados previos.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', background: '#ffffff', padding: '0.75rem', borderRadius: '6px', border: '1px solid #bbf7d0', fontSize: '0.85rem' }}>
+                <div>
+                  <div style={{ color: '#6b7280', fontSize: '0.75rem', fontWeight: 600 }}>MOTIVO DE REANUDACIÓN</div>
+                  <div style={{ color: '#111827', fontWeight: 500 }}>{activeCheckpoint.resolution_motive || 'Autorización concedida'}</div>
+                </div>
+                {activeCheckpoint.resolution_conditions && (
+                  <div>
+                    <div style={{ color: '#6b7280', fontSize: '0.75rem', fontWeight: 600 }}>CONDICIONES IMPUESTAS</div>
+                    <div style={{ color: '#111827', fontWeight: 500 }}>{activeCheckpoint.resolution_conditions}</div>
+                  </div>
+                )}
+                <div>
+                  <div style={{ color: '#6b7280', fontSize: '0.75rem', fontWeight: 600 }}>FECHA DE REANUDACIÓN</div>
+                  <div style={{ color: '#111827' }}>{activeCheckpoint.resolved_at ? formatDate(activeCheckpoint.resolved_at) : 'Reciente'}</div>
+                </div>
+                <div>
+                  <div style={{ color: '#6b7280', fontSize: '0.75rem', fontWeight: 600 }}>ESTADO ACTUAL</div>
+                  <div style={{ color: '#166534', fontWeight: 700 }}>Evaluación completada / Lista para dictamen</div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {resumeSuccess && (
+            <Alert variant="success">{resumeSuccess}</Alert>
           )}
 
           {physicalExpediente && (

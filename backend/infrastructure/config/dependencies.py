@@ -205,9 +205,9 @@ def require_planner(
     user: Annotated[dict[str, Any], Depends(get_current_user)],
 ) -> dict[str, Any]:
     roles = _user_roles(user)
-    if _is_superadmin(roles) or "PLANNER" in roles:
+    if _is_superadmin(roles) or "PLANNER" in roles or "ADMIN" in roles:
         return user
-    raise AccesoDenegadoError("Se requiere el rol PLANNER")
+    raise AccesoDenegadoError("Se requiere el rol PLANNER o ADMIN")
 
 
 def require_legal_advisor(

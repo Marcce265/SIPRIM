@@ -520,6 +520,11 @@ CREATE TABLE IF NOT EXISTS evaluation_checkpoints (
     risk_source VARCHAR(60) NOT NULL,
     risk_level VARCHAR(32) NOT NULL DEFAULT 'high',
     details JSONB NOT NULL DEFAULT '{}',
+    resolved_by_user_id UUID,
+    resolution_motive TEXT,
+    resolution_conditions TEXT,
+    resolved_at TIMESTAMPTZ,
+    idempotency_key VARCHAR(128),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_checkpoint_version_source UNIQUE (project_version_id, risk_source, checkpoint_type)
@@ -527,6 +532,8 @@ CREATE TABLE IF NOT EXISTS evaluation_checkpoints (
 
 CREATE INDEX IF NOT EXISTS idx_checkpoints_project ON evaluation_checkpoints(project_id, status);
 CREATE INDEX IF NOT EXISTS idx_checkpoints_version ON evaluation_checkpoints(project_version_id, status);
+CREATE INDEX IF NOT EXISTS idx_checkpoints_resolved ON evaluation_checkpoints(project_version_id, status);
+CREATE INDEX IF NOT EXISTS idx_checkpoints_idempotency ON evaluation_checkpoints(idempotency_key) WHERE idempotency_key IS NOT NULL;
 
 -- =========================================================
 -- PMV 2 - Sprint 2 - HU1.9: Estimación de duración de obra e incertidumbre (PERT)

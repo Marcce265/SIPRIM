@@ -1,5 +1,7 @@
 import type {
   CheckpointResponse,
+  CheckpointResumeRequest,
+  CheckpointResumeResponse,
   EvaluationAccepted,
   EvaluationResponse,
   HumanApprovalStatusResponse,
@@ -25,6 +27,19 @@ export function createProject(payload: PMV1ProjectCreate): Promise<PMV1ProjectRe
   return apiFetch<PMV1ProjectResponse>('/api/v1/projects', {
     method: 'POST',
     auth: true,
+    body: JSON.stringify(payload),
+  })
+}
+
+export function resumeProjectCheckpoint(
+  projectId: string,
+  payload: CheckpointResumeRequest,
+  idempotencyKey?: string,
+): Promise<CheckpointResumeResponse> {
+  return apiFetch<CheckpointResumeResponse>(`/api/v1/projects/${projectId}/checkpoint/resume`, {
+    method: 'POST',
+    auth: true,
+    idempotencyKey,
     body: JSON.stringify(payload),
   })
 }

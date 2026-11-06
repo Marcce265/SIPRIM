@@ -25,8 +25,33 @@ export interface CheckpointResponse {
   requires_human_review: boolean
   allows_final_approval: boolean
   details?: Record<string, unknown> | null
+  resolved_by_user_id?: string | null
+  resolution_motive?: string | null
+  resolution_conditions?: string | null
+  resolved_at?: string | null
   created_at?: string | null
   updated_at?: string | null
+}
+
+export interface CheckpointResumeRequest {
+  justification: string
+  conditions?: string | null
+}
+
+export interface CheckpointResumeResponse {
+  checkpoint_id: string
+  project_id: string
+  project_version_id: string
+  evaluation_id?: string | null
+  status: string
+  status_label: string
+  resolved_by_user_id: string
+  resolution_motive: string
+  resolution_conditions?: string | null
+  resolved_at: string
+  project_status: string
+  duplicated?: boolean
+  message: string
 }
 
 export interface PMV1ProjectCreate {

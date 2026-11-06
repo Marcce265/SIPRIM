@@ -946,6 +946,7 @@ class RiskCheckpointEngine:
             """
             SELECT id AS checkpoint_id, project_id, project_version_id, evaluation_id,
                    checkpoint_type, status, reason, risk_source, risk_level, details,
+                   resolved_by_user_id, resolution_motive, resolution_conditions, resolved_at,
                    created_at, updated_at
             FROM evaluation_checkpoints
             WHERE project_version_id = %s AND status = 'pending_review'
@@ -1013,6 +1014,88 @@ class RiskCheckpointEngine:
             "requires_human_review": True,
             "allows_final_approval": False,
             "details": details,
+            "resolved_by_user_id": row.get("resolved_by_user_id"),
+            "resolution_motive": row.get("resolution_motive"),
+            "resolution_conditions": row.get("resolution_conditions"),
+            "resolved_at": row.get("resolved_at"),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    @classmethod
+    def get_latest_checkpoint(
+        cls,
+        conn: psycopg.Connection,
+        project_version_id: UUID,
+    ) -> dict[str, Any] | None:
+        """Recupera el último punto de control (pendiente o resuelto) para la versión del expediente (HU3.4)."""
+        row = conn.execute(
+            """
+            SELECT id AS checkpoint_id, project_id, project_version_id, evaluation_id,
+                   checkpoint_type, status, reason, risk_source, risk_level, details,
+                   resolved_by_user_id, resolution_motive, resolution_conditions, resolved_at,
+                   created_at, updated_at
+            FROM evaluation_checkpoints
+            WHERE project_version_id = %s
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (project_version_id,),
+        ).fetchone()
+
+        if not row:
+            return None
+
+        details = row["details"] if isinstance(row["details"], dict) else {}
+        raw_cause = details.get("cause") or row.get("reason")
+        cause = raw_cause.strip() if isinstance(raw_cause, str) and raw_cause.strip() else None
+
+        raw_obs = details.get("observation") or details.get("risk_observation")
+        if not raw_obs and isinstance(details.get("declared_vs_evidence"), dict):
+            raw_obs = details["declared_vs_evidence"].get("verifiable_evidence")
+
+        if raw_obs and isinstance(raw_obs, str) and raw_obs.strip():
+            if raw_obs.strip() == (cause or "").strip() and isinstance(details.get("declared_vs_evidence"), dict):
+                verifiable = details["declared_vs_evidence"].get("verifiable_evidence")
+                if verifiable and isinstance(verifiable, str) and verifiable.strip():
+                    observation = f"Comprobación técnica requerida: {verifiable.strip()}"
+                else:
+                    observation = "Observación pendiente de aclaración"
+            else:
+                observation = raw_obs.strip()
+        else:
+            observation = "Observación pendiente de aclaración"
+
+        is_pending = (row["status"] == "pending_review")
+        return {
+            "checkpoint_id": row["checkpoint_id"],
+            "project_id": row["project_id"],
+            "project_version_id": row["project_version_id"],
+            "evaluation_id": row["evaluation_id"],
+            "checkpoint_type": row["checkpoint_type"],
+            "status": row["status"],
+            "status_label": "Pendiente de revisión" if is_pending else "Reanudado / Resuelto",
+            "reason": cause or (row.get("reason") or "Información no especificada"),
+            "cause": cause,
+            "observation": observation,
+            "risk_source": row["risk_source"] or "no_especificado",
+            "risk_source_label": {
+                "environmental": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
+                "legal": "Conformidad jurídica / Citas normativas",
+            }.get(row["risk_source"], row["risk_source"]),
+            "risk_level": row["risk_level"],
+            "risk_level_label": {
+                "high": "Riesgo Alto",
+                "moderate": "Riesgo Moderado",
+                "low": "Riesgo Bajo",
+            }.get(row["risk_level"], row["risk_level"]),
+            "requires_human_review": is_pending,
+            "allows_final_approval": not is_pending,
+            "details": details,
+            "resolved_by_user_id": row.get("resolved_by_user_id"),
+            "resolution_motive": row.get("resolution_motive"),
+            "resolution_conditions": row.get("resolution_conditions"),
+            "resolved_at": row.get("resolved_at"),
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
         }
@@ -2179,10 +2262,212 @@ class PlatformService:
 
         return dict(row)
 
-    def get_project_checkpoint(self, project_id: UUID) -> dict[str, Any] | None:
-        """Obtiene el punto de control persistente activo para la versión del proyecto (HU3.1 / HU3.2)."""
+    def _verify_planner_actor(self, actor_id: UUID) -> None:
+        """Verifica que el usuario tenga rol de Gerente/Planificador (PLANNER) o Administrador (ADMIN) en auth_db (HU3.4)."""
+        settings = get_settings()
+        auth_dsn = _dsn(settings.auth_db_url)
+        with psycopg.connect(auth_dsn, row_factory=dict_row) as conn:
+            rows = conn.execute(
+                """
+                SELECT r.code
+                FROM users u
+                JOIN user_roles ur ON u.id = ur.user_id
+                JOIN roles r ON ur.role_id = r.id
+                WHERE u.id = %s
+                """,
+                (actor_id,),
+            ).fetchall()
+            roles = {r["code"] for r in rows}
+            if not (roles & {"PLANNER", "ADMIN", "SUPERADMIN"}):
+                raise AccesoDenegadoError(
+                    f"El usuario {actor_id} no cuenta con perfil de Gerente de Planeamiento o Administrador. "
+                    "Se requiere rol PLANNER o ADMIN para autorizar la reanudación del checkpoint."
+                )
+
+    def resume_project_checkpoint(
+        self,
+        project_id: UUID,
+        actor_id: UUID,
+        justification: str,
+        conditions: str | None,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        """Reanuda la evaluación desde un punto de control HITL persistente autorizado por Gerencia (HU3.4).
+
+        Cumple estrictamente los criterios de aceptación:
+        - CA-HU3.4-01: Con pausa persistida y decisión válida de un responsable autorizado, continúa desde el
+          checkpoint, conserva los resultados anteriores y no repite etapas ya completadas.
+        - CA-HU3.4-02: Sin autorización válida o con un usuario sin permiso, rechaza la reanudación y conserva 'Pendiente de revisión'.
+        - CA-HU3.4-03: Si hubo cambios sustanciales o una versión nueva del expediente, no reutiliza la aprobación anterior.
+        """
+        cleaned_key = idempotency_key.strip()
+        if not cleaned_key:
+            raise ConfiguracionPMV1Error("Idempotency-Key es obligatorio")
+
+        cleaned_justification = justification.strip() if justification else ""
+        if len(cleaned_justification) < 5:
+            raise ConfiguracionPMV1Error("La justificación de reanudación debe tener al menos 5 caracteres")
+
+        cleaned_conditions = conditions.strip() if conditions and conditions.strip() else None
+
+        # CA-HU3.4-02: Verificar que el usuario tenga rol autorizado
+        self._verify_planner_actor(actor_id)
+
         project = self.get_project(project_id)
-        return project.get("checkpoint")
+        version_id = project["project_version_id"]
+
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
+            # 1. Comprobación de idempotencia estricta
+            prev = conn.execute(
+                """
+                SELECT id AS checkpoint_id, project_id, project_version_id, evaluation_id, status,
+                       resolved_by_user_id, resolution_motive, resolution_conditions, resolved_at, idempotency_key
+                FROM evaluation_checkpoints
+                WHERE idempotency_key = %s
+                """,
+                (cleaned_key,),
+            ).fetchone()
+
+            if prev:
+                if prev["project_id"] != project_id or prev["project_version_id"] != version_id:
+                    raise ConfiguracionPMV1Error("Idempotency-Key ya fue utilizada para otro expediente o versión")
+                if prev["resolution_motive"] != cleaned_justification:
+                    raise ConfiguracionPMV1Error("Idempotency-Key no puede ser reutilizada con justificación distinta")
+                return {
+                    "checkpoint_id": prev["checkpoint_id"],
+                    "project_id": prev["project_id"],
+                    "project_version_id": prev["project_version_id"],
+                    "evaluation_id": prev["evaluation_id"],
+                    "status": "resolved",
+                    "status_label": "Reanudado / Resuelto",
+                    "resolved_by_user_id": prev["resolved_by_user_id"],
+                    "resolution_motive": prev["resolution_motive"],
+                    "resolution_conditions": prev["resolution_conditions"],
+                    "resolved_at": prev["resolved_at"],
+                    "project_status": "evaluated",
+                    "duplicated": True,
+                    "message": "Evaluación ya reanudada previamente con esta clave de idempotencia.",
+                }
+
+            # 2. Buscar checkpoint para la versión vigente
+            cp_row = conn.execute(
+                """
+                SELECT id AS checkpoint_id, project_id, project_version_id, evaluation_id, status,
+                       reason, risk_source, risk_level, details, resolved_by_user_id, resolution_motive,
+                       resolution_conditions, resolved_at
+                FROM evaluation_checkpoints
+                WHERE project_version_id = %s AND checkpoint_type = 'high_risk_pause'
+                ORDER BY created_at DESC
+                LIMIT 1
+                FOR UPDATE
+                """,
+                (version_id,),
+            ).fetchone()
+
+            if not cp_row:
+                raise RecursoPMV1NoEncontradoError(
+                    f"No existe un punto de control (checkpoint) para la versión vigente ({version_id}) del expediente."
+                )
+
+            if cp_row["status"] == "resolved":
+                raise ConfiguracionPMV1Error(
+                    "El punto de control ya ha sido resuelto o reanudado previamente. "
+                    "No se puede reanudar nuevamente sin un nuevo punto de control activo."
+                )
+
+            if cp_row["status"] != "pending_review":
+                raise ConfiguracionPMV1Error(
+                    f"El punto de control se encuentra en estado '{cp_row['status']}', no en 'pending_review'."
+                )
+
+            now = datetime.now(timezone.utc)
+            checkpoint_id = cp_row["checkpoint_id"]
+            evaluation_id = cp_row["evaluation_id"]
+
+            # 3. Actualizar checkpoint a resolved
+            conn.execute(
+                """
+                UPDATE evaluation_checkpoints
+                SET status = 'resolved',
+                    resolved_by_user_id = %s,
+                    resolution_motive = %s,
+                    resolution_conditions = %s,
+                    resolved_at = %s,
+                    idempotency_key = %s,
+                    updated_at = %s
+                WHERE id = %s AND status = 'pending_review'
+                """,
+                (
+                    actor_id,
+                    cleaned_justification,
+                    cleaned_conditions,
+                    now,
+                    cleaned_key,
+                    now,
+                    checkpoint_id,
+                ),
+            )
+
+            # 4. CA-HU3.4-01: Conservar resultados anteriores, continuar flujo y actualizar estado del proyecto a evaluated
+            conn.execute(
+                "UPDATE projects SET status = 'evaluated', updated_at = %s WHERE id = %s",
+                (now, project_id),
+            )
+
+            if evaluation_id:
+                conn.execute(
+                    """
+                    UPDATE evaluations
+                    SET status = 'completed', error_message = NULL, updated_at = %s
+                    WHERE id = %s AND status = 'pending_review'
+                    """,
+                    (now, evaluation_id),
+                )
+
+            # 5. Persistir auditoría de la decisión
+            conn.execute(
+                """
+                INSERT INTO audit_events
+                (actor_user_id, action, entity_type, entity_id, details)
+                VALUES (%s, 'CHECKPOINT_RESUMED', 'evaluation_checkpoint', %s, %s)
+                """,
+                (
+                    actor_id,
+                    checkpoint_id,
+                    Jsonb({
+                        "project_id": str(project_id),
+                        "project_version_id": str(version_id),
+                        "evaluation_id": str(evaluation_id) if evaluation_id else None,
+                        "resolution_motive": cleaned_justification,
+                        "resolution_conditions": cleaned_conditions,
+                        "resumed_at": now.isoformat(),
+                    }),
+                ),
+            )
+
+        return {
+            "checkpoint_id": checkpoint_id,
+            "project_id": project_id,
+            "project_version_id": version_id,
+            "evaluation_id": evaluation_id,
+            "status": "resolved",
+            "status_label": "Reanudado / Resuelto",
+            "resolved_by_user_id": actor_id,
+            "resolution_motive": cleaned_justification,
+            "resolution_conditions": cleaned_conditions,
+            "resolved_at": now,
+            "project_status": "evaluated",
+            "duplicated": False,
+            "message": "Evaluación reanudada exitosamente desde el punto de control conservando resultados previos.",
+        }
+
+    def get_project_checkpoint(self, project_id: UUID) -> dict[str, Any] | None:
+        """Obtiene el punto de control persistente (pendiente o resuelto) para la versión vigente del proyecto (HU3.1 / HU3.4)."""
+        project = self.get_project(project_id)
+        if project.get("checkpoint"):
+            return project["checkpoint"]
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            return RiskCheckpointEngine.get_latest_checkpoint(conn, project["project_version_id"])
 
     def get_project_by_code(self, code: str) -> dict[str, Any]:
         normalized = code.strip()

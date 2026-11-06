@@ -74,8 +74,51 @@ class CheckpointResponse(BaseModel):
     requires_human_review: bool = True
     allows_final_approval: bool = False
     details: dict[str, Any] = Field(default_factory=dict)
+    resolved_by_user_id: UUID | None = None
+    resolution_motive: str | None = None
+    resolution_conditions: str | None = None
+    resolved_at: datetime | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+
+class CheckpointResumeRequest(BaseModel):
+    """Solicitud de reanudación de evaluación desde el checkpoint de riesgo alto (HU3.4)."""
+
+    justification: str = Field(
+        ...,
+        min_length=5,
+        description="Justificación y sustento del responsable autorizado para reanudar el procesamiento.",
+    )
+    conditions: str | None = Field(
+        None,
+        description="Condiciones técnicas u operativas impuestas para la continuación.",
+    )
+
+    @field_validator("justification", "conditions", mode="before")
+    @classmethod
+    def strip_text(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip() or None
+        return value
+
+
+class CheckpointResumeResponse(BaseModel):
+    """Respuesta a la reanudación controlada de evaluación desde el checkpoint (HU3.4)."""
+
+    checkpoint_id: UUID
+    project_id: UUID
+    project_version_id: UUID
+    evaluation_id: UUID | None = None
+    status: str = "resolved"
+    status_label: str = "Reanudado / Resuelto"
+    resolved_by_user_id: UUID
+    resolution_motive: str
+    resolution_conditions: str | None = None
+    resolved_at: datetime
+    project_status: str
+    duplicated: bool = False
+    message: str
 
 
 class PertEstimateCreate(BaseModel):
