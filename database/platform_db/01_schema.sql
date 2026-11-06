@@ -443,6 +443,7 @@ ALTER TABLE environmental_assessments
 CREATE TABLE IF NOT EXISTS project_legal_findings (
     id UUID PRIMARY KEY,
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    project_version_id UUID REFERENCES project_versions(id) ON DELETE CASCADE,
     project_code VARCHAR(40) NOT NULL,
     finding_key VARCHAR(60) NOT NULL,
     title VARCHAR(180) NOT NULL,
@@ -473,17 +474,37 @@ CREATE TABLE IF NOT EXISTS legal_assessments (
     project_code VARCHAR(40) NOT NULL,
     project_version_id UUID REFERENCES project_versions(id) ON DELETE SET NULL,
     status VARCHAR(32) NOT NULL DEFAULT 'requires_review'
-        CHECK (status IN ('requires_review', 'verified', 'insufficient')),
+        CHECK (status IN ('requires_review', 'verified', 'insufficient', 'alerta_legal')),
     summary TEXT NOT NULL,
     findings_json JSONB NOT NULL,
     total_findings INTEGER NOT NULL DEFAULT 0,
     verifiable_citations_count INTEGER NOT NULL DEFAULT 0,
     unverifiable_citations_count INTEGER NOT NULL DEFAULT 0,
     requires_human_review BOOLEAN NOT NULL DEFAULT TRUE,
+    has_legal_alert BOOLEAN NOT NULL DEFAULT FALSE,
+    legal_alert_motive TEXT,
+    legal_alert_norm VARCHAR(255),
+    is_resolved BOOLEAN NOT NULL DEFAULT FALSE,
+    resolved_by_user_id UUID,
+    resolved_at TIMESTAMPTZ,
+    resolution_justification TEXT,
     evaluated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_legal_assessment_project UNIQUE (project_id)
 );
+
+CREATE TABLE IF NOT EXISTS legal_alert_resolutions (
+    id UUID PRIMARY KEY,
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    project_version_id UUID NOT NULL REFERENCES project_versions(id) ON DELETE CASCADE,
+    resolved_by_user_id UUID NOT NULL,
+    resolution_action VARCHAR(64) NOT NULL,
+    justification TEXT NOT NULL,
+    resolved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    idempotency_key VARCHAR(120) NOT NULL UNIQUE
+);
+
+CREATE INDEX IF NOT EXISTS legal_alert_resolutions_proj_idx ON legal_alert_resolutions(project_id, project_version_id);
 
 CREATE INDEX IF NOT EXISTS legal_assessment_proj_idx ON legal_assessments(project_id);
 CREATE INDEX IF NOT EXISTS legal_assessment_code_idx ON legal_assessments(project_code);

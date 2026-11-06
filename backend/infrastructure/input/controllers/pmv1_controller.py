@@ -12,6 +12,8 @@ from backend.application.dto.pmv1_dto import (
     HumanApprovalCreate,
     HumanApprovalResponse,
     HumanApprovalStatusResponse,
+    LegalAlertResolveRequest,
+    LegalAlertResolutionResponse,
     LegalAssessmentResponse,
     LegalPrecheckResponse,
     LoginRequest,
@@ -232,6 +234,30 @@ def evaluate_legal_assessment(
 ) -> dict[str, Any]:
     return service.evaluate_legal_assessment(
         project_id, UUID(user["sub"]), idempotency_key=idempotency_key
+    )
+
+
+@router.post(
+    "/projects/{project_id}/legal-alert/resolve",
+    response_model=LegalAlertResolutionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Levanta formalmente una alerta legal por un asesor jurídico autorizado (HU2.3)",
+)
+def resolve_legal_alert(
+    project_id: Annotated[UUID, Path()],
+    payload: LegalAlertResolveRequest,
+    user: Annotated[dict[str, Any], Depends(require_legal_advisor)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+    idempotency_key: Annotated[
+        str, Header(alias="Idempotency-Key", min_length=1, max_length=120)
+    ],
+) -> dict[str, Any]:
+    return service.resolve_legal_alert(
+        project_id=project_id,
+        actor_id=UUID(user["sub"]),
+        resolution_action=payload.resolution_action,
+        justification=payload.justification,
+        idempotency_key=idempotency_key,
     )
 
 

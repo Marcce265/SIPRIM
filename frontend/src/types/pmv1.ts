@@ -121,12 +121,28 @@ export interface LegalFindingItem {
   citation: NormativeCitationItem
 }
 
+export interface LegalAlertResolveRequest {
+  resolution_action: string
+  justification: string
+}
+
+export interface LegalAlertResolutionResponse {
+  resolution_id: string
+  project_id: string
+  project_version_id: string
+  resolved_by_user_id: string
+  resolution_action: string
+  justification: string
+  resolved_at: string
+  duplicated?: boolean
+}
+
 export interface LegalAssessmentResponse {
   assessment_id: string
   project_id: string
   project_code: string
   project_version_id?: string | null
-  status: 'requires_review' | 'verified' | 'insufficient'
+  status: 'requires_review' | 'verified' | 'insufficient' | 'alerta_legal'
   status_label: string
   summary: string
   findings: LegalFindingItem[]
@@ -134,6 +150,11 @@ export interface LegalAssessmentResponse {
   verifiable_citations_count: number
   unverifiable_citations_count: number
   requires_human_review: boolean
+  has_legal_alert?: boolean
+  legal_alert_motive?: string | null
+  legal_alert_norm?: string | null
+  is_resolved?: boolean
+  resolution_justification?: string | null
   evaluated_at: string
   is_simulated_corpus: boolean
   duplicated?: boolean
@@ -183,6 +204,7 @@ export interface NormativeSearchResponse {
 
 export interface HumanApprovalStatusResponse {
   project_id: string
+  project_version_id?: string
   project_status: string
   is_evaluated: boolean
   requires_human_approval: boolean
@@ -194,6 +216,11 @@ export interface HumanApprovalStatusResponse {
     justification: string
     conditions: string | null
   } | null
+  has_legal_alert?: boolean
+  legal_alert_motive?: string | null
+  legal_alert_norm?: string | null
+  allows_final_approval?: boolean
+  blocking_reasons?: string[]
 }
 
 export interface SocialAccessibilityCategoryItem {

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { evaluateLegalAssessment, getLegalAssessment, getProject } from '../../api/pmv1.api'
+import { evaluateLegalAssessment, getLegalAssessment, getProject, resolveLegalAlert } from '../../api/pmv1.api'
+import { useAuth } from '../auth/AuthContext'
+import { newIdempotencyKey } from '../../utils/idempotency'
 import { ProyectoCard } from '../../components/proyecto/ProyectoCard'
 import { Alert } from '../../components/ui/Alert'
 import { PageHeader } from '../../components/ui/PageHeader'
@@ -11,10 +13,15 @@ import { mapPmV1ToProyecto } from '../../utils/pmv1Mapper'
 
 export function RevisionJuridicaPage() {
   const { projectId = '' } = useParams()
+  const { hasRole } = useAuth()
   const [project, setProject] = useState<PMV1ProjectResponse | null>(null)
   const [assessment, setAssessment] = useState<LegalAssessmentResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [resolving, setResolving] = useState(false)
+  const [resolveAction, setResolveAction] = useState('Subsanación técnica de franja marginal')
+  const [resolveJustification, setResolveJustification] = useState('')
 
   useEffect(() => {
     if (!projectId) return
@@ -55,6 +62,7 @@ export function RevisionJuridicaPage() {
       />
 
       {error && <Alert variant="error">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
       {!project && !error && <p className="muted">Cargando expediente…</p>}
       {project && <ProyectoCard proyecto={mapPmV1ToProyecto(project)} compact />}
 
@@ -92,18 +100,144 @@ export function RevisionJuridicaPage() {
               </div>
               <span
                 className={`status-pill ${
-                  assessment.status === 'verified'
-                    ? 'status-review'
-                    : assessment.status === 'requires_review'
-                    ? 'status-review'
+                  assessment.has_legal_alert || assessment.status === 'alerta_legal'
+                    ? 'status-error'
+                    : assessment.status === 'verified'
+                    ? 'status-approved'
                     : 'status-review'
                 }`}
+                style={assessment.has_legal_alert || assessment.status === 'alerta_legal' ? { background: '#fee2e2', color: '#991b1b', borderColor: '#ef4444' } : undefined}
               >
-                {assessment.requires_human_review ? 'Requiere revisión' : 'Cotejo conforme'}
+                {assessment.has_legal_alert || assessment.status === 'alerta_legal'
+                  ? 'Alerta Legal'
+                  : assessment.requires_human_review
+                  ? 'Requiere revisión'
+                  : 'Cotejo conforme'}
               </span>
             </header>
 
             <p className="legal-conclusion">{assessment.summary}</p>
+
+            {assessment.has_legal_alert && (
+              <div
+                className="legal-alert-banner"
+                role="alert"
+                style={{
+                  background: '#fef2f2',
+                  border: '1px solid #ef4444',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  margin: '1rem 0',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '1.25rem' }}>🚨</span>
+                  <strong style={{ color: '#991b1b', fontSize: '1.05rem' }}>
+                    Alerta Legal Activa (HU2.3): Incompatibilidad Territorial / Intangibilidad
+                  </strong>
+                </div>
+                <p style={{ margin: '0.35rem 0', color: '#7f1d1d', fontSize: '0.92rem' }}>
+                  <strong>Motivo de la alerta:</strong> {assessment.legal_alert_motive}
+                </p>
+                <p style={{ margin: '0.35rem 0', color: '#7f1d1d', fontSize: '0.92rem' }}>
+                  <strong>Sustento normativo:</strong> {assessment.legal_alert_norm}
+                </p>
+                <div
+                  style={{
+                    marginTop: '0.75rem',
+                    padding: '0.5rem 0.75rem',
+                    background: '#fee2e2',
+                    borderRadius: '6px',
+                    fontSize: '0.85rem',
+                    color: '#991b1b',
+                    fontWeight: 600,
+                  }}
+                >
+                  ⛔ Bloqueo de avance: El expediente no puede avanzar a priorización ni recibir aprobación final hasta que la alerta sea resuelta o levantada formalmente por personal autorizado de Asesoría Jurídica.
+                </div>
+
+                {hasRole('LEGAL_ADVISOR') && (
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault()
+                      if (!projectId) return
+                      setResolving(true)
+                      setError(null)
+                      try {
+                        await resolveLegalAlert(
+                          projectId,
+                          {
+                            resolution_action: resolveAction.trim(),
+                            justification: resolveJustification.trim(),
+                          },
+                          newIdempotencyKey('resolve-alert'),
+                        )
+                        setSuccess('Alerta legal levantada formalmente por Asesoría Jurídica.')
+                        const updated = await getLegalAssessment(projectId)
+                        setAssessment(updated)
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'No se pudo levantar la alerta.')
+                      } finally {
+                        setResolving(false)
+                      }
+                    }}
+                    style={{
+                      marginTop: '1rem',
+                      padding: '0.75rem',
+                      background: '#ffffff',
+                      borderRadius: '6px',
+                      border: '1px solid #fca5a5',
+                    }}
+                  >
+                    <h5 style={{ margin: '0 0 0.5rem', color: '#991b1b' }}>
+                      Levantamiento de Alerta Legal (Asesoría Jurídica)
+                    </h5>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        placeholder="Acción resolutiva (ej. Subsanación técnica de franja marginal)"
+                        value={resolveAction}
+                        onChange={(e) => setResolveAction(e.target.value)}
+                        required
+                        className="form-field-input"
+                        style={{ fontSize: '0.85rem', padding: '0.4rem' }}
+                      />
+                      <textarea
+                        rows={2}
+                        placeholder="Justificación técnico-legal para el levantamiento de la alerta..."
+                        value={resolveJustification}
+                        onChange={(e) => setResolveJustification(e.target.value)}
+                        required
+                        className="form-field-input"
+                        style={{ fontSize: '0.85rem', padding: '0.4rem' }}
+                      />
+                      <button
+                        type="submit"
+                        className="btn btn-primary"
+                        disabled={resolving || !resolveAction.trim() || resolveJustification.trim().length < 5}
+                        style={{ alignSelf: 'flex-start' }}
+                      >
+                        {resolving ? 'Registrando levantamiento…' : 'Levantar alerta legal'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+            {assessment.is_resolved && (
+              <div
+                style={{
+                  background: '#f0fdf4',
+                  border: '1px solid #86efac',
+                  borderRadius: '8px',
+                  padding: '0.75rem',
+                  margin: '1rem 0',
+                  color: '#166534',
+                }}
+              >
+                ✅ <strong>Alerta legal subsanada / levantada:</strong> {assessment.resolution_justification}
+              </div>
+            )}
 
             <dl className="legal-checks">
               <div>

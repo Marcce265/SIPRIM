@@ -1929,17 +1929,27 @@ export function ProyectoDetallePage() {
                 <strong>Aprobación final bloqueada:</strong> El expediente se encuentra en estado <strong>Pendiente de revisión</strong> por punto de control persistente ante riesgo alto (HU3.1). Conforme a las reglas de control, no se permite emitir un dictamen final de aprobación hasta que la revisión humana sea resuelta.
               </div>
             )}
+            {approval?.has_legal_alert && (
+              <div className="legal-alert-blocked-alert" style={{ background: '#fef2f2', border: '1px solid #ef4444', borderRadius: '8px', padding: '1rem', marginBottom: '1rem', color: '#991b1b' }}>
+                <strong>Aprobación final y priorización bloqueadas por Alerta Legal activa (HU2.3):</strong> El expediente presenta una incompatibilidad territorial o afectación a zona intangible ({approval.legal_alert_motive} [{approval.legal_alert_norm}]). Conforme a las reglas de control, no se permite emitir un dictamen de aprobación definitiva ni priorizar la obra hasta su levantamiento por Asesoría Jurídica.
+              </div>
+            )}
             <ul className="flow-links">
               {hasRole('LEGAL_ADVISOR') && (
                 <li>
                   <Link to="/normativa">Consultar normativa aplicable</Link>
                 </li>
               )}
-              {hasRole('ADMIN') && !isPaused && (
+              {hasRole('ADMIN') && !isPaused && !approval?.has_legal_alert && (
                 <li>
                   <Link to={`/proyectos/${projectId}/aprobacion`}>
                     Emitir dictamen de aprobación
                   </Link>
+                </li>
+              )}
+              {hasRole('ADMIN') && !isPaused && approval?.has_legal_alert && (
+                <li className="muted" style={{ color: '#b91c1c', fontWeight: 600 }}>
+                  Emisión de dictamen y priorización deshabilitadas: expediente bloqueado por Alerta Legal activa (HU2.3).
                 </li>
               )}
               {hasRole('ADMIN') && isPaused && (

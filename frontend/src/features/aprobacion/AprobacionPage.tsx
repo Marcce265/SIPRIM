@@ -20,6 +20,8 @@ export function AprobacionPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const isPaused = Boolean(status?.is_paused) || project?.status === 'pending_review'
+  const hasLegalAlert = Boolean(status?.has_legal_alert)
+  const isApprovalBlocked = isPaused || (hasLegalAlert && decision === 'approved')
 
   const refresh = useCallback(async () => {
     if (!projectId) return
@@ -82,6 +84,13 @@ export function AprobacionPage() {
           Conforme a las reglas de control, no es posible emitir un dictamen final de aprobación hasta que la revisión humana sea resuelta.
         </Alert>
       )}
+      {hasLegalAlert && (
+        <Alert variant="error">
+          <strong>Aprobación final y priorización bloqueadas por Alerta Legal activa (HU2.3):</strong>{' '}
+          {status?.legal_alert_motive} [{status?.legal_alert_norm}].
+          Conforme a las reglas de control, no es posible emitir un dictamen final de aprobación definitiva ni avanzar a priorización hasta que la alerta sea resuelta o levantada formalmente por personal autorizado de Asesoría Jurídica.
+        </Alert>
+      )}
       {error && <Alert variant="error">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
 
@@ -123,7 +132,7 @@ export function AprobacionPage() {
           </label>
         )}
 
-        <button type="submit" className="btn btn-primary" disabled={loading || isPaused}>
+        <button type="submit" className="btn btn-primary" disabled={loading || isApprovalBlocked}>
           {loading ? 'Registrando…' : 'Emitir dictamen'}
         </button>
       </form>

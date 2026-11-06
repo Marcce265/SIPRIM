@@ -317,6 +317,11 @@ class HumanApprovalStatusResponse(BaseModel):
     pause_reason: str | None = None
     checkpoint: CheckpointResponse | None = None
     current_approval: HumanApprovalResponse | None = None
+    has_legal_alert: bool = False
+    legal_alert_motive: str | None = None
+    legal_alert_norm: str | None = None
+    allows_final_approval: bool = True
+    blocking_reasons: list[str] = Field(default_factory=list)
 
 class SocialAccessibilityCategoryItem(BaseModel):
     category: str
@@ -469,12 +474,32 @@ class LegalFindingItem(BaseModel):
     citation: NormativeCitationItem
 
 
+class LegalAlertResolveRequest(BaseModel):
+    """Solicitud formal de levantamiento o subsanación de alerta legal (HU2.3)."""
+
+    resolution_action: str = Field(description="Acción realizada (ej. subsanado, replanteo_faja, excepcion_aprobada)")
+    justification: str = Field(description="Justificación legal formal del levantamiento de la alerta", min_length=5)
+
+
+class LegalAlertResolutionResponse(BaseModel):
+    """Respuesta al levantamiento de una alerta legal."""
+
+    resolution_id: UUID
+    project_id: UUID
+    project_version_id: UUID
+    resolved_by_user_id: UUID
+    resolution_action: str
+    justification: str
+    resolved_at: datetime
+    duplicated: bool = False
+
+
 class LegalAssessmentResponse(BaseModel):
     assessment_id: UUID
     project_id: UUID
     project_code: str
     project_version_id: UUID | None = None
-    status: Literal["requires_review", "verified", "insufficient"]
+    status: Literal["requires_review", "verified", "insufficient", "alerta_legal"]
     status_label: str
     summary: str
     findings: list[LegalFindingItem]
@@ -482,6 +507,11 @@ class LegalAssessmentResponse(BaseModel):
     verifiable_citations_count: int
     unverifiable_citations_count: int
     requires_human_review: bool
+    has_legal_alert: bool = False
+    legal_alert_motive: str | None = None
+    legal_alert_norm: str | None = None
+    is_resolved: bool = False
+    resolution_justification: str | None = None
     evaluated_at: datetime
     is_simulated_corpus: bool = True
     duplicated: bool = False

@@ -3,6 +3,7 @@ import type {
   EvaluationAccepted,
   EvaluationResponse,
   HumanApprovalStatusResponse,
+  LegalAlertResolutionResponse,
   LegalAssessmentResponse,
   LegalPrecheckResponse,
   NormativeSearchResponse,
@@ -185,6 +186,19 @@ export function evaluateLegalAssessment(
     method: 'POST',
     auth: true,
     idempotencyKey,
+  })
+}
+
+export function resolveLegalAlert(
+  projectId: string,
+  payload: { resolution_action: string; justification: string },
+  idempotencyKey?: string,
+): Promise<LegalAlertResolutionResponse> {
+  return apiFetch<LegalAlertResolutionResponse>(`/api/v1/projects/${projectId}/legal-alert/resolve`, {
+    method: 'POST',
+    auth: true,
+    idempotencyKey,
+    body: JSON.stringify(payload),
   })
 }
 
