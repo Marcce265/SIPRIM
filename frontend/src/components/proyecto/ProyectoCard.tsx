@@ -13,6 +13,25 @@ function displayProjectId(proyecto: Proyecto): string {
   return id.length > 8 ? `${id.slice(0, 8)}…` : id
 }
 
+function getEstadoLabel(estado: string): string {
+  switch (estado.toLowerCase()) {
+    case 'pending_review':
+      return 'Pendiente de revisión'
+    case 'ready':
+      return 'Listo'
+    case 'evaluated':
+      return 'Evaluado'
+    case 'approved':
+      return 'Aprobado'
+    case 'rejected':
+      return 'Rechazado'
+    case 'observed':
+      return 'Observado'
+    default:
+      return estado.replace(/_/g, ' ')
+  }
+}
+
 export function ProyectoCard({ proyecto, compact = false }: ProyectoCardProps) {
   const estado = String(proyecto.estado ?? 'unknown')
 
@@ -27,7 +46,7 @@ export function ProyectoCard({ proyecto, compact = false }: ProyectoCardProps) {
           <h2 className="proyecto-nombre">{proyecto.nombre}</h2>
         </div>
         <span className={`estado-badge estado-${estado.toLowerCase()}`}>
-          {estado.replace('_', ' ')}
+          {getEstadoLabel(estado)}
         </span>
       </header>
 

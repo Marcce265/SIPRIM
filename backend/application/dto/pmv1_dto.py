@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -53,6 +53,28 @@ class PMV1ProjectCreate(BaseModel):
         return value
 
 
+
+class CheckpointResponse(BaseModel):
+    """Punto de control persistente del flujo de evaluación ante riesgos altos (HU3.1)."""
+
+    checkpoint_id: UUID
+    project_id: UUID
+    project_version_id: UUID
+    evaluation_id: UUID | None = None
+    checkpoint_type: str = "high_risk_pause"
+    status: str = "pending_review"
+    status_label: str = "Pendiente de revisión"
+    reason: str
+    risk_source: str
+    risk_source_label: str
+    risk_level: str = "high"
+    risk_level_label: str = "Riesgo Alto"
+    requires_human_review: bool = True
+    allows_final_approval: bool = False
+    details: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+    updated_at: datetime
+
 class PMV1ProjectResponse(BaseModel):
     project_id: UUID
     project_version_id: UUID
@@ -66,6 +88,7 @@ class PMV1ProjectResponse(BaseModel):
     territorial_data_origin: str
     estimated_budget_pen: Decimal
     beneficiaries_count: int
+    checkpoint: CheckpointResponse | None = None
 
 
 class PMV1ValidationResponse(BaseModel):
@@ -83,8 +106,10 @@ class EvaluationAccepted(BaseModel):
     evaluation_id: UUID
     event_id: UUID
     status: str
+    status_label: str | None = None
     duplicated: bool
     publication_pending: bool
+    checkpoint: CheckpointResponse | None = None
 
 
 class EconomicResult(BaseModel):
@@ -104,7 +129,9 @@ class EvaluationResponse(BaseModel):
     project_version_id: UUID
     criteria_version_id: UUID
     status: str
-    result: EconomicResult | None
+    status_label: str | None = None
+    checkpoint: CheckpointResponse | None = None
+    result: EconomicResult | None = None
 
 
 class LegalPrecheckResponse(BaseModel):
@@ -250,6 +277,9 @@ class HumanApprovalStatusResponse(BaseModel):
     project_status: str
     is_evaluated: bool
     requires_human_approval: bool
+    is_paused: bool = False
+    pause_reason: str | None = None
+    checkpoint: CheckpointResponse | None = None
     current_approval: HumanApprovalResponse | None = None
 
 class SocialAccessibilityCategoryItem(BaseModel):

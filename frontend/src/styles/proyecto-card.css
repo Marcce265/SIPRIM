@@ -77,6 +77,24 @@
   color: #7c5e10;
 }
 
+.estado-badge.estado-pending_review {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.estado-badge.estado-ready {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.estado-badge.estado-evaluated {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
 .estado-badge.estado-registrado {
   background: #e0f2f1;
   color: var(--color-primary-dark);

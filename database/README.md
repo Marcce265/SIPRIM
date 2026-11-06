@@ -159,3 +159,16 @@ Las migraciones DDL (`03_migration_hu1.4.sql` y `03_migration_hu1.6.sql`) contie
   - **`CA-HU2.2-01` (Cita exacta y comprobable):** El informe muestra denominación de la norma, versión, artículo o sección precisa y fragmento textual almacenado en el corpus.
   - **`CA-HU2.2-02` (Falta de referencia precisa):** Si el material recuperado no permite ubicar artículo o sección exacta, o si la norma está derogada/sustituida, el sistema indica **“Cita no verificable”**, marca el hallazgo para revisión humana obligatoria y no crea un número de artículo ficticio.
 
+### HU3.1: Pausar el Procesamiento ante Riesgos Altos y Checkpoints Persistentes
+`platform_db` incorpora:
+- `evaluation_checkpoints`: Puntos de control persistentes asociados al expediente y a su versión exacta (`project_id`, `project_version_id`), con motivo concreto (`reason`), evaluación que originó la pausa (`risk_source`), nivel de riesgo (`risk_level`), fecha (`created_at`) y trazabilidad completa (`details`).
+- Restricción de unicidad e idempotencia:
+  - `uq_checkpoint_version_source`: Evita duplicar puntos de control por reintentos de consumidores de eventos o tareas en segundo plano.
+- Restricciones de estado:
+  - `projects_status_check`: Ampliado para incluir el estado `'pending_review'` («Pendiente de revisión»).
+  - `evaluations_status_check`: Ampliado para incluir el estado `'pending_review'` («Pendiente de revisión»).
+- Reglas de control de flujo HITL:
+  - **`CA-HU3.1-01` (Pausa automática ante riesgo):** Si una evaluación detecta un riesgo alto configurado para revisión humana (ej. riesgo ambiental alto por ubicación en faja marginal ribereña en `PRY-C`), el sistema detiene el procesamiento en un checkpoint persistente, cambia el estado del expediente y de la evaluación a **“Pendiente de revisión”** (`pending_review`), y no continúa automáticamente hacia la finalización.
+  - **`CA-HU3.1-02` (Continuación cuando no hay riesgo alto):** Si no hay riesgo alto (riesgo bajo o moderado, ej. `PRY-A`), el procesamiento asíncrono y los consumidores de eventos continúan normalmente hacia el estado `completed` y `evaluated`, sin solicitar revisión humana innecesaria.
+  - **Impedimento de aprobación mientras esté pendiente:** Mientras exista un punto de control en estado pendiente, ningún proceso puede marcar la evaluación como completada ni emitir una aprobación final humana.
+  - **Aislamiento entre versiones:** Si la versión del expediente cambia, no se reutiliza silenciosamente la decisión de riesgo de la versión anterior; cada versión es evaluada de manera independiente.

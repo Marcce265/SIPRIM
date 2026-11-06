@@ -777,6 +777,33 @@ class FakePlatform:
             ],
         }
 
+    def get_project_checkpoint(self, project_id: UUID) -> dict[str, Any] | None:
+        if str(project_id).endswith("c"):
+            return {
+                "checkpoint_id": UUID("f1000000-0000-4000-a000-000000000001"),
+                "project_id": project_id,
+                "project_version_id": VERSION_ID,
+                "evaluation_id": None,
+                "checkpoint_type": "high_risk_pause",
+                "status": "pending_review",
+                "status_label": "Pendiente de revisión",
+                "reason": "Riesgo ambiental alto detectado por proximidad crítica a cuerpo de agua o faja marginal ribereña.",
+                "risk_source": "environmental",
+                "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
+                "risk_level": "high",
+                "risk_level_label": "Riesgo Alto",
+                "requires_human_review": True,
+                "allows_final_approval": False,
+                "details": {
+                    "distance_to_water_body_m": 25.0,
+                    "water_body_name": "Río Shullcas",
+                    "inside_protected_or_risk_area": True,
+                },
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
+            }
+        return None
+
     def evaluate_legal_assessment(
         self, project_id: UUID, actor_id: UUID, idempotency_key: str | None = None
     ) -> dict[str, Any]:
@@ -1475,3 +1502,62 @@ def test_hu22_legal_assessment_permissions(client: TestClient) -> None:
         headers={"Authorization": "Bearer token-citizen"},
     )
     assert resp_forbidden.status_code == 403
+
+
+# ============================================================================
+# HU3.1: Pruebas de API para puntos de control persistentes ante riesgo alto
+# ============================================================================
+
+
+def test_get_project_checkpoint_planner_authorized(client: TestClient):
+    """Verifica que un planificador autenticado puede consultar el punto de control."""
+    project_c_id = UUID("a0000000-0000-4000-a000-00000000000c")
+    resp = client.get(
+        f"/api/v1/projects/{project_c_id}/checkpoint",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data is not None
+    assert data["checkpoint_type"] == "high_risk_pause"
+    assert data["status"] == "pending_review"
+    assert data["risk_level"] == "high"
+    assert data["requires_human_review"] is True
+
+
+def test_get_project_checkpoint_legal_authorized(client: TestClient):
+    """Verifica que un asesor jurídico autenticado puede consultar el punto de control."""
+    project_c_id = UUID("a0000000-0000-4000-a000-00000000000c")
+    resp = client.get(
+        f"/api/v1/projects/{project_c_id}/checkpoint",
+        headers={"Authorization": "Bearer token-legal"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data is not None
+    assert data["checkpoint_type"] == "high_risk_pause"
+
+
+def test_get_project_checkpoint_returns_null_when_none(client: TestClient):
+    """Verifica que proyectos sin punto de control retornan null."""
+    resp = client.get(
+        f"/api/v1/projects/{PROJECT_ID}/checkpoint",
+        headers={"Authorization": "Bearer token-prueba"},
+    )
+    assert resp.status_code == 200
+    assert resp.json() is None
+
+
+def test_get_project_checkpoint_unauthenticated(client: TestClient):
+    """Verifica que sin token retorna 401."""
+    resp = client.get(f"/api/v1/projects/{PROJECT_ID}/checkpoint")
+    assert resp.status_code == 401
+
+
+def test_get_project_checkpoint_forbidden_citizen(client: TestClient):
+    """Verifica que un rol no autorizado (CITIZEN) recibe 403."""
+    resp = client.get(
+        f"/api/v1/projects/{PROJECT_ID}/checkpoint",
+        headers={"Authorization": "Bearer token-citizen"},
+    )
+    assert resp.status_code == 403

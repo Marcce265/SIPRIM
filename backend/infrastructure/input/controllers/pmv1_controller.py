@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Path, status
 
 from backend.application.dto.evaluacion_ia_dto import DictamenIAResponse
 from backend.application.dto.pmv1_dto import (
+    CheckpointResponse,
     EvaluationAccepted,
     EvaluationCreate,
     EvaluationResponse,
@@ -84,6 +85,19 @@ def get_project(
     service: Annotated[PlatformService, Depends(get_platform_service)],
 ) -> dict[str, Any]:
     return service.get_project(project_id)
+
+
+@router.get(
+    "/projects/{project_id}/checkpoint",
+    response_model=CheckpointResponse | None,
+    summary="Consulta el punto de control persistente del proyecto ante riesgo alto (HU3.1)",
+)
+def get_project_checkpoint(
+    project_id: Annotated[UUID, Path()],
+    _: Annotated[dict[str, Any], Depends(require_legal_or_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+) -> dict[str, Any] | None:
+    return service.get_project_checkpoint(project_id)
 
 
 @router.post("/projects/{project_id}/validate", response_model=PMV1ValidationResponse)

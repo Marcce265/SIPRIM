@@ -478,6 +478,263 @@ class LegalAssessmentEngine:
             "is_simulated_corpus": True,
         }
 
+
+class RiskCheckpointEngine:
+    """Motor de gestión de puntos de control (checkpoints) y pausas de flujo ante riesgos altos (HU3.1).
+
+    Criterios cumplidos:
+    - CA-HU3.1-01: Si una evaluación detecta un riesgo alto configurado para revisión humana,
+      el sistema detiene el procesamiento en un punto de control persistente, establece el estado
+      'Pendiente de revisión' (pending_review) y no continúa automáticamente hacia la finalización.
+    - CA-HU3.1-02: Si no hay riesgo alto (riesgo bajo o moderado, sin causa de revisión), el flujo
+      continúa normalmente hacia la siguiente etapa sin solicitar revisión humana innecesaria.
+    """
+
+    PAUSE_RISK_LEVELS: ClassVar[set[str]] = {"high"}
+
+    @classmethod
+    def detect_high_risk_condition(
+        cls,
+        conn: psycopg.Connection,
+        project_version_id: UUID,
+    ) -> dict[str, Any] | None:
+        """Detecta si la versión del expediente cumple una condición configurada de riesgo alto."""
+        # 1. Comprobar evaluaciones ambientales registradas para la versión
+        row = conn.execute(
+            """
+            SELECT id, project_id, project_version_id, risk_level, risk_observation,
+                   requires_human_review, declared_vs_evidence_json, impacts_json
+            FROM environmental_assessments
+            WHERE project_version_id = %s
+            ORDER BY evaluated_at DESC
+            LIMIT 1
+            """,
+            (project_version_id,),
+        ).fetchone()
+
+        if row and row["risk_level"] in cls.PAUSE_RISK_LEVELS and row.get("requires_human_review"):
+            return {
+                "risk_source": "environmental",
+                "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
+                "risk_level": row["risk_level"],
+                "risk_level_label": "Riesgo Alto",
+                "reason": (
+                    row.get("risk_observation")
+                    or "Riesgo ambiental alto detectado por proximidad crítica a cuerpo de agua o faja marginal ribereña."
+                ),
+                "details": {
+                    "environmental_assessment_id": str(row["id"]),
+                    "risk_level": row["risk_level"],
+                    "risk_observation": row.get("risk_observation"),
+                    "requires_human_review": True,
+                    "declared_vs_evidence": row.get("declared_vs_evidence_json"),
+                },
+            }
+
+        # 2. Si aún no existe fila en environmental_assessments, inspeccionar project_environmental_records
+        rec_row = conn.execute(
+            """
+            SELECT r.id, r.project_id, r.environmental_component, r.declared_impacts,
+                   r.verifiable_evidence, r.proximity_to_water_meters, r.is_in_protected_or_risk_area,
+                   r.source_name
+            FROM project_environmental_records r
+            JOIN project_versions pv ON pv.project_id = r.project_id
+            WHERE pv.id = %s AND (
+                r.is_in_protected_or_risk_area = TRUE
+                OR (r.proximity_to_water_meters IS NOT NULL AND r.proximity_to_water_meters < 50.0)
+            )
+            LIMIT 1
+            """,
+            (project_version_id,),
+        ).fetchone()
+
+        if rec_row:
+            reason = (
+                f"Riesgo ambiental alto detectado: Componente '{rec_row['environmental_component']}'. "
+                f"Distancia crítica a cuerpo de agua ({rec_row['proximity_to_water_meters']} m < 50 m reglamentarios). "
+                f"Evidencia: {rec_row['verifiable_evidence'] or rec_row['source_name']}."
+            )
+            return {
+                "risk_source": "environmental",
+                "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
+                "risk_level": "high",
+                "risk_level_label": "Riesgo Alto",
+                "reason": reason,
+                "details": {
+                    "record_id": str(rec_row["id"]),
+                    "component": rec_row["environmental_component"],
+                    "proximity_to_water_meters": float(rec_row["proximity_to_water_meters"]) if rec_row["proximity_to_water_meters"] else None,
+                    "is_in_protected_or_risk_area": rec_row["is_in_protected_or_risk_area"],
+                    "source_name": rec_row["source_name"],
+                },
+            }
+
+        return None
+
+    @classmethod
+    def get_active_checkpoint(
+        cls,
+        conn: psycopg.Connection,
+        project_version_id: UUID,
+    ) -> dict[str, Any] | None:
+        """Recupera el punto de control pendiente activo para la versión específica del expediente."""
+        row = conn.execute(
+            """
+            SELECT id AS checkpoint_id, project_id, project_version_id, evaluation_id,
+                   checkpoint_type, status, reason, risk_source, risk_level, details,
+                   created_at, updated_at
+            FROM evaluation_checkpoints
+            WHERE project_version_id = %s AND status = 'pending_review'
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (project_version_id,),
+        ).fetchone()
+
+        if not row:
+            return None
+
+        return {
+            "checkpoint_id": row["checkpoint_id"],
+            "project_id": row["project_id"],
+            "project_version_id": row["project_version_id"],
+            "evaluation_id": row["evaluation_id"],
+            "checkpoint_type": row["checkpoint_type"],
+            "status": row["status"],
+            "status_label": "Pendiente de revisión",
+            "reason": row["reason"],
+            "risk_source": row["risk_source"],
+            "risk_source_label": {
+                "environmental": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
+                "legal": "Conformidad jurídica / Citas normativas",
+            }.get(row["risk_source"], row["risk_source"]),
+            "risk_level": row["risk_level"],
+            "risk_level_label": {
+                "high": "Riesgo Alto",
+                "moderate": "Riesgo Moderado",
+                "low": "Riesgo Bajo",
+            }.get(row["risk_level"], row["risk_level"]),
+            "requires_human_review": True,
+            "allows_final_approval": False,
+            "details": row["details"] if isinstance(row["details"], dict) else {},
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    @classmethod
+    def has_pending_checkpoint(
+        cls,
+        conn: psycopg.Connection,
+        project_version_id: UUID,
+    ) -> bool:
+        """Indica si existe un punto de control pendiente de revisión en la versión."""
+        return cls.get_active_checkpoint(conn, project_version_id) is not None
+
+    @classmethod
+    def create_or_get_checkpoint(
+        cls,
+        conn: psycopg.Connection,
+        project_id: UUID,
+        project_version_id: UUID,
+        evaluation_id: UUID | None,
+        risk_info: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Crea o recupera idempotentemente el punto de control persistente."""
+        checkpoint_id = uuid4()
+        row = conn.execute(
+            """
+            INSERT INTO evaluation_checkpoints
+            (id, project_id, project_version_id, evaluation_id, checkpoint_type, status,
+             reason, risk_source, risk_level, details, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, 'high_risk_pause', 'pending_review', %s, %s, %s, %s, now(), now())
+            ON CONFLICT (project_version_id, risk_source, checkpoint_type) DO UPDATE SET
+                status = 'pending_review',
+                evaluation_id = COALESCE(EXCLUDED.evaluation_id, evaluation_checkpoints.evaluation_id),
+                reason = EXCLUDED.reason,
+                risk_level = EXCLUDED.risk_level,
+                details = EXCLUDED.details,
+                updated_at = now()
+            RETURNING id, project_id, project_version_id, evaluation_id, checkpoint_type,
+                      status, reason, risk_source, risk_level, details, created_at, updated_at
+            """,
+            (
+                checkpoint_id,
+                project_id,
+                project_version_id,
+                evaluation_id,
+                risk_info["reason"],
+                risk_info["risk_source"],
+                risk_info["risk_level"],
+                Jsonb(risk_info.get("details", {})),
+            ),
+        ).fetchone()
+
+        # Actualizar estado del proyecto a 'pending_review'
+        conn.execute(
+            "UPDATE projects SET status = 'pending_review', updated_at = now() WHERE id = %s",
+            (project_id,),
+        )
+
+        # Si hay evaluación asociada, pausarla
+        if evaluation_id:
+            conn.execute(
+                """
+                UPDATE evaluations
+                SET status = 'pending_review', error_message = %s
+                WHERE id = %s
+                """,
+                (risk_info["reason"], evaluation_id),
+            )
+
+        # Registrar evento de auditoría
+        conn.execute(
+            """
+            INSERT INTO audit_events
+            (action, entity_type, entity_id, details)
+            VALUES ('EVALUATION_PAUSED_HIGH_RISK', 'evaluation_checkpoint', %s, %s)
+            """,
+            (
+                row["id"],
+                Jsonb(
+                    {
+                        "project_id": str(project_id),
+                        "project_version_id": str(project_version_id),
+                        "evaluation_id": str(evaluation_id) if evaluation_id else None,
+                        "risk_source": risk_info["risk_source"],
+                        "risk_level": risk_info["risk_level"],
+                        "reason": risk_info["reason"],
+                    }
+                ),
+            ),
+        )
+
+        return {
+            "checkpoint_id": row["id"],
+            "project_id": row["project_id"],
+            "project_version_id": row["project_version_id"],
+            "evaluation_id": row["evaluation_id"],
+            "checkpoint_type": row["checkpoint_type"],
+            "status": row["status"],
+            "status_label": "Pendiente de revisión",
+            "reason": row["reason"],
+            "risk_source": row["risk_source"],
+            "risk_source_label": {
+                "environmental": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
+                "legal": "Conformidad jurídica / Citas normativas",
+            }.get(row["risk_source"], row["risk_source"]),
+            "risk_level": row["risk_level"],
+            "risk_level_label": {
+                "high": "Riesgo Alto",
+                "moderate": "Riesgo Moderado",
+                "low": "Riesgo Bajo",
+            }.get(row["risk_level"], row["risk_level"]),
+            "requires_human_review": True,
+            "allows_final_approval": False,
+            "details": row["details"] if isinstance(row["details"], dict) else {},
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
 class PlatformService:
     def __init__(
         self,
@@ -563,9 +820,18 @@ class PlatformService:
                 """,
                 (project_id,),
             ).fetchone()
-        if not row:
-            raise RecursoPMV1NoEncontradoError("Proyecto no encontrado")
-        return dict(row)
+            if not row:
+                raise RecursoPMV1NoEncontradoError("Proyecto no encontrado")
+            checkpoint = RiskCheckpointEngine.get_active_checkpoint(conn, row["project_version_id"])
+            res = dict(row)
+            res["checkpoint"] = checkpoint
+            return res
+
+    def get_project_checkpoint(self, project_id: UUID) -> dict[str, Any] | None:
+        """Obtiene el punto de control persistente activo para la versión del proyecto (HU3.1)."""
+        project = self.get_project(project_id)
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            return RiskCheckpointEngine.get_active_checkpoint(conn, project["project_version_id"])
 
     def get_project_by_code(self, code: str) -> dict[str, Any]:
         normalized = code.strip()
@@ -639,6 +905,40 @@ class PlatformService:
                     raise RecursoPMV1NoEncontradoError(
                         "Version de proyecto o criterios activos no encontrados"
                     )
+
+                # Comprobar si existe condición de riesgo alto configurada para revisión humana (CA-HU3.1-01)
+                risk_info = RiskCheckpointEngine.detect_high_risk_condition(conn, project_version_id)
+                if risk_info:
+                    evaluation_id = uuid4()
+                    conn.execute(
+                        """INSERT INTO evaluations
+                        (id, project_version_id, criteria_version_id, requested_by_user_id,
+                         status, idempotency_key, error_message) VALUES (%s,%s,%s,%s,'pending_review',%s,%s)""",
+                        (
+                            evaluation_id,
+                            project_version_id,
+                            snapshot["criteria_version_id"],
+                            actor_id,
+                            idempotency_key,
+                            risk_info["reason"],
+                        ),
+                    )
+                    checkpoint = RiskCheckpointEngine.create_or_get_checkpoint(
+                        conn,
+                        project_id=snapshot["project_id"],
+                        project_version_id=project_version_id,
+                        evaluation_id=evaluation_id,
+                        risk_info=risk_info,
+                    )
+                    return {
+                        "evaluation_id": evaluation_id,
+                        "event_id": uuid4(),
+                        "status": "pending_review",
+                        "status_label": "Pendiente de revisión",
+                        "duplicated": False,
+                        "publication_pending": False,
+                        "checkpoint": checkpoint,
+                    }
                 evaluation_id, event_id = uuid4(), uuid4()
                 payload = {
                     "event_id": str(event_id),
@@ -685,14 +985,14 @@ class PlatformService:
         publication_pending = False
         try:
             self.dispatcher.dispatch_economic(payload)
-            with psycopg.connect(self.db_url) as conn:
+            with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
                 conn.execute(
                     "UPDATE outbox_events SET published_at=now(), publish_attempts=publish_attempts+1 WHERE id=%s",
                     (event_id,),
                 )
         except Exception:
             publication_pending = True
-            with psycopg.connect(self.db_url) as conn:
+            with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
                 conn.execute(
                     "UPDATE outbox_events SET publish_attempts=publish_attempts+1 WHERE id=%s",
                     (event_id,),
@@ -717,29 +1017,39 @@ class PlatformService:
                 """,
                 (evaluation_id,),
             ).fetchone()
-        if not row:
-            raise RecursoPMV1NoEncontradoError("Evaluacion no encontrada")
-        result = None
-        if row["economic_assessment_id"]:
-            result = {
-                "economic_assessment_id": row["economic_assessment_id"],
-                "cost_per_beneficiary_pen": row["cost_per_beneficiary_pen"],
-                "score_0_100": row["score_0_100"],
-                "explanation": row["explanation"],
-                "algorithm_version": row["algorithm_version"],
+            if not row:
+                raise RecursoPMV1NoEncontradoError("Evaluacion no encontrada")
+            checkpoint = RiskCheckpointEngine.get_active_checkpoint(conn, row["project_version_id"])
+            result = None
+            if row["economic_assessment_id"]:
+                result = {
+                    "economic_assessment_id": row["economic_assessment_id"],
+                    "cost_per_beneficiary_pen": row["cost_per_beneficiary_pen"],
+                    "score_0_100": row["score_0_100"],
+                    "explanation": row["explanation"],
+                    "algorithm_version": row["algorithm_version"],
+                }
+            status_label = "Pendiente de revisión" if row["status"] == "pending_review" else (
+                "Completada" if row["status"] == "completed" else (
+                    "En procesamiento" if row["status"] == "processing" else (
+                        "En cola" if row["status"] == "queued" else row["status"]
+                    )
+                )
+            )
+            return {
+                "evaluation_id": row["evaluation_id"],
+                "project_version_id": row["project_version_id"],
+                "criteria_version_id": row["criteria_version_id"],
+                "status": row["status"],
+                "status_label": status_label,
+                "checkpoint": checkpoint,
+                "result": result,
             }
-        return {
-            "evaluation_id": row["evaluation_id"],
-            "project_version_id": row["project_version_id"],
-            "criteria_version_id": row["criteria_version_id"],
-            "status": row["status"],
-            "result": result,
-        }
 
     def record_legal_abstention(self, project_id: UUID, actor_id: UUID) -> dict[str, Any]:
         """Mantiene compatibilidad con legal_precheck y devuelve el informe jurídico enriquecido con citas (HU2.2)."""
         self.get_project(project_id)
-        with psycopg.connect(self.db_url) as conn:
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
             conn.execute(
                 """INSERT INTO audit_events
                 (actor_user_id,action,entity_type,entity_id,details)
@@ -1221,6 +1531,13 @@ class PlatformService:
             raise ConfiguracionPMV1Error("El dictamen 'observed' requiere especificar condiciones u observaciones")
 
         project = self.get_project(project_id)
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            if project["status"] == "pending_review" or RiskCheckpointEngine.has_pending_checkpoint(conn, project["project_version_id"]):
+                raise ConfiguracionPMV1Error(
+                    "El expediente se encuentra en estado 'Pendiente de revisión' por punto de control de riesgo alto. "
+                    "Conforme a HU3.1, no se puede emitir una aprobación final mientras la revisión humana esté pendiente."
+                )
+
         if project["status"] not in ("evaluated", "approved", "rejected", "observed"):
             raise ConfiguracionPMV1Error(
                 "El proyecto debe haber completado la evaluacion tecnica antes de la aprobacion humana formal"
@@ -1303,6 +1620,7 @@ class PlatformService:
         """Obtiene el estado de la compuerta humana y el ultimo dictamen del proyecto."""
         project = self.get_project(project_id)
         with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            checkpoint = RiskCheckpointEngine.get_active_checkpoint(conn, project["project_version_id"])
             latest = conn.execute(
                 """
                 SELECT id AS approval_id, project_id, project_version_id, decision,
@@ -1315,8 +1633,9 @@ class PlatformService:
                 (project_id,),
             ).fetchone()
 
-        is_evaluated = project["status"] in ("evaluated", "approved", "rejected", "observed")
-        requires_human_approval = project["status"] == "evaluated" and latest is None
+        is_paused = project["status"] == "pending_review" or checkpoint is not None
+        is_evaluated = project["status"] in ("evaluated", "approved", "rejected", "observed") and not is_paused
+        requires_human_approval = project["status"] == "evaluated" and latest is None and not is_paused
 
         return {
             "project_id": project_id,
@@ -1324,6 +1643,9 @@ class PlatformService:
             "project_status": project["status"],
             "is_evaluated": is_evaluated,
             "requires_human_approval": requires_human_approval,
+            "is_paused": is_paused,
+            "pause_reason": checkpoint["reason"] if checkpoint else None,
+            "checkpoint": checkpoint,
             "current_approval": dict(latest) if latest else None,
         }
 
@@ -1532,6 +1854,24 @@ class PlatformService:
                 indicator_rows=[dict(r) for r in rows],
                 equity_rows=[dict(r) for r in equity_rows],
             )
+            # Si el resultado ambiental es de riesgo alto y requiere revisión humana,
+            # activar automáticamente el punto de control persistente (HU3.1)
+            if assessment.get("risk_level") == "high" and assessment.get("requires_human_review"):
+                RiskCheckpointEngine.create_or_get_checkpoint(
+                    conn,
+                    project_id=project_id,
+                    project_version_id=version_id or project.get("project_version_id"),
+                    evaluation_id=None,
+                    risk_info={
+                        "risk_source": "environmental",
+                        "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
+                        "risk_level": "high",
+                        "risk_level_label": "Riesgo Alto",
+                        "reason": assessment.get("risk_observation") or "Riesgo ambiental alto detectado.",
+                        "details": assessment,
+                    },
+                )
+
             return {
                 **assessment,
                 "duplicated": False,
@@ -2554,7 +2894,7 @@ class CompletionProcessor:
             UUID(payload["event_id"]),
             UUID(payload["evaluation_id"]),
         )
-        with psycopg.connect(self.db_url) as conn:
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
             with conn.transaction():
                 inserted = conn.execute(
                     "INSERT INTO inbox_events (event_id) VALUES (%s) ON CONFLICT DO NOTHING RETURNING event_id",
@@ -2575,6 +2915,33 @@ class CompletionProcessor:
                         payload["algorithm_version"],
                     ),
                 )
+                ev_row = conn.execute(
+                    """SELECT e.id, e.project_version_id, pv.project_id
+                    FROM evaluations e
+                    JOIN project_versions pv ON pv.id = e.project_version_id
+                    WHERE e.id = %s""",
+                    (evaluation_id,),
+                ).fetchone()
+
+                if ev_row:
+                    project_id = ev_row["project_id"]
+                    project_version_id = ev_row["project_version_id"]
+
+                    # Comprobar si existe condición de riesgo alto configurada para revisión (CA-HU3.1-01)
+                    risk_info = RiskCheckpointEngine.detect_high_risk_condition(conn, project_version_id)
+                    if risk_info:
+                        # CA-HU3.1-01: Detener procesamiento en checkpoint persistente,
+                        # estado 'pending_review' y no continuar automáticamente.
+                        RiskCheckpointEngine.create_or_get_checkpoint(
+                            conn,
+                            project_id=project_id,
+                            project_version_id=project_version_id,
+                            evaluation_id=evaluation_id,
+                            risk_info=risk_info,
+                        )
+                        return
+
+                # CA-HU3.1-02: Continuación cuando no hay riesgo alto
                 conn.execute(
                     "UPDATE evaluations SET status='completed',finished_at=now() WHERE id=%s",
                     (evaluation_id,),
@@ -2605,7 +2972,7 @@ class EvaluationStartedProcessor:
         self.db_url = _dsn(db_url)
 
     def process(self, evaluation_id: str) -> None:
-        with psycopg.connect(self.db_url) as conn:
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
             conn.execute(
                 """UPDATE evaluations SET status='processing', started_at=COALESCE(started_at,now())
                 WHERE id=%s AND status='queued'""",

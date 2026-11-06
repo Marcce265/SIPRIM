@@ -1,4 +1,5 @@
 import type {
+  CheckpointResponse,
   EvaluationAccepted,
   EvaluationResponse,
   HumanApprovalStatusResponse,
@@ -20,6 +21,12 @@ export function createProject(payload: PMV1ProjectCreate): Promise<PMV1ProjectRe
     method: 'POST',
     auth: true,
     body: JSON.stringify(payload),
+  })
+}
+
+export function getProjectCheckpoint(projectId: string): Promise<CheckpointResponse | null> {
+  return apiFetch<CheckpointResponse | null>(`/api/v1/projects/${projectId}/checkpoint`, {
+    auth: true,
   })
 }
 

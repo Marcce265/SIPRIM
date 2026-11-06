@@ -19,6 +19,7 @@ export function AprobacionPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const isPaused = Boolean(status?.is_paused) || project?.status === 'pending_review'
 
   const refresh = useCallback(async () => {
     if (!projectId) return
@@ -74,6 +75,13 @@ export function AprobacionPage() {
 
       {status && <TechnicalDetails data={status} />}
 
+      {isPaused && (
+        <Alert variant="error">
+          <strong>Aprobación final bloqueada (HU3.1):</strong> El expediente se encuentra en estado{' '}
+          <strong>Pendiente de revisión</strong> por punto de control persistente ante riesgo alto.
+          Conforme a las reglas de control, no es posible emitir un dictamen final de aprobación hasta que la revisión humana sea resuelta.
+        </Alert>
+      )}
       {error && <Alert variant="error">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
 
@@ -115,7 +123,7 @@ export function AprobacionPage() {
           </label>
         )}
 
-        <button type="submit" className="btn btn-primary" disabled={loading}>
+        <button type="submit" className="btn btn-primary" disabled={loading || isPaused}>
           {loading ? 'Registrando…' : 'Emitir dictamen'}
         </button>
       </form>

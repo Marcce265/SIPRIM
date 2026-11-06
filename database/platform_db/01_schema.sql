@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS projects (
     status VARCHAR(24) NOT NULL DEFAULT 'draft',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT projects_status_check CHECK (status IN ('draft','ready','evaluating','evaluated','approved','rejected','observed','error'))
+    CONSTRAINT projects_status_check CHECK (status IN ('draft','ready','evaluating','evaluated','approved','rejected','observed','error','pending_review'))
 );
 
 -- Migracion idempotente para instalaciones creadas antes de HU1.11.
@@ -24,7 +24,7 @@ DO $$
 BEGIN
     ALTER TABLE projects DROP CONSTRAINT IF EXISTS projects_status_check;
     ALTER TABLE projects ADD CONSTRAINT projects_status_check
-        CHECK (status IN ('draft','ready','evaluating','evaluated','approved','rejected','observed','error'));
+        CHECK (status IN ('draft','ready','evaluating','evaluated','approved','rejected','observed','error','pending_review'));
 END $$;
 
 CREATE TABLE IF NOT EXISTS project_versions (
@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS evaluations (
     criteria_version_id UUID NOT NULL REFERENCES criteria_versions(id) ON DELETE RESTRICT,
     requested_by_user_id UUID NOT NULL,
     status VARCHAR(24) NOT NULL DEFAULT 'queued'
-        CHECK (status IN ('queued','processing','completed','failed')),
+        CHECK (status IN ('queued','processing','completed','failed','pending_review')),
     idempotency_key VARCHAR(120) NOT NULL UNIQUE,
     requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     started_at TIMESTAMPTZ,
@@ -480,3 +480,22 @@ CREATE TABLE IF NOT EXISTS legal_assessments (
 CREATE INDEX IF NOT EXISTS legal_assessment_proj_idx ON legal_assessments(project_id);
 CREATE INDEX IF NOT EXISTS legal_assessment_code_idx ON legal_assessments(project_code);
 
+CREATE TABLE IF NOT EXISTS evaluation_checkpoints (
+    id UUID PRIMARY KEY,
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    project_version_id UUID NOT NULL REFERENCES project_versions(id) ON DELETE CASCADE,
+    evaluation_id UUID REFERENCES evaluations(id) ON DELETE SET NULL,
+    checkpoint_type VARCHAR(40) NOT NULL DEFAULT 'high_risk_pause',
+    status VARCHAR(32) NOT NULL DEFAULT 'pending_review'
+        CHECK (status IN ('pending_review', 'resolved', 'dismissed')),
+    reason TEXT NOT NULL,
+    risk_source VARCHAR(60) NOT NULL,
+    risk_level VARCHAR(32) NOT NULL DEFAULT 'high',
+    details JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_checkpoint_version_source UNIQUE (project_version_id, risk_source, checkpoint_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_checkpoints_project ON evaluation_checkpoints(project_id, status);
+CREATE INDEX IF NOT EXISTS idx_checkpoints_version ON evaluation_checkpoints(project_version_id, status);

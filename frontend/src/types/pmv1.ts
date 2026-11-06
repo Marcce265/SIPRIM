@@ -7,6 +7,26 @@ export interface LoginResponse {
   roles: string[]
 }
 
+export interface CheckpointResponse {
+  checkpoint_id: string
+  project_id: string
+  project_version_id: string
+  evaluation_id?: string | null
+  checkpoint_type: string
+  status: 'pending_review' | 'resolved' | 'bypassed' | string
+  status_label: string
+  reason: string
+  risk_source: string
+  risk_source_label: string
+  risk_level: string
+  risk_level_label: string
+  requires_human_review: boolean
+  allows_final_approval: boolean
+  details?: Record<string, unknown> | null
+  created_at: string
+  updated_at: string
+}
+
 export interface PMV1ProjectCreate {
   code?: string
   title?: string
@@ -30,6 +50,7 @@ export interface PMV1ProjectResponse {
   territorial_data_origin: string
   estimated_budget_pen: number
   beneficiaries_count: number
+  checkpoint?: CheckpointResponse | null
 }
 
 export interface PMV1ValidationResponse {
@@ -45,6 +66,8 @@ export interface EvaluationAccepted {
   status: string
   duplicated: boolean
   publication_pending: boolean
+  status_label?: string | null
+  checkpoint?: CheckpointResponse | null
 }
 
 export interface EconomicResult {
@@ -61,6 +84,8 @@ export interface EvaluationResponse {
   evaluation_id: string
   project_version_id: string
   criteria_version_id: string
+  status_label?: string | null
+  checkpoint?: CheckpointResponse | null
   status: string
   result: EconomicResult | null
 }
@@ -157,6 +182,9 @@ export interface HumanApprovalStatusResponse {
   project_status: string
   is_evaluated: boolean
   requires_human_approval: boolean
+  is_paused?: boolean
+  pause_reason?: string | null
+  checkpoint?: CheckpointResponse | null
   current_approval: {
     decision: string
     justification: string

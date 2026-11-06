@@ -1374,6 +1374,126 @@ textarea.form-field-input {
   color: #475569;
 }
 
+/* ==========================================================================
+   HU3.1: Checkpoint Pause Banner
+   ========================================================================== */
+.pmv1-flow .checkpoint-pause-banner {
+  background: linear-gradient(135deg, #fff1f2 0%, #fff7ed 100%);
+  border: 2px solid #f87171;
+  border-left: 6px solid #dc2626;
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.08);
+}
+
+.pmv1-flow .checkpoint-pause-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.pmv1-flow .checkpoint-pause-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #991b1b;
+}
+
+.pmv1-flow .checkpoint-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pmv1-flow .checkpoint-reason-box {
+  background: #ffffff;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  margin: 0.75rem 0;
+}
+
+.pmv1-flow .checkpoint-reason-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #7f1d1d;
+  margin-bottom: 0.25rem;
+}
+
+.pmv1-flow .checkpoint-reason-text {
+  font-size: 0.92rem;
+  color: #1f2937;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.pmv1-flow .checkpoint-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.pmv1-flow .checkpoint-meta-item {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #fed7aa;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+}
+
+.pmv1-flow .checkpoint-meta-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: #9a3412;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.pmv1-flow .checkpoint-meta-value {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #431407;
+}
+
+.pmv1-flow .checkpoint-footer-notice {
+  margin: 0.85rem 0 0;
+  font-size: 0.84rem;
+  color: #78350f;
+  line-height: 1.45;
+  border-top: 1px dashed #fca5a5;
+  padding-top: 0.65rem;
+}
+
+.pmv1-flow .checkpoint-blocked-alert {
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-left: 4px solid #e53e3e;
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--radius-md);
+  margin-top: 0.75rem;
+  font-size: 0.88rem;
+  color: #9b2c2c;
+  line-height: 1.5;
+}
+
 @media (max-width: 640px) {
   .pmv1-flow .equity-grid {
     grid-template-columns: 1fr;

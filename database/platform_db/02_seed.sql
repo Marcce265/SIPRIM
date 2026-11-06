@@ -493,3 +493,33 @@ ON CONFLICT (id) DO UPDATE SET
     requires_human_review = EXCLUDED.requires_human_review,
     notes = EXCLUDED.notes;
 
+
+-- ============================================================================
+-- HU3.1: Semilla de punto de control ante riesgo alto (CA-HU3.1-01)
+-- PRY-C cuenta con riesgo ambiental alto en faja marginal (Río Shullcas).
+-- El procesamiento se detiene en punto de control persistente en 'pending_review'.
+-- ============================================================================
+INSERT INTO evaluation_checkpoints (
+    id, project_id, project_version_id, evaluation_id, checkpoint_type, status,
+    reason, risk_source, risk_level, details, created_at, updated_at
+) VALUES (
+    'f1000000-0000-4000-a000-000000000001',
+    'a0000000-0000-4000-a000-00000000000c',
+    'b0000000-0000-4000-a000-00000000000c',
+    NULL,
+    'high_risk_pause',
+    'pending_review',
+    'Punto de control activado: Riesgo ambiental alto detectado por proximidad crítica (25 m) a la faja marginal del Río Shullcas sin medidas de mitigación autorizadas.',
+    'environmental',
+    'high',
+    '{"risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)", "risk_level_label": "Riesgo Alto", "distance_to_water_body_m": 25.0, "water_body_name": "Río Shullcas", "inside_protected_or_risk_area": true, "requires_human_review": true}'::jsonb,
+    NOW(),
+    NOW()
+) ON CONFLICT (project_version_id, risk_source, checkpoint_type) DO UPDATE SET
+    status = EXCLUDED.status,
+    reason = EXCLUDED.reason,
+    risk_level = EXCLUDED.risk_level,
+    details = EXCLUDED.details,
+    updated_at = NOW();
+
+UPDATE projects SET status = 'pending_review' WHERE id = 'a0000000-0000-4000-a000-00000000000c';

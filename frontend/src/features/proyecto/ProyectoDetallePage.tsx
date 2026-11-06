@@ -12,6 +12,7 @@ import {
   getEvaluation,
   getHumanApproval,
   getProject,
+  getProjectCheckpoint,
   getSocialAccessibility,
   requestEvaluation,
   validateProject,
@@ -19,6 +20,7 @@ import {
 } from '../../api/pmv1.api'
 import { useAuth } from '../auth/AuthContext'
 import type {
+  CheckpointResponse,
   EvaluationResponse,
   HumanApprovalStatusResponse,
   PMV1ProjectResponse,
@@ -47,6 +49,7 @@ export function ProyectoDetallePage() {
   const [evaluation, setEvaluation] = useState<EvaluationResponse | null>(null)
   const [zoning, setZoning] = useState<ZoningPrecheckResponse | null>(null)
   const [approval, setApproval] = useState<HumanApprovalStatusResponse | null>(null)
+  const [checkpoint, setCheckpoint] = useState<CheckpointResponse | null>(null)
   const [socialAssessment, setSocialAssessment] = useState<SocialAccessibilityResponse | null>(null)
   const [socialError, setSocialError] = useState<string | null>(null)
   const [environmentalAssessment, setEnvironmentalAssessment] = useState<EnvironmentalAssessmentResponse | null>(null)
@@ -61,6 +64,9 @@ export function ProyectoDetallePage() {
     try {
       const data = await getProject(projectId)
       setProject(data)
+      if (data.checkpoint) {
+        setCheckpoint(data.checkpoint)
+      }
       rememberProject(mapPmV1ToProyecto(data))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo cargar el proyecto.')
@@ -74,6 +80,16 @@ export function ProyectoDetallePage() {
       setApproval(data)
     } catch {
       /* opcional hasta evaluación completada */
+    }
+  }, [projectId])
+
+  const loadCheckpoint = useCallback(async () => {
+    if (!projectId) return
+    try {
+      const data = await getProjectCheckpoint(projectId)
+      setCheckpoint(data)
+    } catch {
+      /* opcional */
     }
   }, [projectId])
 
@@ -100,9 +116,10 @@ export function ProyectoDetallePage() {
   useEffect(() => {
     void loadProject()
     void loadApproval()
+    void loadCheckpoint()
     void loadSocialAssessment()
     void loadEnvironmentalAssessment()
-  }, [loadProject, loadApproval, loadSocialAssessment, loadEnvironmentalAssessment])
+  }, [loadProject, loadApproval, loadCheckpoint, loadSocialAssessment, loadEnvironmentalAssessment])
 
   const runValidate = async () => {
     if (!projectId) return
@@ -124,7 +141,8 @@ export function ProyectoDetallePage() {
     for (let attempt = 0; attempt < POLL_MAX; attempt += 1) {
       const ev = await getEvaluation(evaluationId)
       setEvaluation(ev)
-      if (ev.status === 'completed' || ev.status === 'failed') {
+      if (ev.status === 'completed' || ev.status === 'failed' || ev.status === 'pending_review') {
+        await loadCheckpoint()
         await loadProject()
         await loadApproval()
         return ev
@@ -148,6 +166,16 @@ export function ProyectoDetallePage() {
           ? 'Ya existe una evaluación en curso para este expediente.'
           : 'Evaluación económica iniciada. Espere unos segundos.',
       )
+      if (accepted.status === 'pending_review' || accepted.checkpoint) {
+        setInfo(
+          'Procesamiento detenido en punto de control: se detectó riesgo alto configurado para revisión humana (HU3.1).',
+        )
+        if (accepted.checkpoint) setCheckpoint(accepted.checkpoint)
+        await loadProject()
+        await loadApproval()
+        await loadCheckpoint()
+        return
+      }
       await pollEvaluation(accepted.evaluation_id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo evaluar.')
@@ -163,6 +191,9 @@ export function ProyectoDetallePage() {
     try {
       const data = await evaluateEnvironmentalAssessment(projectId, newIdempotencyKey('env'))
       setEnvironmentalAssessment(data)
+      await loadProject()
+      await loadApproval()
+      await loadCheckpoint()
       setInfo('Evaluación de impacto ambiental territorial registrada exitosamente.')
     } catch (err) {
       setEnvironmentalError(err instanceof Error ? err.message : 'Error al evaluar impacto ambiental.')
@@ -201,6 +232,11 @@ export function ProyectoDetallePage() {
 
   const proyectoView = project ? mapPmV1ToProyecto(project) : null
   const physicalExpediente = projectId ? getPhysicalExpediente(projectId) : null
+  const activeCheckpoint = checkpoint ?? project?.checkpoint ?? approval?.checkpoint ?? null
+  const isPaused =
+    project?.status === 'pending_review' ||
+    activeCheckpoint?.status === 'pending_review' ||
+    Boolean(approval?.is_paused)
 
   return (
     <div className="form-page pmv1-flow">
@@ -220,6 +256,57 @@ export function ProyectoDetallePage() {
 
           {project?.code && (
             <ExpedienteCodeBadge code={project.code} projectId={project.project_id} />
+          )}
+
+          {isPaused && (
+            <section className="checkpoint-pause-banner" aria-label="Punto de control de riesgo">
+              <div className="checkpoint-pause-header">
+                <h3 className="checkpoint-pause-title">
+                  <span>⚠️</span> Punto de control activo · Proceso pausado por riesgo alto
+                </h3>
+                <span className="checkpoint-badge">
+                  Pendiente de revisión
+                </span>
+              </div>
+
+              <div className="checkpoint-reason-box">
+                <div className="checkpoint-reason-title">Causa del punto de control (HU3.1)</div>
+                <p className="checkpoint-reason-text">
+                  {activeCheckpoint?.reason ??
+                    approval?.pause_reason ??
+                    'Se detectó una condición de riesgo alto configurada para revisión humana. El flujo ha detenido el procesamiento y no continuará automáticamente.'}
+                </p>
+              </div>
+
+              <div className="checkpoint-meta-grid">
+                <div className="checkpoint-meta-item">
+                  <div className="checkpoint-meta-label">Estado de procesamiento</div>
+                  <div className="checkpoint-meta-value">Pendiente de revisión</div>
+                </div>
+                <div className="checkpoint-meta-item">
+                  <div className="checkpoint-meta-label">Origen de riesgo</div>
+                  <div className="checkpoint-meta-value">
+                    {activeCheckpoint?.risk_source_label ?? 'Impacto ambiental territorial'}
+                  </div>
+                </div>
+                <div className="checkpoint-meta-item">
+                  <div className="checkpoint-meta-label">Nivel de riesgo</div>
+                  <div className="checkpoint-meta-value" style={{ color: '#dc2626' }}>
+                    {activeCheckpoint?.risk_level_label ?? 'Riesgo Alto'}
+                  </div>
+                </div>
+                <div className="checkpoint-meta-item">
+                  <div className="checkpoint-meta-label">Dictamen final</div>
+                  <div className="checkpoint-meta-value" style={{ color: '#b91c1c' }}>
+                    Bloqueado hasta revisión
+                  </div>
+                </div>
+              </div>
+
+              <p className="checkpoint-footer-notice">
+                <strong>Garantía de control (CA-HU3.1-01):</strong> El sistema detiene el avance en este punto de control persistente. No se emitirá una conclusión completada ni se permitirá dictamen de aprobación definitiva sin una validación humana previa.
+              </p>
+            </section>
           )}
 
           {physicalExpediente && (
@@ -262,6 +349,11 @@ export function ProyectoDetallePage() {
 
           <section className="flow-panel">
             <h2>2. Evaluación económica preliminar</h2>
+            {isPaused && (
+              <div className="checkpoint-blocked-alert" style={{ marginBottom: '1rem' }}>
+                <strong>Punto de control activo:</strong> La evaluación técnica de este expediente se encuentra detenida en estado <strong>Pendiente de revisión</strong> por detección de riesgo alto (HU3.1). No se continuará automáticamente hacia la finalización ni se emitirá puntaje final sin revisión humana previa.
+              </div>
+            )}
             <p className="flow-hint">Disponible cuando el expediente esté completo.</p>
             <button
               type="button"
@@ -1030,17 +1122,27 @@ export function ProyectoDetallePage() {
 
           <section className="flow-panel">
             <h2>5. Normativa y dictamen final</h2>
+            {isPaused && (
+              <div className="checkpoint-blocked-alert" style={{ marginBottom: '1rem' }}>
+                <strong>Aprobación final bloqueada:</strong> El expediente se encuentra en estado <strong>Pendiente de revisión</strong> por punto de control persistente ante riesgo alto (HU3.1). Conforme a las reglas de control, no se permite emitir un dictamen final de aprobación hasta que la revisión humana sea resuelta.
+              </div>
+            )}
             <ul className="flow-links">
               {hasRole('LEGAL_ADVISOR') && (
                 <li>
                   <Link to="/normativa">Consultar normativa aplicable</Link>
                 </li>
               )}
-              {hasRole('ADMIN') && (
+              {hasRole('ADMIN') && !isPaused && (
                 <li>
                   <Link to={`/proyectos/${projectId}/aprobacion`}>
                     Emitir dictamen de aprobación
                   </Link>
+                </li>
+              )}
+              {hasRole('ADMIN') && isPaused && (
+                <li className="muted">
+                  Emisión de dictamen deshabilitada: expediente detenido en punto de control por riesgo alto.
                 </li>
               )}
               {!hasRole('LEGAL_ADVISOR') && !hasRole('ADMIN') && (
