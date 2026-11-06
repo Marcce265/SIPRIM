@@ -1,0 +1,1501 @@
+monto_inversion,beneficiarios,plazo_dias_programado,tipo_proyecto,zona_intervencion,complejidad_tecnica,variacion_diseno_pct,target_sobrecosto_binario,target_sobrecosto_pct,target_retraso_dias,target_viabilidad_plazo
+482236.42,772,165,Salud y Postas Médicas,Periurbana,1,13.28,1,25.88,257,CRITICO
+1222629.17,3824,90,Saneamiento y Agua Potable,Periurbana,2,4.15,0,2.75,19,VIABLE
+178671.87,327,239,Transporte y Vías Urbanas,Rural,2,19.34,1,40.0,101,CRITICO
+3457977.85,4987,155,Transporte y Vías Urbanas,Periurbana,2,20.84,1,46.53,213,CRITICO
+1748843.49,2315,218,Espacio Público y Parques,Periurbana,3,23.65,1,45.37,221,CRITICO
+757029.32,2619,226,Educación e Infraestructura,Periurbana,2,11.42,1,24.75,206,CRITICO
+743590.39,2317,289,Transporte y Vías Urbanas,Urbana consolidada,2,2.31,0,6.14,23,VIABLE
+1294262.81,3710,197,Salud y Postas Médicas,Periurbana,3,27.32,1,46.54,250,CRITICO
+773828.64,1976,157,Transporte y Vías Urbanas,Rural,2,5.35,0,7.49,51,RIESGO_MODERADO
+803459.47,2266,146,Saneamiento y Agua Potable,Rural,2,9.03,0,3.89,58,RIESGO_MODERADO
+1882405.5,3054,282,Transporte y Vías Urbanas,Periurbana,2,12.75,1,29.32,211,CRITICO
+1564746.97,3312,180,Educación e Infraestructura,Periurbana,3,18.17,1,40.72,99,CRITICO
+929391.04,4395,199,Salud y Postas Médicas,Periurbana,2,15.13,1,34.19,240,CRITICO
+911704.4,2987,250,Transporte y Vías Urbanas,Urbana consolidada,2,9.63,0,5.97,9,VIABLE
+1138047.57,3400,293,Espacio Público y Parques,Urbana consolidada,3,8.28,0,3.23,18,VIABLE
+566585.6,860,273,Espacio Público y Parques,Urbana consolidada,2,17.47,1,35.87,134,CRITICO
+684623.79,2620,88,Seguridad Ciudadana,Urbana consolidada,2,17.67,1,31.35,29,RIESGO_MODERADO
+1612722.27,6758,127,Espacio Público y Parques,Urbana consolidada,3,10.04,0,8.37,74,RIESGO_MODERADO
+875513.18,1526,220,Saneamiento y Agua Potable,Urbana consolidada,2,8.29,0,6.14,23,VIABLE
+285791.11,1227,226,Transporte y Vías Urbanas,Urbana consolidada,3,3.74,0,2.36,32,RIESGO_MODERADO
+640784.93,1040,210,Transporte y Vías Urbanas,Urbana consolidada,2,5.55,0,3.58,6,VIABLE
+1777928.44,6112,304,Transporte y Vías Urbanas,Periurbana,3,9.87,0,7.32,13,VIABLE
+798863.61,1396,305,Transporte y Vías Urbanas,Urbana consolidada,3,6.41,0,7.75,24,VIABLE
+861250.32,2175,188,Espacio Público y Parques,Urbana consolidada,3,25.95,1,42.13,37,RIESGO_MODERADO
+1754427.17,7697,222,Salud y Postas Médicas,Periurbana,3,9.2,0,8.44,72,RIESGO_MODERADO
+5086747.95,8296,343,Salud y Postas Médicas,Periurbana,3,16.11,1,36.89,227,CRITICO
+518207.07,2847,251,Transporte y Vías Urbanas,Periurbana,1,7.03,0,2.66,11,VIABLE
+3313071.07,5120,162,Saneamiento y Agua Potable,Urbana consolidada,3,10.29,1,29.94,135,CRITICO
+325457.94,439,91,Salud y Postas Médicas,Periurbana,3,1.46,0,1.21,9,VIABLE
+1152541.27,3716,70,Transporte y Vías Urbanas,Periurbana,2,9.84,0,7.83,56,RIESGO_MODERADO
+343665.28,716,184,Saneamiento y Agua Potable,Urbana consolidada,1,5.49,0,5.68,1,VIABLE
+3322780.09,5307,192,Saneamiento y Agua Potable,Periurbana,1,4.8,1,22.53,52,RIESGO_MODERADO
+2085523.99,5689,164,Seguridad Ciudadana,Urbana consolidada,2,20.01,1,41.67,164,CRITICO
+2741306.27,4977,113,Espacio Público y Parques,Periurbana,1,16.64,1,30.51,227,CRITICO
+443751.57,2235,182,Educación e Infraestructura,Urbana consolidada,3,25.24,1,45.75,27,RIESGO_MODERADO
+1823192.28,4806,100,Salud y Postas Médicas,Urbana consolidada,1,3.61,0,2.55,16,VIABLE
+617162.72,1704,104,Transporte y Vías Urbanas,Urbana consolidada,1,15.35,0,5.61,26,RIESGO_MODERADO
+652360.9,1095,164,Transporte y Vías Urbanas,Urbana consolidada,2,4.11,0,1.27,13,VIABLE
+1553286.2,2737,238,Salud y Postas Médicas,Urbana consolidada,2,7.82,0,6.09,11,VIABLE
+2167416.27,3590,217,Espacio Público y Parques,Urbana consolidada,1,7.58,0,4.24,23,VIABLE
+1183489.92,1633,248,Espacio Público y Parques,Periurbana,2,17.16,1,36.6,233,CRITICO
+559507.16,735,183,Saneamiento y Agua Potable,Periurbana,1,16.14,1,36.71,45,RIESGO_MODERADO
+468253.52,1915,156,Salud y Postas Médicas,Periurbana,1,6.12,0,6.1,13,VIABLE
+3612408.65,6278,215,Salud y Postas Médicas,Urbana consolidada,1,11.29,1,27.95,156,CRITICO
+1680414.96,4300,142,Espacio Público y Parques,Periurbana,2,18.59,0,7.62,35,RIESGO_MODERADO
+1881829.77,4991,212,Saneamiento y Agua Potable,Urbana consolidada,3,3.02,1,23.51,58,RIESGO_MODERADO
+7026078.81,10146,380,Transporte y Vías Urbanas,Periurbana,1,12.72,1,36.8,99,CRITICO
+472467.08,930,239,Salud y Postas Médicas,Urbana consolidada,2,5.17,0,4.07,5,VIABLE
+9855221.94,21668,394,Transporte y Vías Urbanas,Urbana consolidada,2,13.18,1,30.02,138,CRITICO
+15000000.0,50146,455,Saneamiento y Agua Potable,Urbana consolidada,2,17.36,1,38.58,213,CRITICO
+4225177.41,6613,265,Saneamiento y Agua Potable,Periurbana,2,7.04,1,19.77,162,CRITICO
+2072768.85,2887,220,Transporte y Vías Urbanas,Rural,2,5.43,1,21.62,126,CRITICO
+541750.17,912,110,Transporte y Vías Urbanas,Periurbana,1,3.84,0,1.8,21,VIABLE
+2409758.43,3842,138,Espacio Público y Parques,Periurbana,1,10.18,1,24.62,129,CRITICO
+661044.91,2666,121,Educación e Infraestructura,Rural,2,6.61,0,5.7,16,VIABLE
+965609.02,2567,261,Espacio Público y Parques,Periurbana,2,13.02,1,36.23,219,CRITICO
+758129.99,1610,146,Educación e Infraestructura,Urbana consolidada,1,4.28,0,3.67,14,VIABLE
+1271168.31,1913,244,Transporte y Vías Urbanas,Urbana consolidada,1,6.47,0,5.06,5,VIABLE
+3138545.22,13032,149,Transporte y Vías Urbanas,Periurbana,2,12.97,1,32.47,210,CRITICO
+597180.29,1935,168,Transporte y Vías Urbanas,Urbana consolidada,2,4.58,0,4.61,10,VIABLE
+405605.6,526,115,Transporte y Vías Urbanas,Periurbana,3,8.11,0,6.26,61,RIESGO_MODERADO
+399248.42,1486,233,Saneamiento y Agua Potable,Urbana consolidada,2,3.78,0,6.65,16,VIABLE
+411905.98,649,324,Transporte y Vías Urbanas,Urbana consolidada,2,3.15,0,5.87,70,RIESGO_MODERADO
+271578.72,625,95,Seguridad Ciudadana,Urbana consolidada,1,10.0,0,7.07,8,VIABLE
+432942.12,598,206,Transporte y Vías Urbanas,Urbana consolidada,1,8.47,0,6.75,20,VIABLE
+3153233.7,14174,172,Transporte y Vías Urbanas,Urbana consolidada,3,9.78,0,5.81,75,RIESGO_MODERADO
+577243.36,906,238,Salud y Postas Médicas,Urbana consolidada,3,18.9,1,43.29,76,RIESGO_MODERADO
+1240961.32,1613,318,Transporte y Vías Urbanas,Rural,3,19.2,1,43.37,183,CRITICO
+329323.37,535,147,Transporte y Vías Urbanas,Rural,1,7.48,0,2.55,12,VIABLE
+1147028.82,2828,269,Transporte y Vías Urbanas,Periurbana,3,7.33,0,2.46,36,RIESGO_MODERADO
+205519.6,263,174,Salud y Postas Médicas,Periurbana,2,5.34,0,5.35,23,VIABLE
+524982.23,774,136,Transporte y Vías Urbanas,Periurbana,1,8.24,0,2.91,52,RIESGO_MODERADO
+7490042.54,12470,276,Transporte y Vías Urbanas,Periurbana,2,10.22,1,33.27,242,CRITICO
+582641.46,1684,271,Educación e Infraestructura,Urbana consolidada,2,7.6,0,6.87,71,RIESGO_MODERADO
+2697885.15,4169,254,Espacio Público y Parques,Periurbana,2,10.66,1,24.62,126,CRITICO
+1482957.13,1998,199,Saneamiento y Agua Potable,Periurbana,2,12.99,1,29.01,231,CRITICO
+857960.04,1489,182,Transporte y Vías Urbanas,Periurbana,3,2.87,0,3.88,73,RIESGO_MODERADO
+547492.4,1310,145,Transporte y Vías Urbanas,Urbana consolidada,1,10.3,0,8.87,1,VIABLE
+3135246.82,3980,278,Espacio Público y Parques,Urbana consolidada,2,13.35,1,33.98,180,CRITICO
+839326.35,3879,347,Espacio Público y Parques,Periurbana,1,5.29,0,5.75,22,VIABLE
+3892966.54,10257,233,Espacio Público y Parques,Rural,2,9.5,1,31.65,203,CRITICO
+515467.16,663,115,Transporte y Vías Urbanas,Periurbana,2,5.89,0,2.62,16,VIABLE
+1036753.85,1838,224,Transporte y Vías Urbanas,Urbana consolidada,3,6.97,0,7.44,50,RIESGO_MODERADO
+1496963.4,6222,243,Educación e Infraestructura,Urbana consolidada,2,19.27,0,9.57,48,RIESGO_MODERADO
+1377587.25,2609,280,Educación e Infraestructura,Periurbana,2,18.15,1,41.6,108,CRITICO
+324350.06,405,99,Salud y Postas Médicas,Urbana consolidada,3,8.15,0,6.03,14,VIABLE
+541632.79,716,210,Saneamiento y Agua Potable,Periurbana,2,17.29,1,39.63,204,CRITICO
+825395.39,2221,133,Salud y Postas Médicas,Rural,1,21.1,0,10.05,46,RIESGO_MODERADO
+456649.14,1365,286,Salud y Postas Médicas,Periurbana,3,1.96,0,2.26,84,RIESGO_MODERADO
+1811367.42,5227,264,Seguridad Ciudadana,Periurbana,1,1.18,1,13.63,69,RIESGO_MODERADO
+1671475.39,5300,194,Transporte y Vías Urbanas,Urbana consolidada,2,19.74,0,11.15,42,RIESGO_MODERADO
+169164.01,563,96,Transporte y Vías Urbanas,Urbana consolidada,1,3.21,0,2.39,22,VIABLE
+193933.64,526,320,Espacio Público y Parques,Periurbana,2,15.08,1,31.16,172,CRITICO
+310703.09,465,175,Espacio Público y Parques,Periurbana,1,3.44,0,4.41,16,VIABLE
+1094199.47,2158,263,Saneamiento y Agua Potable,Periurbana,2,13.57,1,38.04,143,CRITICO
+6137053.37,19249,145,Transporte y Vías Urbanas,Urbana consolidada,3,15.9,1,29.72,106,CRITICO
+697933.56,999,201,Salud y Postas Médicas,Urbana consolidada,3,13.18,1,37.43,115,CRITICO
+1233770.51,2740,256,Saneamiento y Agua Potable,Periurbana,1,13.09,0,9.83,47,RIESGO_MODERADO
+378207.95,1373,45,Transporte y Vías Urbanas,Periurbana,2,4.46,0,6.29,3,VIABLE
+383788.69,674,206,Transporte y Vías Urbanas,Urbana consolidada,2,19.32,0,10.28,54,RIESGO_MODERADO
+169142.18,793,274,Espacio Público y Parques,Urbana consolidada,1,6.93,0,3.07,24,VIABLE
+959809.57,4951,91,Transporte y Vías Urbanas,Periurbana,2,4.46,0,2.75,13,VIABLE
+2309392.39,3478,209,Educación e Infraestructura,Urbana consolidada,3,10.38,1,24.36,101,CRITICO
+714227.71,1925,167,Transporte y Vías Urbanas,Urbana consolidada,1,11.19,0,5.29,44,RIESGO_MODERADO
+3460099.06,6131,193,Transporte y Vías Urbanas,Urbana consolidada,3,10.39,1,29.19,165,CRITICO
+1176517.51,2578,155,Saneamiento y Agua Potable,Urbana consolidada,2,1.72,0,4.67,18,VIABLE
+952865.23,1196,132,Saneamiento y Agua Potable,Urbana consolidada,2,6.31,0,6.2,23,VIABLE
+1568340.33,6688,151,Saneamiento y Agua Potable,Urbana consolidada,3,13.63,0,5.13,84,RIESGO_MODERADO
+1526731.62,1931,201,Saneamiento y Agua Potable,Urbana consolidada,2,8.37,0,5.26,20,VIABLE
+2766312.42,4530,231,Espacio Público y Parques,Urbana consolidada,2,11.26,1,23.81,245,CRITICO
+478418.51,599,92,Transporte y Vías Urbanas,Urbana consolidada,2,0.57,0,1.32,20,VIABLE
+125587.22,425,139,Transporte y Vías Urbanas,Periurbana,3,12.6,1,28.62,148,CRITICO
+1091727.68,3011,205,Seguridad Ciudadana,Urbana consolidada,2,20.35,0,6.26,75,RIESGO_MODERADO
+567781.74,2242,274,Espacio Público y Parques,Urbana consolidada,3,13.03,1,24.52,225,CRITICO
+960818.22,1210,281,Transporte y Vías Urbanas,Rural,1,3.01,0,1.5,2,VIABLE
+4403322.91,12193,251,Saneamiento y Agua Potable,Urbana consolidada,3,7.12,1,17.46,59,RIESGO_MODERADO
+364923.26,1093,194,Transporte y Vías Urbanas,Rural,2,8.36,0,5.0,64,RIESGO_MODERADO
+1959730.66,3790,112,Educación e Infraestructura,Urbana consolidada,1,4.55,0,4.01,7,VIABLE
+2306589.97,3168,223,Transporte y Vías Urbanas,Periurbana,3,1.69,1,10.06,175,CRITICO
+1490560.25,2877,70,Salud y Postas Médicas,Periurbana,3,9.02,0,3.82,35,RIESGO_MODERADO
+2694322.51,14223,197,Transporte y Vías Urbanas,Urbana consolidada,2,13.16,1,35.6,219,CRITICO
+651787.55,1708,97,Transporte y Vías Urbanas,Periurbana,2,1.76,0,5.38,2,VIABLE
+533194.35,933,134,Saneamiento y Agua Potable,Urbana consolidada,2,27.32,0,8.85,46,RIESGO_MODERADO
+2508221.56,5270,231,Educación e Infraestructura,Rural,1,10.3,1,32.93,139,CRITICO
+1882798.93,6026,225,Saneamiento y Agua Potable,Urbana consolidada,3,7.18,1,26.56,35,RIESGO_MODERADO
+3441232.77,8669,326,Saneamiento y Agua Potable,Rural,1,9.51,0,7.85,82,RIESGO_MODERADO
+1191901.66,2677,215,Educación e Infraestructura,Urbana consolidada,1,4.65,0,3.0,22,VIABLE
+4244806.56,22718,214,Educación e Infraestructura,Periurbana,1,1.63,0,3.95,52,RIESGO_MODERADO
+763850.8,1348,237,Saneamiento y Agua Potable,Periurbana,3,15.66,1,31.5,172,CRITICO
+379156.28,535,67,Educación e Infraestructura,Periurbana,1,7.18,0,3.23,4,VIABLE
+157411.66,555,300,Educación e Infraestructura,Periurbana,1,1.33,0,2.89,16,VIABLE
+365396.68,543,45,Espacio Público y Parques,Urbana consolidada,2,6.48,0,3.94,49,RIESGO_MODERADO
+2056781.94,4823,260,Transporte y Vías Urbanas,Periurbana,2,8.07,1,26.46,162,CRITICO
+263435.59,766,222,Seguridad Ciudadana,Urbana consolidada,3,5.86,0,2.0,31,RIESGO_MODERADO
+655315.56,1221,149,Educación e Infraestructura,Urbana consolidada,2,5.02,0,2.29,11,VIABLE
+6556225.16,22537,256,Transporte y Vías Urbanas,Urbana consolidada,3,18.32,1,31.4,154,CRITICO
+2109826.66,5710,109,Espacio Público y Parques,Urbana consolidada,3,7.43,0,5.89,46,RIESGO_MODERADO
+4935112.87,7212,269,Espacio Público y Parques,Rural,1,15.28,1,29.75,203,CRITICO
+403363.75,894,223,Educación e Infraestructura,Urbana consolidada,3,4.68,0,5.23,35,RIESGO_MODERADO
+107583.5,138,142,Transporte y Vías Urbanas,Urbana consolidada,2,11.42,0,6.28,57,RIESGO_MODERADO
+3854465.27,11033,273,Transporte y Vías Urbanas,Periurbana,2,4.12,1,23.86,187,CRITICO
+275061.98,840,231,Espacio Público y Parques,Urbana consolidada,1,5.5,0,1.86,0,VIABLE
+1068569.27,2086,142,Saneamiento y Agua Potable,Urbana consolidada,2,3.07,0,2.97,20,VIABLE
+1197065.75,1755,258,Saneamiento y Agua Potable,Urbana consolidada,3,6.81,0,4.41,6,VIABLE
+419153.81,622,218,Seguridad Ciudadana,Rural,2,8.18,0,4.6,46,RIESGO_MODERADO
+3982298.64,12182,250,Saneamiento y Agua Potable,Urbana consolidada,2,12.48,1,27.45,86,CRITICO
+3970504.71,13165,299,Transporte y Vías Urbanas,Urbana consolidada,3,3.78,0,6.1,76,RIESGO_MODERADO
+1617350.31,4188,227,Transporte y Vías Urbanas,Periurbana,3,14.67,1,35.1,248,CRITICO
+958819.78,2233,144,Seguridad Ciudadana,Rural,1,19.75,0,7.62,1,VIABLE
+1169741.27,3939,153,Transporte y Vías Urbanas,Rural,2,21.57,1,39.84,188,CRITICO
+367207.66,1269,200,Salud y Postas Médicas,Urbana consolidada,1,13.52,0,5.12,71,RIESGO_MODERADO
+794003.08,1240,269,Transporte y Vías Urbanas,Urbana consolidada,1,6.34,0,4.91,15,VIABLE
+895878.58,2418,206,Educación e Infraestructura,Periurbana,1,11.85,0,7.6,21,VIABLE
+457252.23,605,159,Saneamiento y Agua Potable,Periurbana,3,7.21,0,7.29,54,RIESGO_MODERADO
+2114424.82,4138,217,Saneamiento y Agua Potable,Urbana consolidada,2,10.62,1,21.94,161,CRITICO
+272710.68,1359,101,Transporte y Vías Urbanas,Urbana consolidada,1,6.68,0,7.9,13,VIABLE
+654693.8,1045,270,Espacio Público y Parques,Urbana consolidada,1,7.77,0,5.29,10,VIABLE
+129626.17,443,280,Educación e Infraestructura,Periurbana,2,3.42,0,1.14,59,RIESGO_MODERADO
+1539759.29,3523,321,Transporte y Vías Urbanas,Urbana consolidada,2,10.68,1,31.75,35,RIESGO_MODERADO
+1920977.88,4263,272,Transporte y Vías Urbanas,Periurbana,2,8.06,1,28.97,171,CRITICO
+1722286.16,8330,160,Espacio Público y Parques,Urbana consolidada,1,10.76,0,5.35,17,VIABLE
+13609490.62,18340,396,Transporte y Vías Urbanas,Urbana consolidada,3,3.57,0,2.09,55,RIESGO_MODERADO
+2294010.03,6476,189,Espacio Público y Parques,Urbana consolidada,1,3.89,0,6.22,3,VIABLE
+421767.03,760,215,Saneamiento y Agua Potable,Urbana consolidada,1,5.49,0,4.53,20,VIABLE
+10823023.04,31966,452,Saneamiento y Agua Potable,Urbana consolidada,2,18.64,1,32.26,232,CRITICO
+430074.54,790,45,Transporte y Vías Urbanas,Urbana consolidada,1,12.14,0,5.96,4,VIABLE
+2002415.4,2826,240,Saneamiento y Agua Potable,Rural,1,21.26,1,34.87,201,CRITICO
+1921880.83,6589,227,Transporte y Vías Urbanas,Rural,1,2.39,1,20.97,67,RIESGO_MODERADO
+446078.08,1011,205,Transporte y Vías Urbanas,Urbana consolidada,2,10.07,0,3.85,77,RIESGO_MODERADO
+3456661.39,6833,282,Saneamiento y Agua Potable,Periurbana,1,9.96,0,3.53,54,RIESGO_MODERADO
+1354759.28,5539,140,Transporte y Vías Urbanas,Periurbana,2,11.9,1,30.34,152,CRITICO
+1646000.78,2995,271,Transporte y Vías Urbanas,Urbana consolidada,2,4.09,0,6.18,24,VIABLE
+535973.66,670,209,Transporte y Vías Urbanas,Periurbana,2,7.76,0,5.04,43,RIESGO_MODERADO
+3179930.93,4673,217,Espacio Público y Parques,Periurbana,1,5.78,1,20.08,127,CRITICO
+453683.83,904,187,Transporte y Vías Urbanas,Periurbana,2,2.22,0,5.44,20,VIABLE
+198542.13,649,151,Educación e Infraestructura,Periurbana,2,32.05,1,59.23,188,CRITICO
+3550554.27,14412,243,Saneamiento y Agua Potable,Periurbana,3,8.44,1,26.57,194,CRITICO
+670610.72,926,230,Saneamiento y Agua Potable,Urbana consolidada,1,3.69,0,4.93,0,VIABLE
+1023801.36,1605,106,Educación e Infraestructura,Urbana consolidada,2,5.79,0,2.2,4,VIABLE
+5556512.71,8463,246,Transporte y Vías Urbanas,Periurbana,2,23.26,1,40.23,233,CRITICO
+2738284.57,5823,191,Saneamiento y Agua Potable,Urbana consolidada,3,10.52,1,33.58,132,CRITICO
+1740074.01,8305,204,Transporte y Vías Urbanas,Periurbana,2,1.31,0,1.54,63,RIESGO_MODERADO
+2579026.21,4823,201,Saneamiento y Agua Potable,Urbana consolidada,2,7.58,0,3.05,43,RIESGO_MODERADO
+511571.26,1035,64,Salud y Postas Médicas,Periurbana,2,1.92,0,1.03,16,VIABLE
+1939187.7,9344,242,Educación e Infraestructura,Urbana consolidada,2,5.49,1,22.49,67,RIESGO_MODERADO
+2673618.63,6375,305,Transporte y Vías Urbanas,Urbana consolidada,3,9.92,1,30.2,192,CRITICO
+1943264.85,3337,161,Saneamiento y Agua Potable,Periurbana,1,16.24,1,34.42,132,CRITICO
+819360.01,3116,203,Educación e Infraestructura,Periurbana,3,3.34,0,5.56,40,RIESGO_MODERADO
+80000.0,230,131,Saneamiento y Agua Potable,Urbana consolidada,2,12.72,0,4.6,84,RIESGO_MODERADO
+1625900.31,5093,219,Educación e Infraestructura,Urbana consolidada,2,9.86,0,8.18,8,VIABLE
+1091855.17,1709,181,Transporte y Vías Urbanas,Urbana consolidada,3,15.1,0,5.45,82,RIESGO_MODERADO
+706022.05,1683,266,Espacio Público y Parques,Periurbana,3,6.51,1,25.99,69,RIESGO_MODERADO
+1983331.89,3432,172,Transporte y Vías Urbanas,Urbana consolidada,1,3.09,0,5.4,5,VIABLE
+1250598.36,2924,243,Saneamiento y Agua Potable,Urbana consolidada,2,10.94,1,27.55,30,RIESGO_MODERADO
+1182995.3,2655,148,Transporte y Vías Urbanas,Urbana consolidada,1,3.38,0,1.23,16,VIABLE
+259047.86,1009,145,Transporte y Vías Urbanas,Urbana consolidada,3,5.88,0,2.86,18,VIABLE
+264768.12,594,190,Espacio Público y Parques,Periurbana,2,4.51,0,5.11,49,RIESGO_MODERADO
+1374337.6,1719,87,Seguridad Ciudadana,Urbana consolidada,3,1.86,0,2.68,9,VIABLE
+1054367.27,1631,134,Seguridad Ciudadana,Urbana consolidada,2,2.04,0,1.2,0,VIABLE
+1115559.69,1830,254,Saneamiento y Agua Potable,Urbana consolidada,2,11.83,1,31.89,213,CRITICO
+1143536.98,1680,149,Transporte y Vías Urbanas,Periurbana,2,6.8,0,4.54,60,RIESGO_MODERADO
+1425895.76,6501,108,Espacio Público y Parques,Periurbana,1,9.35,0,4.53,20,VIABLE
+1017092.98,1504,95,Educación e Infraestructura,Urbana consolidada,3,15.21,0,6.33,53,RIESGO_MODERADO
+1134830.4,1686,202,Espacio Público y Parques,Periurbana,2,12.17,1,26.7,154,CRITICO
+1239852.43,2104,159,Saneamiento y Agua Potable,Periurbana,2,23.58,1,45.48,124,CRITICO
+2272676.09,3042,219,Espacio Público y Parques,Urbana consolidada,3,9.37,1,21.74,66,RIESGO_MODERADO
+619569.44,2826,45,Seguridad Ciudadana,Urbana consolidada,2,7.15,0,6.65,19,VIABLE
+1998198.53,8479,155,Transporte y Vías Urbanas,Urbana consolidada,2,5.26,1,23.69,30,RIESGO_MODERADO
+1745837.65,2323,152,Educación e Infraestructura,Urbana consolidada,3,3.98,0,2.68,17,VIABLE
+1082584.51,2491,247,Transporte y Vías Urbanas,Urbana consolidada,2,10.53,0,4.46,78,RIESGO_MODERADO
+642035.83,838,249,Espacio Público y Parques,Urbana consolidada,1,5.67,0,5.83,16,VIABLE
+1372611.84,2889,245,Salud y Postas Médicas,Urbana consolidada,1,13.56,0,4.6,16,VIABLE
+2142696.66,4771,72,Salud y Postas Médicas,Urbana consolidada,3,8.32,0,4.08,27,RIESGO_MODERADO
+374190.46,550,241,Transporte y Vías Urbanas,Periurbana,2,13.62,1,37.2,130,CRITICO
+1041248.54,2224,277,Salud y Postas Médicas,Urbana consolidada,1,10.32,0,7.34,70,RIESGO_MODERADO
+1043686.47,3593,138,Saneamiento y Agua Potable,Periurbana,2,6.92,0,7.18,19,VIABLE
+543029.28,1217,204,Transporte y Vías Urbanas,Urbana consolidada,2,6.14,0,2.06,13,VIABLE
+563904.92,1827,215,Transporte y Vías Urbanas,Urbana consolidada,2,7.78,0,6.72,0,VIABLE
+243766.89,329,151,Saneamiento y Agua Potable,Urbana consolidada,2,8.1,0,3.71,5,VIABLE
+364829.47,515,191,Transporte y Vías Urbanas,Urbana consolidada,3,14.52,0,7.05,77,RIESGO_MODERADO
+246784.58,957,124,Transporte y Vías Urbanas,Urbana consolidada,1,3.94,0,4.25,20,VIABLE
+565284.84,1433,196,Salud y Postas Médicas,Urbana consolidada,2,1.91,0,1.93,20,VIABLE
+594818.93,870,177,Transporte y Vías Urbanas,Periurbana,1,8.6,0,7.96,7,VIABLE
+604915.04,3107,205,Salud y Postas Médicas,Urbana consolidada,2,19.07,0,6.71,35,RIESGO_MODERADO
+1375955.18,7561,331,Saneamiento y Agua Potable,Periurbana,3,8.37,0,6.45,42,RIESGO_MODERADO
+831669.16,2819,116,Transporte y Vías Urbanas,Urbana consolidada,2,7.57,0,5.69,20,VIABLE
+510925.23,674,267,Salud y Postas Médicas,Urbana consolidada,1,21.61,0,11.98,72,RIESGO_MODERADO
+514167.96,1074,191,Transporte y Vías Urbanas,Urbana consolidada,2,3.74,0,3.47,20,VIABLE
+355628.09,1233,183,Transporte y Vías Urbanas,Urbana consolidada,1,6.23,0,3.81,16,VIABLE
+825255.83,2642,45,Seguridad Ciudadana,Urbana consolidada,1,17.92,0,8.67,22,VIABLE
+812077.28,3072,258,Saneamiento y Agua Potable,Periurbana,1,4.5,0,1.87,16,VIABLE
+4242495.92,7922,166,Educación e Infraestructura,Urbana consolidada,1,8.66,0,5.83,12,VIABLE
+3916607.77,12844,176,Espacio Público y Parques,Periurbana,1,11.86,1,22.85,88,CRITICO
+3723266.0,6597,220,Educación e Infraestructura,Urbana consolidada,3,7.91,1,26.52,215,CRITICO
+6396862.29,8138,261,Transporte y Vías Urbanas,Urbana consolidada,2,10.11,1,23.95,252,CRITICO
+329271.74,583,122,Transporte y Vías Urbanas,Urbana consolidada,3,9.45,0,7.93,16,VIABLE
+1804304.6,5534,308,Saneamiento y Agua Potable,Urbana consolidada,2,10.45,1,24.4,129,CRITICO
+1953137.8,6933,256,Espacio Público y Parques,Periurbana,2,14.46,1,27.43,122,CRITICO
+1511471.63,4260,371,Educación e Infraestructura,Urbana consolidada,2,7.31,0,7.67,18,VIABLE
+6675829.65,13969,237,Espacio Público y Parques,Urbana consolidada,2,3.74,1,17.04,68,RIESGO_MODERADO
+9665638.37,30975,283,Saneamiento y Agua Potable,Periurbana,1,11.27,1,26.08,241,CRITICO
+2377190.69,12887,355,Seguridad Ciudadana,Urbana consolidada,2,14.65,1,25.66,143,CRITICO
+1772376.01,2643,119,Transporte y Vías Urbanas,Rural,1,0.81,0,4.36,14,VIABLE
+358556.57,679,204,Transporte y Vías Urbanas,Urbana consolidada,2,10.58,0,6.24,49,RIESGO_MODERADO
+359215.27,569,163,Seguridad Ciudadana,Periurbana,3,2.52,0,1.57,77,RIESGO_MODERADO
+1849083.63,4345,191,Espacio Público y Parques,Periurbana,2,4.51,1,26.43,59,RIESGO_MODERADO
+919817.52,2867,95,Espacio Público y Parques,Urbana consolidada,3,11.96,0,5.04,61,RIESGO_MODERADO
+297299.52,533,136,Transporte y Vías Urbanas,Periurbana,1,2.76,0,6.71,9,VIABLE
+880617.11,2008,331,Educación e Infraestructura,Urbana consolidada,3,3.74,0,6.7,5,VIABLE
+1361376.71,3845,213,Espacio Público y Parques,Periurbana,2,11.37,1,22.64,201,CRITICO
+2286045.95,3229,323,Saneamiento y Agua Potable,Urbana consolidada,3,7.97,1,25.64,233,CRITICO
+893667.02,1142,150,Espacio Público y Parques,Urbana consolidada,3,7.38,0,8.17,14,VIABLE
+772745.08,1160,202,Transporte y Vías Urbanas,Periurbana,1,8.71,0,4.33,10,VIABLE
+990125.55,1344,242,Transporte y Vías Urbanas,Urbana consolidada,1,19.63,0,7.93,18,VIABLE
+1150474.54,2099,243,Espacio Público y Parques,Urbana consolidada,2,4.75,0,2.5,84,RIESGO_MODERADO
+345649.35,1031,172,Transporte y Vías Urbanas,Urbana consolidada,1,24.8,0,8.09,16,VIABLE
+2084370.76,2959,219,Salud y Postas Médicas,Periurbana,2,3.43,1,25.81,156,CRITICO
+7069452.85,11196,374,Educación e Infraestructura,Periurbana,2,8.67,1,28.73,191,CRITICO
+2048831.85,7601,237,Transporte y Vías Urbanas,Urbana consolidada,2,23.29,1,49.78,185,CRITICO
+267432.41,338,60,Transporte y Vías Urbanas,Periurbana,2,11.05,1,21.56,49,RIESGO_MODERADO
+1072022.56,1404,155,Seguridad Ciudadana,Urbana consolidada,2,16.97,0,5.7,43,RIESGO_MODERADO
+200974.77,488,106,Transporte y Vías Urbanas,Periurbana,2,9.45,0,5.8,74,RIESGO_MODERADO
+189796.8,414,65,Educación e Infraestructura,Periurbana,3,7.23,0,3.74,11,VIABLE
+1782141.3,4106,266,Espacio Público y Parques,Periurbana,3,16.97,1,41.37,32,RIESGO_MODERADO
+1055879.02,2143,273,Salud y Postas Médicas,Periurbana,2,9.13,0,3.48,43,RIESGO_MODERADO
+530513.58,1531,135,Saneamiento y Agua Potable,Urbana consolidada,2,14.68,1,37.57,27,RIESGO_MODERADO
+150436.69,538,160,Transporte y Vías Urbanas,Urbana consolidada,2,6.61,0,4.98,14,VIABLE
+314255.36,412,324,Saneamiento y Agua Potable,Periurbana,2,5.34,0,6.62,81,RIESGO_MODERADO
+1139359.12,1911,188,Educación e Infraestructura,Urbana consolidada,2,12.78,0,6.79,38,RIESGO_MODERADO
+1013281.22,1280,191,Transporte y Vías Urbanas,Periurbana,1,5.36,0,3.78,20,VIABLE
+1831654.26,2988,232,Transporte y Vías Urbanas,Urbana consolidada,2,7.57,1,18.52,101,CRITICO
+3878873.86,10171,336,Transporte y Vías Urbanas,Urbana consolidada,2,7.74,0,5.07,48,RIESGO_MODERADO
+725538.29,1072,227,Salud y Postas Médicas,Periurbana,1,11.45,1,31.82,82,RIESGO_MODERADO
+1501643.06,4538,280,Transporte y Vías Urbanas,Urbana consolidada,2,19.28,1,42.57,43,RIESGO_MODERADO
+869767.66,1088,127,Transporte y Vías Urbanas,Periurbana,1,17.29,0,8.57,62,RIESGO_MODERADO
+629772.76,1505,251,Salud y Postas Médicas,Urbana consolidada,2,5.91,0,5.18,42,RIESGO_MODERADO
+789921.09,1802,188,Seguridad Ciudadana,Urbana consolidada,2,8.57,0,7.3,11,VIABLE
+2337699.51,3840,163,Educación e Infraestructura,Periurbana,2,2.17,1,16.25,222,CRITICO
+390203.21,1057,226,Transporte y Vías Urbanas,Urbana consolidada,3,10.03,1,20.63,68,RIESGO_MODERADO
+2749513.15,6033,404,Espacio Público y Parques,Urbana consolidada,2,5.83,1,22.98,158,CRITICO
+3721206.42,9392,258,Salud y Postas Médicas,Periurbana,2,10.78,1,27.77,204,CRITICO
+1016788.39,5221,270,Educación e Infraestructura,Periurbana,1,14.19,0,7.61,54,RIESGO_MODERADO
+1238518.45,2274,183,Salud y Postas Médicas,Periurbana,3,2.48,0,3.39,13,VIABLE
+276338.16,514,77,Saneamiento y Agua Potable,Urbana consolidada,3,4.68,0,3.19,8,VIABLE
+8239754.4,20778,356,Seguridad Ciudadana,Rural,1,14.97,1,37.33,101,CRITICO
+2376161.98,5796,150,Transporte y Vías Urbanas,Urbana consolidada,3,6.64,0,2.45,5,VIABLE
+1149742.17,5647,184,Saneamiento y Agua Potable,Rural,3,19.31,1,44.11,31,RIESGO_MODERADO
+1036845.87,2791,335,Salud y Postas Médicas,Urbana consolidada,3,14.94,1,34.67,222,CRITICO
+1477518.7,2320,79,Salud y Postas Médicas,Urbana consolidada,2,20.88,1,44.33,63,RIESGO_MODERADO
+547921.69,1131,215,Saneamiento y Agua Potable,Periurbana,1,1.55,0,4.26,0,VIABLE
+1270518.43,4310,238,Saneamiento y Agua Potable,Periurbana,2,4.94,1,27.24,71,RIESGO_MODERADO
+428814.95,1635,211,Espacio Público y Parques,Periurbana,2,11.94,1,29.61,232,CRITICO
+1540453.84,3216,166,Espacio Público y Parques,Urbana consolidada,1,9.24,0,3.86,0,VIABLE
+534778.57,1131,203,Transporte y Vías Urbanas,Urbana consolidada,1,13.0,0,7.48,10,VIABLE
+2204401.27,4737,151,Espacio Público y Parques,Periurbana,1,3.74,0,2.5,49,RIESGO_MODERADO
+883518.72,1618,304,Espacio Público y Parques,Urbana consolidada,2,7.04,0,6.68,20,VIABLE
+1254028.18,3163,213,Educación e Infraestructura,Urbana consolidada,1,8.41,0,2.84,15,VIABLE
+14143975.04,33311,509,Transporte y Vías Urbanas,Urbana consolidada,1,28.05,1,51.43,95,CRITICO
+2030534.92,5289,195,Saneamiento y Agua Potable,Periurbana,1,5.48,0,5.91,1,VIABLE
+1252961.34,2213,263,Saneamiento y Agua Potable,Urbana consolidada,2,9.5,0,7.47,23,VIABLE
+1024740.23,5093,247,Educación e Infraestructura,Urbana consolidada,1,14.89,0,5.07,73,RIESGO_MODERADO
+386448.58,627,108,Transporte y Vías Urbanas,Periurbana,3,7.14,0,7.53,19,VIABLE
+2612449.97,3856,336,Salud y Postas Médicas,Periurbana,3,3.48,1,17.43,130,CRITICO
+4164493.69,10238,440,Saneamiento y Agua Potable,Periurbana,2,8.9,1,20.67,239,CRITICO
+1043321.16,5258,273,Saneamiento y Agua Potable,Periurbana,1,12.74,1,33.34,56,RIESGO_MODERADO
+4452945.63,7228,161,Transporte y Vías Urbanas,Periurbana,2,10.21,1,33.73,91,CRITICO
+889976.21,1552,137,Educación e Infraestructura,Urbana consolidada,2,3.89,0,6.86,5,VIABLE
+199636.02,308,45,Saneamiento y Agua Potable,Urbana consolidada,2,2.67,0,4.23,20,VIABLE
+546935.16,2050,134,Transporte y Vías Urbanas,Urbana consolidada,2,14.47,0,9.46,64,RIESGO_MODERADO
+380296.66,711,312,Transporte y Vías Urbanas,Urbana consolidada,2,6.12,0,4.07,8,VIABLE
+769052.09,1835,267,Educación e Infraestructura,Urbana consolidada,2,5.99,0,2.58,13,VIABLE
+1731126.19,7919,143,Espacio Público y Parques,Rural,2,15.6,1,32.83,47,RIESGO_MODERADO
+426737.26,743,100,Seguridad Ciudadana,Urbana consolidada,2,2.26,0,4.89,4,VIABLE
+916007.11,1856,151,Transporte y Vías Urbanas,Urbana consolidada,2,3.11,0,5.15,22,VIABLE
+1178103.95,1735,277,Salud y Postas Médicas,Periurbana,1,18.72,1,43.65,49,RIESGO_MODERADO
+509036.29,1278,224,Transporte y Vías Urbanas,Urbana consolidada,3,7.69,0,5.97,11,VIABLE
+434352.99,1002,293,Educación e Infraestructura,Urbana consolidada,2,6.46,0,4.21,10,VIABLE
+1064977.82,3122,154,Transporte y Vías Urbanas,Periurbana,2,13.65,1,37.81,217,CRITICO
+2158950.28,4474,226,Espacio Público y Parques,Urbana consolidada,2,15.31,1,35.36,148,CRITICO
+572114.68,1205,141,Saneamiento y Agua Potable,Urbana consolidada,1,5.47,0,5.87,19,VIABLE
+500692.56,2233,176,Transporte y Vías Urbanas,Periurbana,3,5.16,0,5.48,29,RIESGO_MODERADO
+867067.4,1119,174,Salud y Postas Médicas,Urbana consolidada,2,25.38,0,8.13,49,RIESGO_MODERADO
+1278187.67,1851,182,Saneamiento y Agua Potable,Periurbana,1,6.49,0,7.45,9,VIABLE
+603973.03,854,233,Seguridad Ciudadana,Rural,2,4.61,0,4.46,84,RIESGO_MODERADO
+728881.91,1508,160,Transporte y Vías Urbanas,Urbana consolidada,2,11.17,1,24.65,77,RIESGO_MODERADO
+799593.14,1930,185,Transporte y Vías Urbanas,Periurbana,1,7.37,0,6.19,23,VIABLE
+370566.27,588,125,Educación e Infraestructura,Periurbana,2,2.47,0,1.49,37,RIESGO_MODERADO
+839210.29,1058,280,Transporte y Vías Urbanas,Periurbana,3,8.07,1,26.63,29,RIESGO_MODERADO
+594786.01,917,312,Saneamiento y Agua Potable,Urbana consolidada,2,7.73,0,7.18,7,VIABLE
+4094070.42,17304,387,Transporte y Vías Urbanas,Urbana consolidada,3,6.67,0,2.02,33,RIESGO_MODERADO
+618102.64,913,249,Educación e Infraestructura,Urbana consolidada,2,9.69,0,6.87,24,VIABLE
+1485704.91,3216,204,Saneamiento y Agua Potable,Rural,2,15.04,1,31.33,115,CRITICO
+1385493.51,7380,140,Saneamiento y Agua Potable,Urbana consolidada,2,3.59,0,2.4,2,VIABLE
+359968.24,1065,114,Educación e Infraestructura,Urbana consolidada,3,18.13,0,9.0,31,RIESGO_MODERADO
+319958.08,431,182,Seguridad Ciudadana,Urbana consolidada,2,11.31,0,7.02,9,VIABLE
+659385.05,1367,106,Transporte y Vías Urbanas,Urbana consolidada,3,14.47,0,9.05,58,RIESGO_MODERADO
+1787478.82,2780,265,Transporte y Vías Urbanas,Urbana consolidada,2,11.25,1,30.64,165,CRITICO
+587766.25,1296,209,Salud y Postas Médicas,Periurbana,2,5.45,0,7.34,8,VIABLE
+545501.61,2950,97,Espacio Público y Parques,Urbana consolidada,1,13.93,0,5.52,4,VIABLE
+80000.0,144,168,Espacio Público y Parques,Urbana consolidada,2,5.79,0,6.78,5,VIABLE
+688895.59,1938,253,Saneamiento y Agua Potable,Urbana consolidada,2,11.43,1,23.52,127,CRITICO
+1304370.35,4900,285,Transporte y Vías Urbanas,Urbana consolidada,2,6.1,0,5.28,13,VIABLE
+1469185.18,2426,222,Educación e Infraestructura,Urbana consolidada,1,8.18,0,7.03,12,VIABLE
+1448838.9,2591,251,Espacio Público y Parques,Urbana consolidada,3,8.96,0,6.14,22,VIABLE
+733028.58,2199,218,Espacio Público y Parques,Urbana consolidada,2,4.8,0,4.68,44,RIESGO_MODERADO
+802556.83,3835,165,Saneamiento y Agua Potable,Periurbana,2,6.23,0,3.29,58,RIESGO_MODERADO
+2082435.39,3038,228,Transporte y Vías Urbanas,Periurbana,1,4.82,1,19.79,31,RIESGO_MODERADO
+871403.32,1422,207,Espacio Público y Parques,Periurbana,1,3.35,0,4.97,18,VIABLE
+123903.83,477,145,Espacio Público y Parques,Periurbana,2,2.88,0,1.62,22,VIABLE
+2465755.26,3707,242,Salud y Postas Médicas,Periurbana,1,17.44,1,36.57,239,CRITICO
+373281.31,890,188,Transporte y Vías Urbanas,Periurbana,3,1.88,0,2.05,22,VIABLE
+3394815.55,5092,267,Educación e Infraestructura,Urbana consolidada,2,21.15,1,41.99,126,CRITICO
+4523209.07,6355,260,Transporte y Vías Urbanas,Urbana consolidada,3,5.45,1,21.74,63,RIESGO_MODERADO
+1955576.72,7053,216,Saneamiento y Agua Potable,Periurbana,2,21.16,1,46.54,176,CRITICO
+2221524.28,4643,95,Transporte y Vías Urbanas,Urbana consolidada,2,1.86,0,5.08,29,RIESGO_MODERADO
+5240978.78,7985,435,Seguridad Ciudadana,Urbana consolidada,2,1.46,1,15.12,63,RIESGO_MODERADO
+365158.99,472,240,Transporte y Vías Urbanas,Urbana consolidada,2,8.53,0,7.17,3,VIABLE
+1237330.33,2092,235,Transporte y Vías Urbanas,Periurbana,3,17.3,1,38.16,94,CRITICO
+1220974.08,2084,327,Saneamiento y Agua Potable,Urbana consolidada,2,3.87,0,6.16,18,VIABLE
+412339.08,533,260,Transporte y Vías Urbanas,Urbana consolidada,3,14.42,1,32.15,204,CRITICO
+6020201.04,23285,317,Espacio Público y Parques,Periurbana,2,12.46,1,32.76,88,CRITICO
+583836.32,1039,239,Salud y Postas Médicas,Urbana consolidada,2,10.93,1,25.44,110,CRITICO
+509853.3,822,309,Educación e Infraestructura,Urbana consolidada,1,5.85,0,4.68,2,VIABLE
+1252864.17,2992,223,Salud y Postas Médicas,Periurbana,2,13.41,1,30.32,257,CRITICO
+2490529.36,4580,132,Transporte y Vías Urbanas,Urbana consolidada,1,6.53,0,2.18,4,VIABLE
+573239.06,1249,88,Saneamiento y Agua Potable,Urbana consolidada,2,5.76,0,4.81,20,VIABLE
+574002.73,2569,290,Transporte y Vías Urbanas,Urbana consolidada,2,3.3,0,5.42,18,VIABLE
+1549895.71,3705,196,Educación e Infraestructura,Urbana consolidada,2,10.16,0,7.41,28,RIESGO_MODERADO
+272923.54,1507,226,Transporte y Vías Urbanas,Periurbana,1,28.05,0,11.14,78,RIESGO_MODERADO
+491232.56,786,186,Transporte y Vías Urbanas,Urbana consolidada,2,10.85,0,4.43,32,RIESGO_MODERADO
+463049.1,631,223,Saneamiento y Agua Potable,Periurbana,2,11.44,1,32.71,204,CRITICO
+666036.1,2290,136,Educación e Infraestructura,Urbana consolidada,3,8.5,0,3.54,21,VIABLE
+866277.21,1184,231,Transporte y Vías Urbanas,Periurbana,2,4.55,1,19.0,66,RIESGO_MODERADO
+5177265.53,15538,112,Transporte y Vías Urbanas,Urbana consolidada,2,12.79,1,28.36,103,CRITICO
+2228022.17,11343,202,Transporte y Vías Urbanas,Periurbana,3,11.81,1,30.39,256,CRITICO
+1004658.65,2659,106,Transporte y Vías Urbanas,Periurbana,1,3.23,0,5.11,17,VIABLE
+804332.72,1772,197,Transporte y Vías Urbanas,Periurbana,2,4.35,0,3.8,3,VIABLE
+2162804.11,3087,226,Saneamiento y Agua Potable,Urbana consolidada,2,10.4,1,21.78,158,CRITICO
+1447806.1,2695,197,Seguridad Ciudadana,Urbana consolidada,2,8.43,0,8.48,5,VIABLE
+2195868.2,9463,230,Educación e Infraestructura,Periurbana,2,10.09,1,21.08,229,CRITICO
+3412233.33,10982,117,Espacio Público y Parques,Urbana consolidada,1,12.51,1,25.78,80,RIESGO_MODERADO
+397374.16,631,115,Salud y Postas Médicas,Urbana consolidada,2,12.89,1,29.83,48,RIESGO_MODERADO
+129628.84,267,170,Saneamiento y Agua Potable,Periurbana,2,7.42,0,4.9,14,VIABLE
+965477.19,1735,226,Saneamiento y Agua Potable,Urbana consolidada,1,3.33,0,6.72,24,VIABLE
+1057602.63,3935,218,Salud y Postas Médicas,Urbana consolidada,1,4.72,0,2.05,13,VIABLE
+1274546.48,2361,85,Salud y Postas Médicas,Urbana consolidada,1,2.62,0,5.29,13,VIABLE
+574386.97,1518,283,Espacio Público y Parques,Urbana consolidada,3,2.76,0,4.43,19,VIABLE
+798620.98,3812,188,Transporte y Vías Urbanas,Periurbana,1,16.2,0,9.74,67,RIESGO_MODERADO
+1628000.33,3959,322,Espacio Público y Parques,Rural,2,13.43,1,35.54,134,CRITICO
+1708801.17,3123,258,Transporte y Vías Urbanas,Periurbana,2,8.35,0,7.08,79,RIESGO_MODERADO
+3262097.52,6054,317,Seguridad Ciudadana,Urbana consolidada,2,9.79,1,22.9,35,RIESGO_MODERADO
+140133.18,378,221,Saneamiento y Agua Potable,Periurbana,2,7.01,0,4.57,30,RIESGO_MODERADO
+223285.69,482,153,Espacio Público y Parques,Urbana consolidada,2,4.87,0,5.49,13,VIABLE
+3670164.64,9574,225,Transporte y Vías Urbanas,Urbana consolidada,1,31.53,1,46.14,174,CRITICO
+1702109.09,3605,271,Saneamiento y Agua Potable,Urbana consolidada,1,16.59,0,6.01,26,RIESGO_MODERADO
+2010896.88,3008,190,Seguridad Ciudadana,Rural,2,16.68,1,32.84,248,CRITICO
+761959.71,1326,62,Salud y Postas Médicas,Urbana consolidada,1,12.56,0,6.46,19,VIABLE
+642588.7,1410,192,Espacio Público y Parques,Urbana consolidada,2,6.64,0,3.52,4,VIABLE
+1178582.92,4049,218,Seguridad Ciudadana,Periurbana,1,13.65,0,6.58,56,RIESGO_MODERADO
+422604.17,1316,220,Saneamiento y Agua Potable,Periurbana,2,10.21,1,31.52,46,RIESGO_MODERADO
+248414.62,382,234,Espacio Público y Parques,Periurbana,1,9.72,0,8.3,15,VIABLE
+362393.92,1010,327,Espacio Público y Parques,Periurbana,3,17.41,1,35.02,220,CRITICO
+1093477.52,1784,95,Espacio Público y Parques,Urbana consolidada,3,4.85,0,7.35,1,VIABLE
+1747107.57,6436,334,Transporte y Vías Urbanas,Periurbana,1,8.59,0,4.06,18,VIABLE
+4351944.94,16258,304,Transporte y Vías Urbanas,Rural,2,18.41,1,39.47,115,CRITICO
+1375928.38,1957,203,Transporte y Vías Urbanas,Urbana consolidada,1,4.7,0,6.39,19,VIABLE
+1506448.28,2571,112,Saneamiento y Agua Potable,Urbana consolidada,2,15.19,1,32.97,44,RIESGO_MODERADO
+4498825.12,16622,261,Transporte y Vías Urbanas,Urbana consolidada,1,11.4,1,34.02,164,CRITICO
+489436.55,659,231,Educación e Infraestructura,Urbana consolidada,2,5.05,0,7.16,17,VIABLE
+415250.72,587,185,Salud y Postas Médicas,Urbana consolidada,1,8.16,0,8.16,1,VIABLE
+606743.56,1160,158,Saneamiento y Agua Potable,Urbana consolidada,1,4.8,0,1.95,1,VIABLE
+902928.22,2206,154,Educación e Infraestructura,Urbana consolidada,2,9.24,0,4.72,14,VIABLE
+6082413.89,19136,226,Salud y Postas Médicas,Urbana consolidada,2,1.97,0,1.24,77,RIESGO_MODERADO
+719307.04,1843,237,Espacio Público y Parques,Urbana consolidada,2,3.88,0,6.08,12,VIABLE
+3192778.38,5220,274,Seguridad Ciudadana,Urbana consolidada,3,11.1,1,32.35,218,CRITICO
+643453.65,2101,258,Salud y Postas Médicas,Urbana consolidada,1,4.79,0,6.6,18,VIABLE
+1532291.0,2367,152,Transporte y Vías Urbanas,Urbana consolidada,1,2.72,0,4.57,8,VIABLE
+1817886.71,2321,304,Espacio Público y Parques,Periurbana,2,7.49,1,30.84,255,CRITICO
+1590656.35,2517,380,Seguridad Ciudadana,Rural,2,5.46,0,3.03,43,RIESGO_MODERADO
+1935627.07,8484,219,Educación e Infraestructura,Periurbana,2,14.84,1,32.61,126,CRITICO
+529593.23,1571,269,Transporte y Vías Urbanas,Periurbana,1,4.96,0,5.76,13,VIABLE
+3651076.57,14404,149,Espacio Público y Parques,Urbana consolidada,2,12.28,1,36.22,106,CRITICO
+2380671.41,4380,386,Saneamiento y Agua Potable,Periurbana,1,24.3,1,37.17,110,CRITICO
+523508.83,1560,233,Transporte y Vías Urbanas,Rural,2,9.57,0,7.64,36,RIESGO_MODERADO
+1552204.66,4222,292,Educación e Infraestructura,Rural,1,14.5,1,38.86,32,RIESGO_MODERADO
+374802.8,1895,207,Transporte y Vías Urbanas,Urbana consolidada,2,8.09,0,7.92,13,VIABLE
+1072400.67,1858,87,Educación e Infraestructura,Urbana consolidada,3,6.4,0,4.74,23,VIABLE
+343184.08,565,220,Saneamiento y Agua Potable,Urbana consolidada,2,0.69,0,3.29,16,VIABLE
+1879525.49,3565,211,Saneamiento y Agua Potable,Urbana consolidada,1,5.25,0,2.78,23,VIABLE
+14188380.19,57624,481,Transporte y Vías Urbanas,Rural,1,10.14,1,30.12,192,CRITICO
+3699676.76,6019,183,Saneamiento y Agua Potable,Urbana consolidada,1,7.57,0,3.66,16,VIABLE
+1900640.48,2515,45,Seguridad Ciudadana,Urbana consolidada,1,17.23,1,32.11,73,RIESGO_MODERADO
+436880.79,589,182,Espacio Público y Parques,Rural,1,9.05,0,4.71,0,VIABLE
+1386415.52,1778,180,Salud y Postas Médicas,Rural,3,20.54,1,45.74,213,CRITICO
+2859337.42,3963,279,Salud y Postas Médicas,Urbana consolidada,2,10.49,1,33.17,87,CRITICO
+909322.66,1467,135,Educación e Infraestructura,Urbana consolidada,1,6.61,0,3.87,0,VIABLE
+1106099.81,3824,172,Transporte y Vías Urbanas,Periurbana,1,9.02,0,7.41,16,VIABLE
+214291.3,268,158,Educación e Infraestructura,Urbana consolidada,2,9.39,0,7.72,9,VIABLE
+455942.31,1442,136,Saneamiento y Agua Potable,Urbana consolidada,3,15.45,0,8.74,70,RIESGO_MODERADO
+186555.23,445,222,Educación e Infraestructura,Periurbana,3,15.7,1,30.88,197,CRITICO
+5515220.52,7230,252,Saneamiento y Agua Potable,Urbana consolidada,1,2.49,0,4.32,68,RIESGO_MODERADO
+1506604.37,1891,171,Transporte y Vías Urbanas,Urbana consolidada,2,6.02,0,5.54,6,VIABLE
+1890254.21,5078,164,Saneamiento y Agua Potable,Rural,3,1.06,1,18.51,77,RIESGO_MODERADO
+820419.62,1076,172,Transporte y Vías Urbanas,Urbana consolidada,3,10.44,0,5.93,67,RIESGO_MODERADO
+264448.35,942,292,Educación e Infraestructura,Periurbana,1,11.95,1,25.35,106,CRITICO
+1153571.97,3542,183,Saneamiento y Agua Potable,Urbana consolidada,3,8.65,0,5.6,12,VIABLE
+555242.39,2546,143,Salud y Postas Médicas,Periurbana,1,6.78,0,5.95,18,VIABLE
+411332.14,677,194,Transporte y Vías Urbanas,Urbana consolidada,3,1.34,0,5.77,6,VIABLE
+1034956.39,4596,253,Saneamiento y Agua Potable,Urbana consolidada,2,14.19,1,38.11,63,RIESGO_MODERADO
+1086896.0,2076,199,Transporte y Vías Urbanas,Urbana consolidada,2,5.51,0,2.44,10,VIABLE
+836980.99,1853,223,Transporte y Vías Urbanas,Periurbana,2,16.27,1,30.14,232,CRITICO
+490488.98,1322,233,Transporte y Vías Urbanas,Urbana consolidada,2,12.4,1,23.4,104,CRITICO
+405436.26,641,240,Transporte y Vías Urbanas,Periurbana,3,5.83,0,2.69,53,RIESGO_MODERADO
+990226.04,1715,212,Transporte y Vías Urbanas,Periurbana,3,34.99,1,50.45,243,CRITICO
+2958629.7,7396,133,Espacio Público y Parques,Periurbana,1,13.84,1,31.29,104,CRITICO
+232378.06,744,176,Saneamiento y Agua Potable,Rural,1,3.56,0,6.62,6,VIABLE
+544997.35,781,144,Transporte y Vías Urbanas,Periurbana,3,3.06,0,5.83,15,VIABLE
+850753.36,1461,245,Transporte y Vías Urbanas,Urbana consolidada,1,6.47,0,2.94,6,VIABLE
+853529.86,1081,284,Transporte y Vías Urbanas,Urbana consolidada,2,21.77,1,38.75,248,CRITICO
+577528.41,1924,164,Educación e Infraestructura,Urbana consolidada,3,4.43,0,2.87,5,VIABLE
+5585340.16,7176,325,Transporte y Vías Urbanas,Rural,3,8.82,1,32.12,96,CRITICO
+1411014.08,1835,230,Salud y Postas Médicas,Periurbana,1,5.09,0,4.11,1,VIABLE
+405613.04,541,171,Saneamiento y Agua Potable,Urbana consolidada,3,6.68,0,5.61,6,VIABLE
+180969.21,408,281,Espacio Público y Parques,Periurbana,2,11.07,1,33.26,202,CRITICO
+843289.09,1266,162,Espacio Público y Parques,Periurbana,3,3.95,0,4.46,17,VIABLE
+3728519.82,7747,194,Educación e Infraestructura,Periurbana,1,4.63,0,2.6,24,VIABLE
+1171142.58,1701,139,Espacio Público y Parques,Urbana consolidada,1,8.53,0,5.94,5,VIABLE
+122468.38,356,256,Transporte y Vías Urbanas,Urbana consolidada,3,9.32,0,5.45,6,VIABLE
+285144.39,437,133,Transporte y Vías Urbanas,Periurbana,2,18.25,1,30.22,127,CRITICO
+1099785.0,3926,145,Transporte y Vías Urbanas,Rural,1,12.89,1,33.34,37,RIESGO_MODERADO
+2573684.88,7115,298,Saneamiento y Agua Potable,Urbana consolidada,3,7.22,0,7.43,58,RIESGO_MODERADO
+1117905.07,2513,223,Salud y Postas Médicas,Urbana consolidada,3,11.42,0,6.05,38,RIESGO_MODERADO
+1126204.83,4127,188,Transporte y Vías Urbanas,Rural,3,5.46,0,2.69,3,VIABLE
+2586191.04,7368,163,Salud y Postas Médicas,Urbana consolidada,1,5.81,0,5.07,37,RIESGO_MODERADO
+3049926.32,4892,247,Saneamiento y Agua Potable,Urbana consolidada,2,4.26,1,13.76,56,RIESGO_MODERADO
+535589.09,862,114,Seguridad Ciudadana,Urbana consolidada,2,6.51,0,5.87,15,VIABLE
+1460429.61,2090,218,Salud y Postas Médicas,Urbana consolidada,1,16.52,0,7.44,29,RIESGO_MODERADO
+415964.46,559,197,Transporte y Vías Urbanas,Periurbana,3,1.88,0,1.27,1,VIABLE
+373654.62,1102,181,Espacio Público y Parques,Urbana consolidada,1,7.55,0,4.97,8,VIABLE
+1671959.05,2607,221,Salud y Postas Médicas,Periurbana,2,14.14,1,38.33,181,CRITICO
+273457.97,987,227,Transporte y Vías Urbanas,Urbana consolidada,2,9.25,0,4.03,22,VIABLE
+1147249.02,1914,73,Saneamiento y Agua Potable,Periurbana,3,4.01,0,3.37,4,VIABLE
+1306391.26,6824,128,Educación e Infraestructura,Urbana consolidada,2,8.63,0,6.13,18,VIABLE
+2137524.3,10531,266,Espacio Público y Parques,Periurbana,3,15.6,1,30.46,210,CRITICO
+349624.06,500,175,Educación e Infraestructura,Urbana consolidada,1,10.42,0,3.49,41,RIESGO_MODERADO
+1387112.19,2208,262,Transporte y Vías Urbanas,Periurbana,2,3.38,0,1.97,5,VIABLE
+879505.09,2407,312,Seguridad Ciudadana,Periurbana,2,2.56,0,1.89,83,RIESGO_MODERADO
+3750704.39,5821,350,Transporte y Vías Urbanas,Urbana consolidada,2,9.27,1,27.63,148,CRITICO
+504600.84,1349,257,Transporte y Vías Urbanas,Periurbana,2,14.01,1,32.38,141,CRITICO
+362573.12,688,193,Espacio Público y Parques,Urbana consolidada,2,10.18,0,8.02,52,RIESGO_MODERADO
+1544481.82,2340,288,Transporte y Vías Urbanas,Urbana consolidada,2,16.73,0,8.43,53,RIESGO_MODERADO
+455781.6,1525,146,Seguridad Ciudadana,Periurbana,2,12.75,1,28.58,55,RIESGO_MODERADO
+307162.46,758,199,Transporte y Vías Urbanas,Urbana consolidada,2,21.13,0,9.59,54,RIESGO_MODERADO
+2233464.62,5599,199,Transporte y Vías Urbanas,Urbana consolidada,3,11.09,1,29.17,98,CRITICO
+1450396.81,2428,172,Educación e Infraestructura,Urbana consolidada,1,12.82,0,4.03,2,VIABLE
+80000.0,254,130,Espacio Público y Parques,Periurbana,3,4.0,0,4.15,29,RIESGO_MODERADO
+429816.48,762,217,Transporte y Vías Urbanas,Urbana consolidada,3,3.33,0,4.73,14,VIABLE
+363220.99,560,80,Transporte y Vías Urbanas,Urbana consolidada,2,11.91,0,3.81,64,RIESGO_MODERADO
+1758396.02,5441,75,Saneamiento y Agua Potable,Urbana consolidada,3,4.08,0,6.24,16,VIABLE
+3705418.04,9121,311,Transporte y Vías Urbanas,Urbana consolidada,1,40.0,1,61.87,35,RIESGO_MODERADO
+6276378.9,30265,313,Salud y Postas Médicas,Periurbana,3,13.06,1,35.41,190,CRITICO
+1858933.4,3623,268,Salud y Postas Médicas,Urbana consolidada,2,18.48,1,43.18,187,CRITICO
+367173.37,745,178,Saneamiento y Agua Potable,Urbana consolidada,1,9.86,0,5.8,6,VIABLE
+355704.27,587,219,Seguridad Ciudadana,Urbana consolidada,2,3.86,0,1.4,15,VIABLE
+417707.99,809,153,Transporte y Vías Urbanas,Periurbana,3,19.29,1,36.94,58,RIESGO_MODERADO
+1529521.26,2137,169,Espacio Público y Parques,Periurbana,2,12.17,1,24.75,83,RIESGO_MODERADO
+3075195.61,4368,153,Transporte y Vías Urbanas,Urbana consolidada,3,8.68,1,24.71,49,RIESGO_MODERADO
+175258.9,694,307,Transporte y Vías Urbanas,Rural,2,6.54,0,5.52,32,RIESGO_MODERADO
+1703712.79,3120,142,Transporte y Vías Urbanas,Periurbana,2,5.63,0,5.61,23,VIABLE
+2269500.6,3756,327,Transporte y Vías Urbanas,Urbana consolidada,3,5.23,1,14.51,165,CRITICO
+1308474.52,2801,118,Transporte y Vías Urbanas,Periurbana,2,5.85,0,2.75,27,RIESGO_MODERADO
+15000000.0,42773,367,Seguridad Ciudadana,Periurbana,1,2.48,1,13.65,42,RIESGO_MODERADO
+1593947.13,5833,291,Transporte y Vías Urbanas,Urbana consolidada,2,12.89,1,29.4,237,CRITICO
+1013826.81,1568,237,Salud y Postas Médicas,Urbana consolidada,3,9.87,0,6.64,5,VIABLE
+1705671.42,8958,237,Salud y Postas Médicas,Periurbana,2,18.88,1,40.14,122,CRITICO
+603342.87,1192,125,Saneamiento y Agua Potable,Urbana consolidada,1,14.54,0,5.65,18,VIABLE
+366099.91,459,253,Saneamiento y Agua Potable,Urbana consolidada,1,10.71,0,8.69,56,RIESGO_MODERADO
+1439724.46,2297,144,Espacio Público y Parques,Urbana consolidada,1,12.0,0,6.03,23,VIABLE
+2780838.9,9822,247,Transporte y Vías Urbanas,Urbana consolidada,1,14.11,1,34.78,33,RIESGO_MODERADO
+796957.27,1128,143,Transporte y Vías Urbanas,Periurbana,1,12.81,0,5.32,35,RIESGO_MODERADO
+2265141.86,3857,325,Transporte y Vías Urbanas,Urbana consolidada,2,17.5,1,38.07,147,CRITICO
+702080.72,1055,219,Transporte y Vías Urbanas,Urbana consolidada,2,5.55,0,3.11,8,VIABLE
+4274817.81,12361,344,Espacio Público y Parques,Periurbana,2,9.44,1,25.84,118,CRITICO
+1194586.52,1562,189,Transporte y Vías Urbanas,Urbana consolidada,2,9.98,0,6.49,2,VIABLE
+1592606.4,2651,157,Salud y Postas Médicas,Periurbana,3,6.16,0,7.4,3,VIABLE
+1962145.47,6025,117,Educación e Infraestructura,Periurbana,1,7.16,0,6.61,67,RIESGO_MODERADO
+291597.51,739,202,Saneamiento y Agua Potable,Urbana consolidada,2,7.03,0,2.25,24,VIABLE
+835750.43,2883,277,Educación e Infraestructura,Urbana consolidada,1,4.74,0,3.2,19,VIABLE
+5160142.06,27739,303,Salud y Postas Médicas,Periurbana,2,11.67,1,26.46,107,CRITICO
+1017483.84,4502,147,Educación e Infraestructura,Periurbana,3,8.37,0,7.83,79,RIESGO_MODERADO
+3479315.29,12668,207,Seguridad Ciudadana,Periurbana,2,13.49,1,25.35,101,CRITICO
+2181845.76,3030,185,Transporte y Vías Urbanas,Periurbana,2,17.42,1,41.18,96,CRITICO
+190050.26,340,181,Espacio Público y Parques,Rural,2,8.71,0,4.1,40,RIESGO_MODERADO
+1861016.88,4085,259,Saneamiento y Agua Potable,Periurbana,3,17.3,1,32.82,128,CRITICO
+369734.61,736,196,Transporte y Vías Urbanas,Periurbana,2,6.61,0,5.1,83,RIESGO_MODERADO
+1245575.05,1629,250,Educación e Infraestructura,Urbana consolidada,2,3.14,0,2.76,21,VIABLE
+677360.42,1602,222,Transporte y Vías Urbanas,Urbana consolidada,3,9.13,0,3.39,20,VIABLE
+1004083.33,2341,126,Transporte y Vías Urbanas,Urbana consolidada,2,5.79,0,2.93,14,VIABLE
+923761.89,3191,202,Educación e Infraestructura,Urbana consolidada,2,13.96,0,9.24,70,RIESGO_MODERADO
+1224938.53,4508,131,Seguridad Ciudadana,Urbana consolidada,2,5.09,0,1.6,11,VIABLE
+657709.13,3384,197,Educación e Infraestructura,Urbana consolidada,1,8.08,0,6.14,24,VIABLE
+291887.41,557,215,Salud y Postas Médicas,Urbana consolidada,3,5.9,0,5.3,22,VIABLE
+396741.81,744,132,Saneamiento y Agua Potable,Urbana consolidada,1,5.68,0,7.51,15,VIABLE
+2245897.85,4430,125,Saneamiento y Agua Potable,Urbana consolidada,3,7.06,0,6.48,47,RIESGO_MODERADO
+4648449.86,7285,272,Transporte y Vías Urbanas,Urbana consolidada,1,15.63,1,31.96,69,RIESGO_MODERADO
+1213858.38,4467,192,Transporte y Vías Urbanas,Urbana consolidada,2,9.65,0,4.53,6,VIABLE
+2101301.85,3905,296,Transporte y Vías Urbanas,Urbana consolidada,1,4.95,0,4.46,83,RIESGO_MODERADO
+2371820.75,3097,174,Transporte y Vías Urbanas,Rural,3,18.72,1,37.43,199,CRITICO
+288012.36,518,298,Salud y Postas Médicas,Urbana consolidada,2,5.98,0,3.9,10,VIABLE
+182519.78,275,229,Transporte y Vías Urbanas,Urbana consolidada,3,9.14,0,5.12,6,VIABLE
+940220.06,1901,91,Saneamiento y Agua Potable,Urbana consolidada,1,9.29,0,5.65,17,VIABLE
+179318.65,723,136,Seguridad Ciudadana,Urbana consolidada,2,5.54,0,3.26,4,VIABLE
+770475.54,974,195,Salud y Postas Médicas,Periurbana,1,1.36,0,3.24,24,VIABLE
+260302.22,657,176,Transporte y Vías Urbanas,Urbana consolidada,2,12.36,0,4.53,26,RIESGO_MODERADO
+561499.99,1951,127,Educación e Infraestructura,Periurbana,2,3.2,0,3.77,48,RIESGO_MODERADO
+500784.84,936,62,Salud y Postas Médicas,Urbana consolidada,3,29.03,1,56.17,185,CRITICO
+1572217.66,6177,185,Transporte y Vías Urbanas,Urbana consolidada,1,17.87,0,9.72,24,VIABLE
+549894.02,1338,173,Transporte y Vías Urbanas,Urbana consolidada,2,26.82,0,13.52,3,VIABLE
+350467.09,675,226,Espacio Público y Parques,Urbana consolidada,1,4.31,0,4.2,3,VIABLE
+1028821.51,5567,210,Educación e Infraestructura,Rural,2,20.72,1,36.19,31,RIESGO_MODERADO
+14224346.17,19488,342,Salud y Postas Médicas,Urbana consolidada,1,10.99,1,32.03,182,CRITICO
+1534166.24,4652,259,Saneamiento y Agua Potable,Periurbana,1,5.34,0,4.21,20,VIABLE
+171025.23,319,141,Transporte y Vías Urbanas,Urbana consolidada,3,7.76,0,2.79,0,VIABLE
+1068944.79,1789,264,Seguridad Ciudadana,Periurbana,1,3.35,0,2.94,7,VIABLE
+9959003.05,23042,313,Transporte y Vías Urbanas,Urbana consolidada,1,4.47,0,3.7,47,RIESGO_MODERADO
+1146503.71,1542,161,Educación e Infraestructura,Periurbana,2,8.84,0,5.8,10,VIABLE
+3117678.8,4701,231,Salud y Postas Médicas,Periurbana,3,20.15,1,33.37,125,CRITICO
+2674044.93,4526,278,Saneamiento y Agua Potable,Urbana consolidada,2,16.74,1,40.25,160,CRITICO
+2869181.38,5263,246,Saneamiento y Agua Potable,Rural,3,11.36,1,31.16,224,CRITICO
+2535028.08,3754,132,Transporte y Vías Urbanas,Periurbana,2,24.27,1,40.13,149,CRITICO
+1269818.67,5357,268,Transporte y Vías Urbanas,Periurbana,2,7.8,0,4.3,74,RIESGO_MODERADO
+834105.56,1150,147,Transporte y Vías Urbanas,Urbana consolidada,3,7.84,0,3.59,12,VIABLE
+766282.16,2005,92,Educación e Infraestructura,Periurbana,2,5.46,0,5.76,10,VIABLE
+1097169.51,5206,80,Transporte y Vías Urbanas,Periurbana,1,11.86,0,8.82,66,RIESGO_MODERADO
+1446027.51,3556,294,Saneamiento y Agua Potable,Urbana consolidada,2,16.05,1,33.42,60,RIESGO_MODERADO
+312354.72,802,291,Saneamiento y Agua Potable,Urbana consolidada,1,1.66,0,5.73,8,VIABLE
+764966.95,956,155,Seguridad Ciudadana,Urbana consolidada,1,2.43,0,4.12,24,VIABLE
+949313.37,2646,175,Saneamiento y Agua Potable,Rural,1,13.88,0,5.67,2,VIABLE
+1084981.22,2759,194,Espacio Público y Parques,Urbana consolidada,1,7.87,0,2.58,20,VIABLE
+745106.7,1069,104,Educación e Infraestructura,Urbana consolidada,1,2.28,0,6.41,20,VIABLE
+2034503.06,2980,223,Transporte y Vías Urbanas,Urbana consolidada,2,19.04,1,37.43,209,CRITICO
+896639.01,1924,233,Espacio Público y Parques,Urbana consolidada,2,10.49,1,25.43,135,CRITICO
+702292.24,974,162,Transporte y Vías Urbanas,Urbana consolidada,3,10.23,1,29.22,56,RIESGO_MODERADO
+323458.19,1708,202,Transporte y Vías Urbanas,Urbana consolidada,1,15.19,0,9.99,13,VIABLE
+489109.06,777,159,Seguridad Ciudadana,Urbana consolidada,1,8.81,0,5.75,2,VIABLE
+1210629.68,5278,271,Transporte y Vías Urbanas,Urbana consolidada,2,8.1,0,7.43,28,RIESGO_MODERADO
+1096088.12,3830,134,Saneamiento y Agua Potable,Periurbana,3,11.42,0,8.51,27,RIESGO_MODERADO
+157182.77,202,150,Transporte y Vías Urbanas,Rural,1,6.85,0,3.24,20,VIABLE
+2262255.96,2855,317,Transporte y Vías Urbanas,Urbana consolidada,2,9.05,0,8.4,83,RIESGO_MODERADO
+523165.07,910,201,Salud y Postas Médicas,Urbana consolidada,1,4.82,0,2.99,17,VIABLE
+437253.52,954,355,Seguridad Ciudadana,Periurbana,3,11.73,1,23.14,27,RIESGO_MODERADO
+2685129.89,3723,276,Espacio Público y Parques,Urbana consolidada,2,16.02,1,32.07,119,CRITICO
+2805285.71,6421,308,Transporte y Vías Urbanas,Periurbana,2,13.05,1,28.37,117,CRITICO
+519037.57,995,234,Seguridad Ciudadana,Rural,2,7.84,0,3.79,27,RIESGO_MODERADO
+714932.86,2881,139,Educación e Infraestructura,Urbana consolidada,3,7.63,0,4.5,8,VIABLE
+327208.48,653,250,Transporte y Vías Urbanas,Rural,3,12.47,1,23.95,212,CRITICO
+2048880.7,7779,144,Espacio Público y Parques,Urbana consolidada,2,8.93,1,26.27,70,RIESGO_MODERADO
+2222648.04,5875,102,Saneamiento y Agua Potable,Urbana consolidada,2,9.2,0,6.58,63,RIESGO_MODERADO
+663356.94,1992,218,Transporte y Vías Urbanas,Urbana consolidada,3,12.18,1,27.49,46,RIESGO_MODERADO
+3445281.01,5434,307,Transporte y Vías Urbanas,Periurbana,3,11.57,1,24.46,249,CRITICO
+2250639.02,3861,304,Saneamiento y Agua Potable,Urbana consolidada,1,6.99,0,5.5,37,RIESGO_MODERADO
+880866.01,1261,223,Espacio Público y Parques,Urbana consolidada,3,22.05,1,34.92,145,CRITICO
+1884977.28,2576,206,Seguridad Ciudadana,Periurbana,2,3.11,1,19.21,58,RIESGO_MODERADO
+222080.45,894,174,Saneamiento y Agua Potable,Periurbana,3,6.5,0,7.21,28,RIESGO_MODERADO
+777224.46,979,230,Transporte y Vías Urbanas,Periurbana,2,13.95,1,27.19,220,CRITICO
+1234888.11,1744,270,Salud y Postas Médicas,Urbana consolidada,3,8.8,0,7.39,15,VIABLE
+975415.8,2448,198,Saneamiento y Agua Potable,Urbana consolidada,2,7.56,0,7.17,0,VIABLE
+6230418.15,11668,328,Saneamiento y Agua Potable,Urbana consolidada,2,25.38,1,48.28,211,CRITICO
+1302087.91,5773,282,Transporte y Vías Urbanas,Periurbana,3,3.06,0,1.85,38,RIESGO_MODERADO
+1369306.39,4397,286,Educación e Infraestructura,Periurbana,1,6.14,0,4.16,20,VIABLE
+297987.48,792,266,Educación e Infraestructura,Urbana consolidada,2,4.93,0,5.04,13,VIABLE
+831728.4,1676,252,Espacio Público y Parques,Urbana consolidada,3,11.74,1,33.18,257,CRITICO
+486421.22,2065,309,Saneamiento y Agua Potable,Urbana consolidada,1,10.78,0,8.01,56,RIESGO_MODERADO
+8152942.34,10272,254,Espacio Público y Parques,Urbana consolidada,1,9.58,0,6.1,50,RIESGO_MODERADO
+677343.62,914,308,Salud y Postas Médicas,Urbana consolidada,2,10.06,1,28.71,108,CRITICO
+1095971.66,2603,203,Espacio Público y Parques,Periurbana,3,5.74,0,3.85,69,RIESGO_MODERADO
+2940903.19,4262,121,Salud y Postas Médicas,Urbana consolidada,2,14.49,1,25.57,198,CRITICO
+1777998.84,3606,218,Saneamiento y Agua Potable,Urbana consolidada,3,11.94,0,7.35,37,RIESGO_MODERADO
+276459.74,836,207,Espacio Público y Parques,Urbana consolidada,3,16.52,1,40.99,63,RIESGO_MODERADO
+1749199.31,3367,116,Espacio Público y Parques,Periurbana,2,5.58,0,5.59,62,RIESGO_MODERADO
+1865950.85,7077,213,Espacio Público y Parques,Periurbana,2,9.67,1,28.7,101,CRITICO
+836111.55,1456,45,Saneamiento y Agua Potable,Periurbana,1,4.08,0,2.6,7,VIABLE
+1495342.49,2130,323,Espacio Público y Parques,Rural,3,14.18,1,36.96,154,CRITICO
+1081930.97,5242,179,Saneamiento y Agua Potable,Periurbana,1,5.21,0,2.3,13,VIABLE
+282987.92,1219,184,Saneamiento y Agua Potable,Urbana consolidada,2,7.91,0,5.0,2,VIABLE
+592941.58,1749,256,Transporte y Vías Urbanas,Rural,1,2.6,0,4.69,3,VIABLE
+1003138.92,3571,197,Salud y Postas Médicas,Periurbana,2,22.9,1,46.03,83,RIESGO_MODERADO
+580823.96,2449,101,Transporte y Vías Urbanas,Periurbana,3,2.66,0,3.12,22,VIABLE
+1599403.0,2470,71,Salud y Postas Médicas,Periurbana,3,3.96,0,4.43,12,VIABLE
+2426043.42,7354,266,Salud y Postas Médicas,Rural,2,10.57,1,24.26,160,CRITICO
+1259314.31,1952,256,Educación e Infraestructura,Urbana consolidada,3,20.18,0,7.43,76,RIESGO_MODERADO
+704039.45,1952,161,Espacio Público y Parques,Urbana consolidada,1,15.95,0,8.89,57,RIESGO_MODERADO
+3356997.36,7367,95,Educación e Infraestructura,Periurbana,3,5.25,1,17.53,104,CRITICO
+1114341.34,1748,221,Educación e Infraestructura,Periurbana,3,6.8,0,4.83,58,RIESGO_MODERADO
+1353455.68,1814,201,Saneamiento y Agua Potable,Urbana consolidada,3,13.5,0,7.85,44,RIESGO_MODERADO
+495290.34,1065,231,Transporte y Vías Urbanas,Urbana consolidada,2,2.16,0,2.76,21,VIABLE
+809455.22,2045,137,Saneamiento y Agua Potable,Urbana consolidada,2,20.12,0,8.76,39,RIESGO_MODERADO
+2417616.77,4108,73,Transporte y Vías Urbanas,Urbana consolidada,1,10.14,1,22.94,235,CRITICO
+1922920.16,5766,173,Seguridad Ciudadana,Rural,1,11.82,1,22.35,192,CRITICO
+832041.73,2548,247,Saneamiento y Agua Potable,Urbana consolidada,1,24.44,0,11.2,46,RIESGO_MODERADO
+991941.82,3646,269,Espacio Público y Parques,Periurbana,1,9.49,0,7.4,14,VIABLE
+1177703.92,3304,175,Transporte y Vías Urbanas,Periurbana,2,8.18,0,7.75,36,RIESGO_MODERADO
+422072.18,800,147,Seguridad Ciudadana,Urbana consolidada,3,0.73,0,3.21,37,RIESGO_MODERADO
+833349.65,1455,67,Seguridad Ciudadana,Periurbana,2,14.53,1,29.26,191,CRITICO
+621314.48,819,273,Espacio Público y Parques,Rural,3,6.11,1,20.03,49,RIESGO_MODERADO
+282889.22,789,152,Seguridad Ciudadana,Rural,2,1.91,0,1.99,68,RIESGO_MODERADO
+1129127.17,1753,148,Saneamiento y Agua Potable,Periurbana,3,9.3,0,3.91,76,RIESGO_MODERADO
+865084.43,1516,131,Transporte y Vías Urbanas,Urbana consolidada,2,12.23,0,4.04,54,RIESGO_MODERADO
+263701.89,343,156,Seguridad Ciudadana,Rural,1,35.94,1,61.4,71,RIESGO_MODERADO
+481419.05,618,216,Transporte y Vías Urbanas,Periurbana,2,3.35,0,5.71,48,RIESGO_MODERADO
+910381.88,1929,168,Espacio Público y Parques,Rural,3,21.47,1,39.5,104,CRITICO
+80000.0,185,275,Seguridad Ciudadana,Urbana consolidada,3,6.27,0,3.15,40,RIESGO_MODERADO
+1161941.7,1660,244,Transporte y Vías Urbanas,Periurbana,1,19.58,1,35.55,54,RIESGO_MODERADO
+1251747.5,6461,226,Saneamiento y Agua Potable,Rural,2,14.26,1,29.16,221,CRITICO
+1765613.08,2772,299,Saneamiento y Agua Potable,Urbana consolidada,1,2.83,0,5.13,21,VIABLE
+576222.83,821,105,Saneamiento y Agua Potable,Urbana consolidada,2,7.98,0,5.14,11,VIABLE
+273629.18,373,194,Espacio Público y Parques,Urbana consolidada,2,11.28,1,28.76,44,RIESGO_MODERADO
+1733163.4,9007,264,Saneamiento y Agua Potable,Urbana consolidada,3,4.51,0,6.82,3,VIABLE
+285649.19,510,241,Saneamiento y Agua Potable,Urbana consolidada,3,21.6,1,36.85,77,RIESGO_MODERADO
+1602142.26,3714,176,Espacio Público y Parques,Periurbana,1,6.22,0,6.9,6,VIABLE
+535987.44,2405,104,Seguridad Ciudadana,Urbana consolidada,3,8.38,0,7.81,16,VIABLE
+395950.39,587,56,Salud y Postas Médicas,Periurbana,3,3.99,0,6.99,8,VIABLE
+1283246.07,2951,235,Saneamiento y Agua Potable,Urbana consolidada,3,10.07,1,31.21,199,CRITICO
+2703397.93,5037,219,Transporte y Vías Urbanas,Periurbana,1,6.6,0,6.44,40,RIESGO_MODERADO
+854912.13,2104,182,Saneamiento y Agua Potable,Urbana consolidada,2,7.98,0,2.59,16,VIABLE
+789247.0,2159,205,Educación e Infraestructura,Urbana consolidada,2,12.35,0,7.58,53,RIESGO_MODERADO
+215418.09,317,180,Educación e Infraestructura,Rural,2,15.06,1,35.74,209,CRITICO
+2080434.39,3003,179,Transporte y Vías Urbanas,Urbana consolidada,1,11.75,0,7.06,57,RIESGO_MODERADO
+1051338.13,3875,249,Seguridad Ciudadana,Rural,2,8.9,1,19.47,83,RIESGO_MODERADO
+771031.21,1559,98,Saneamiento y Agua Potable,Periurbana,3,8.25,0,5.75,80,RIESGO_MODERADO
+3196416.25,11956,154,Transporte y Vías Urbanas,Rural,1,3.77,0,4.47,21,VIABLE
+240220.93,948,92,Espacio Público y Parques,Periurbana,1,9.29,0,7.93,18,VIABLE
+625213.12,2421,166,Saneamiento y Agua Potable,Periurbana,1,6.01,0,7.36,9,VIABLE
+988916.5,1478,240,Educación e Infraestructura,Urbana consolidada,2,6.1,0,4.9,2,VIABLE
+754648.12,1132,139,Educación e Infraestructura,Urbana consolidada,3,15.52,1,27.89,66,RIESGO_MODERADO
+109873.94,240,192,Salud y Postas Médicas,Urbana consolidada,1,25.95,0,13.7,1,VIABLE
+1348363.7,4629,268,Educación e Infraestructura,Periurbana,2,4.97,1,20.9,37,RIESGO_MODERADO
+957949.18,4898,319,Seguridad Ciudadana,Urbana consolidada,1,3.29,0,5.89,2,VIABLE
+2445325.23,10713,280,Transporte y Vías Urbanas,Periurbana,1,7.68,1,19.84,48,RIESGO_MODERADO
+6174138.91,8251,248,Espacio Público y Parques,Periurbana,1,10.08,1,22.12,128,CRITICO
+831424.48,2172,89,Saneamiento y Agua Potable,Periurbana,3,8.35,0,2.78,79,RIESGO_MODERADO
+1391684.44,5479,45,Educación e Infraestructura,Urbana consolidada,2,22.7,0,10.16,43,RIESGO_MODERADO
+1236448.76,1637,160,Espacio Público y Parques,Rural,2,7.23,0,6.45,63,RIESGO_MODERADO
+1147169.77,1522,207,Saneamiento y Agua Potable,Periurbana,3,4.25,0,4.82,9,VIABLE
+869368.52,1936,164,Educación e Infraestructura,Urbana consolidada,2,1.92,0,3.61,17,VIABLE
+1394322.32,3618,339,Saneamiento y Agua Potable,Periurbana,1,7.51,0,8.25,6,VIABLE
+2717838.25,8415,136,Seguridad Ciudadana,Urbana consolidada,3,11.25,1,22.54,162,CRITICO
+458557.86,850,145,Saneamiento y Agua Potable,Urbana consolidada,3,3.24,0,1.9,1,VIABLE
+5448417.4,16775,111,Transporte y Vías Urbanas,Urbana consolidada,1,12.07,0,7.23,53,RIESGO_MODERADO
+1552951.15,4688,286,Saneamiento y Agua Potable,Urbana consolidada,2,8.7,0,4.17,17,VIABLE
+1293265.11,1710,159,Saneamiento y Agua Potable,Periurbana,3,3.78,0,5.81,46,RIESGO_MODERADO
+130064.24,599,56,Saneamiento y Agua Potable,Urbana consolidada,1,5.66,0,2.48,0,VIABLE
+975237.52,3281,184,Educación e Infraestructura,Urbana consolidada,2,9.98,0,3.43,6,VIABLE
+409091.02,1789,288,Saneamiento y Agua Potable,Urbana consolidada,2,8.93,0,4.34,16,VIABLE
+1651079.71,8134,345,Saneamiento y Agua Potable,Rural,2,7.47,1,17.81,70,RIESGO_MODERADO
+2326819.43,9642,201,Transporte y Vías Urbanas,Urbana consolidada,3,6.75,0,5.41,63,RIESGO_MODERADO
+2771481.2,3692,269,Educación e Infraestructura,Urbana consolidada,2,14.99,1,29.79,237,CRITICO
+847661.92,1103,164,Seguridad Ciudadana,Urbana consolidada,3,10.55,1,25.48,224,CRITICO
+920676.11,1169,179,Educación e Infraestructura,Urbana consolidada,2,10.05,0,4.84,72,RIESGO_MODERADO
+1459215.89,3714,167,Salud y Postas Médicas,Periurbana,2,8.5,0,5.76,56,RIESGO_MODERADO
+149005.71,189,291,Transporte y Vías Urbanas,Periurbana,1,5.12,0,7.04,18,VIABLE
+666379.09,886,141,Salud y Postas Médicas,Periurbana,2,4.65,0,6.52,58,RIESGO_MODERADO
+604101.61,1587,48,Transporte y Vías Urbanas,Rural,2,10.26,1,29.67,206,CRITICO
+1573375.89,2893,127,Seguridad Ciudadana,Periurbana,2,7.61,0,5.9,6,VIABLE
+652366.74,1138,147,Salud y Postas Médicas,Urbana consolidada,1,21.56,0,8.58,3,VIABLE
+1923206.94,6645,223,Seguridad Ciudadana,Periurbana,3,31.23,1,48.1,143,CRITICO
+827735.37,1259,154,Saneamiento y Agua Potable,Periurbana,3,4.66,0,3.61,33,RIESGO_MODERADO
+2126004.81,3796,228,Transporte y Vías Urbanas,Urbana consolidada,3,15.05,1,34.03,143,CRITICO
+7249927.92,19126,314,Educación e Infraestructura,Rural,2,32.15,1,49.0,257,CRITICO
+4001640.44,6272,220,Transporte y Vías Urbanas,Rural,1,15.24,1,29.63,224,CRITICO
+2309174.16,5017,264,Educación e Infraestructura,Periurbana,3,4.64,1,16.8,244,CRITICO
+2758654.75,10600,161,Saneamiento y Agua Potable,Urbana consolidada,1,13.29,0,7.38,80,RIESGO_MODERADO
+708322.86,1607,120,Transporte y Vías Urbanas,Periurbana,2,22.62,1,35.36,84,RIESGO_MODERADO
+492098.98,1948,253,Transporte y Vías Urbanas,Urbana consolidada,2,16.73,1,37.84,209,CRITICO
+459850.72,1059,191,Transporte y Vías Urbanas,Urbana consolidada,2,12.59,0,5.95,61,RIESGO_MODERADO
+1174293.82,3495,45,Saneamiento y Agua Potable,Urbana consolidada,2,4.33,0,7.23,15,VIABLE
+3708214.66,16497,210,Transporte y Vías Urbanas,Periurbana,2,6.29,1,28.78,189,CRITICO
+510710.28,1897,226,Transporte y Vías Urbanas,Periurbana,2,4.39,0,6.02,50,RIESGO_MODERADO
+1501237.3,6168,306,Transporte y Vías Urbanas,Periurbana,2,7.24,0,7.63,63,RIESGO_MODERADO
+320460.35,498,232,Educación e Infraestructura,Urbana consolidada,1,16.0,0,7.1,55,RIESGO_MODERADO
+329485.25,457,207,Educación e Infraestructura,Periurbana,1,5.8,0,7.35,13,VIABLE
+2130485.6,6268,286,Espacio Público y Parques,Urbana consolidada,1,12.83,1,29.41,110,CRITICO
+530697.44,1215,258,Espacio Público y Parques,Urbana consolidada,3,15.96,1,31.18,30,RIESGO_MODERADO
+517164.73,701,268,Educación e Infraestructura,Periurbana,1,3.27,0,5.72,17,VIABLE
+5826381.79,14933,197,Seguridad Ciudadana,Periurbana,3,12.92,1,28.61,91,CRITICO
+1047634.53,1848,190,Salud y Postas Médicas,Urbana consolidada,2,11.53,1,25.08,54,RIESGO_MODERADO
+945972.17,1509,90,Espacio Público y Parques,Periurbana,2,4.58,0,4.81,11,VIABLE
+800790.66,1452,266,Seguridad Ciudadana,Periurbana,1,11.54,0,9.05,73,RIESGO_MODERADO
+1430888.74,1804,156,Espacio Público y Parques,Urbana consolidada,1,18.29,0,6.18,5,VIABLE
+520713.65,2379,117,Saneamiento y Agua Potable,Urbana consolidada,2,3.51,0,3.81,0,VIABLE
+1036733.07,4202,322,Educación e Infraestructura,Urbana consolidada,1,1.28,0,2.83,8,VIABLE
+2618290.3,3307,147,Espacio Público y Parques,Urbana consolidada,3,2.19,0,4.96,20,VIABLE
+737797.37,1390,163,Seguridad Ciudadana,Urbana consolidada,2,36.72,0,16.41,54,RIESGO_MODERADO
+115733.51,281,180,Saneamiento y Agua Potable,Urbana consolidada,1,1.97,0,5.53,23,VIABLE
+546112.92,714,175,Saneamiento y Agua Potable,Urbana consolidada,2,7.77,0,3.75,8,VIABLE
+1965524.73,2641,290,Transporte y Vías Urbanas,Urbana consolidada,2,18.33,1,30.17,172,CRITICO
+2700120.55,3712,265,Saneamiento y Agua Potable,Periurbana,2,8.37,1,20.38,49,RIESGO_MODERADO
+1365753.47,6905,132,Transporte y Vías Urbanas,Periurbana,2,7.98,0,8.07,12,VIABLE
+3557876.05,8220,292,Educación e Infraestructura,Periurbana,3,8.06,1,22.42,244,CRITICO
+386289.67,554,165,Salud y Postas Médicas,Urbana consolidada,1,7.8,0,4.45,10,VIABLE
+3112627.76,7047,190,Salud y Postas Médicas,Urbana consolidada,3,6.16,0,4.68,71,RIESGO_MODERADO
+1189201.68,1954,238,Transporte y Vías Urbanas,Urbana consolidada,2,6.07,0,5.0,10,VIABLE
+1809154.51,2621,238,Espacio Público y Parques,Urbana consolidada,3,6.31,0,1.96,49,RIESGO_MODERADO
+80000.0,133,188,Espacio Público y Parques,Periurbana,1,12.92,0,5.02,72,RIESGO_MODERADO
+2198388.72,6207,155,Transporte y Vías Urbanas,Periurbana,1,14.91,1,31.7,187,CRITICO
+1214280.75,1941,203,Saneamiento y Agua Potable,Periurbana,3,9.21,0,6.46,2,VIABLE
+5484787.81,7175,185,Espacio Público y Parques,Urbana consolidada,2,3.48,0,3.55,43,RIESGO_MODERADO
+1166335.86,2621,249,Transporte y Vías Urbanas,Urbana consolidada,1,8.11,0,3.43,1,VIABLE
+410045.97,1103,164,Saneamiento y Agua Potable,Urbana consolidada,2,19.82,0,7.54,49,RIESGO_MODERADO
+477862.64,826,179,Salud y Postas Médicas,Urbana consolidada,3,5.28,0,2.24,16,VIABLE
+1418413.77,4287,248,Transporte y Vías Urbanas,Periurbana,2,12.59,1,33.65,221,CRITICO
+1298886.04,3348,185,Seguridad Ciudadana,Urbana consolidada,2,12.07,0,3.87,69,RIESGO_MODERADO
+556418.61,1352,219,Espacio Público y Parques,Urbana consolidada,3,6.26,0,7.14,13,VIABLE
+376543.22,538,133,Seguridad Ciudadana,Urbana consolidada,3,1.98,0,6.23,0,VIABLE
+3853217.48,6001,260,Espacio Público y Parques,Urbana consolidada,2,3.95,0,4.1,72,RIESGO_MODERADO
+794281.24,1116,254,Educación e Infraestructura,Urbana consolidada,3,9.31,0,6.53,0,VIABLE
+925727.29,5082,64,Salud y Postas Médicas,Periurbana,3,12.42,1,30.42,150,CRITICO
+609252.5,2081,155,Transporte y Vías Urbanas,Urbana consolidada,2,7.13,0,5.95,19,VIABLE
+3466085.55,4645,241,Salud y Postas Médicas,Urbana consolidada,1,7.35,0,5.85,77,RIESGO_MODERADO
+2686939.44,4879,209,Transporte y Vías Urbanas,Periurbana,2,6.79,0,2.67,84,RIESGO_MODERADO
+392589.82,511,215,Educación e Infraestructura,Urbana consolidada,2,2.4,0,6.3,16,VIABLE
+919033.14,2184,271,Saneamiento y Agua Potable,Urbana consolidada,1,2.76,0,6.36,20,VIABLE
+429381.07,1404,190,Seguridad Ciudadana,Urbana consolidada,3,6.23,0,5.26,12,VIABLE
+5224727.8,9015,295,Saneamiento y Agua Potable,Rural,3,4.44,1,15.55,176,CRITICO
+1467321.53,4760,229,Educación e Infraestructura,Urbana consolidada,3,3.45,0,5.23,4,VIABLE
+765133.27,2157,258,Saneamiento y Agua Potable,Urbana consolidada,2,2.49,0,5.51,7,VIABLE
+726687.53,1670,241,Transporte y Vías Urbanas,Periurbana,3,11.71,1,30.76,125,CRITICO
+1606794.61,2477,308,Educación e Infraestructura,Periurbana,1,2.82,0,6.68,14,VIABLE
+789040.41,1527,266,Transporte y Vías Urbanas,Urbana consolidada,3,8.89,0,5.35,17,VIABLE
+3946714.65,7434,201,Transporte y Vías Urbanas,Periurbana,1,15.35,1,29.4,173,CRITICO
+427803.62,887,203,Saneamiento y Agua Potable,Periurbana,2,9.64,0,5.75,2,VIABLE
+324101.11,421,250,Educación e Infraestructura,Periurbana,1,21.38,1,40.8,32,RIESGO_MODERADO
+3504066.62,4390,245,Espacio Público y Parques,Urbana consolidada,2,27.05,1,48.75,163,CRITICO
+671236.29,1368,45,Transporte y Vías Urbanas,Rural,1,5.42,0,4.13,20,VIABLE
+3533794.78,6870,361,Salud y Postas Médicas,Urbana consolidada,2,11.38,1,31.53,180,CRITICO
+2173573.39,11769,244,Saneamiento y Agua Potable,Periurbana,2,13.23,1,37.71,238,CRITICO
+290023.48,444,203,Transporte y Vías Urbanas,Periurbana,2,7.85,0,5.06,6,VIABLE
+568892.19,926,210,Educación e Infraestructura,Rural,3,7.13,0,3.87,15,VIABLE
+1029295.28,4522,138,Educación e Infraestructura,Periurbana,1,22.07,0,9.07,57,RIESGO_MODERADO
+807422.55,3097,193,Transporte y Vías Urbanas,Rural,3,12.32,1,32.91,222,CRITICO
+1293147.88,6003,175,Educación e Infraestructura,Urbana consolidada,1,6.37,0,7.25,16,VIABLE
+567363.01,1270,130,Saneamiento y Agua Potable,Urbana consolidada,2,14.65,0,6.92,42,RIESGO_MODERADO
+912153.93,1714,203,Transporte y Vías Urbanas,Urbana consolidada,3,10.22,0,6.25,52,RIESGO_MODERADO
+2424986.6,10588,246,Espacio Público y Parques,Periurbana,1,14.21,1,36.48,99,CRITICO
+3267794.87,4248,309,Saneamiento y Agua Potable,Urbana consolidada,3,5.47,1,25.04,30,RIESGO_MODERADO
+483574.26,2272,206,Educación e Infraestructura,Periurbana,3,8.33,0,6.6,80,RIESGO_MODERADO
+799086.55,2889,182,Seguridad Ciudadana,Urbana consolidada,3,1.53,0,5.96,0,VIABLE
+878430.05,1312,234,Transporte y Vías Urbanas,Periurbana,3,6.22,0,6.92,66,RIESGO_MODERADO
+292181.89,498,258,Transporte y Vías Urbanas,Urbana consolidada,3,29.54,1,48.9,71,RIESGO_MODERADO
+2290297.95,3241,286,Educación e Infraestructura,Urbana consolidada,1,16.21,1,31.49,180,CRITICO
+1636766.74,2204,191,Educación e Infraestructura,Rural,3,4.82,0,6.98,12,VIABLE
+1574184.92,1993,212,Transporte y Vías Urbanas,Urbana consolidada,1,10.01,0,7.8,31,RIESGO_MODERADO
+891577.61,1600,174,Transporte y Vías Urbanas,Periurbana,1,33.41,0,15.39,60,RIESGO_MODERADO
+2154996.78,4019,365,Espacio Público y Parques,Rural,1,4.2,0,6.28,46,RIESGO_MODERADO
+2343305.74,12380,288,Salud y Postas Médicas,Periurbana,3,4.55,1,19.89,142,CRITICO
+2796909.15,5904,312,Educación e Infraestructura,Urbana consolidada,1,1.03,0,3.41,20,VIABLE
+844859.36,2383,125,Seguridad Ciudadana,Urbana consolidada,2,7.62,0,4.81,5,VIABLE
+1348410.58,6175,228,Saneamiento y Agua Potable,Periurbana,1,16.17,1,30.3,198,CRITICO
+693906.92,1229,289,Educación e Infraestructura,Urbana consolidada,2,8.65,0,5.14,12,VIABLE
+736273.09,3538,105,Salud y Postas Médicas,Urbana consolidada,2,4.56,0,6.82,9,VIABLE
+2381701.57,4174,213,Saneamiento y Agua Potable,Periurbana,2,6.67,1,20.54,113,CRITICO
+1033399.31,1329,64,Seguridad Ciudadana,Rural,2,7.25,0,7.56,32,RIESGO_MODERADO
+857414.94,1955,404,Saneamiento y Agua Potable,Urbana consolidada,1,18.39,1,33.38,62,RIESGO_MODERADO
+1694482.66,2889,225,Saneamiento y Agua Potable,Urbana consolidada,2,15.51,1,30.74,44,RIESGO_MODERADO
+1792195.45,9645,175,Transporte y Vías Urbanas,Urbana consolidada,3,8.29,0,6.16,22,VIABLE
+499388.27,1246,251,Transporte y Vías Urbanas,Periurbana,3,22.89,1,35.92,186,CRITICO
+549668.61,2212,162,Espacio Público y Parques,Urbana consolidada,2,14.62,0,5.64,36,RIESGO_MODERADO
+1869290.88,5539,257,Educación e Infraestructura,Urbana consolidada,3,2.97,0,5.26,53,RIESGO_MODERADO
+1580825.4,8090,175,Salud y Postas Médicas,Urbana consolidada,2,5.24,0,5.31,7,VIABLE
+815348.83,1681,275,Salud y Postas Médicas,Urbana consolidada,3,4.56,0,5.03,22,VIABLE
+2888564.38,4363,184,Transporte y Vías Urbanas,Rural,2,21.18,1,36.16,166,CRITICO
+900579.73,1421,207,Salud y Postas Médicas,Periurbana,2,13.74,1,34.17,183,CRITICO
+173125.51,219,113,Educación e Infraestructura,Periurbana,1,6.93,0,5.9,22,VIABLE
+481035.33,650,201,Salud y Postas Médicas,Periurbana,2,3.78,0,7.07,3,VIABLE
+261116.83,422,178,Transporte y Vías Urbanas,Rural,1,7.31,0,6.57,9,VIABLE
+2760845.27,4238,140,Saneamiento y Agua Potable,Urbana consolidada,2,4.46,0,5.61,43,RIESGO_MODERADO
+1551435.34,2866,333,Transporte y Vías Urbanas,Urbana consolidada,1,19.59,0,8.89,79,RIESGO_MODERADO
+1095626.41,5736,186,Transporte y Vías Urbanas,Urbana consolidada,1,17.08,0,7.05,23,VIABLE
+122292.4,186,183,Espacio Público y Parques,Urbana consolidada,2,3.78,0,1.7,7,VIABLE
+260530.79,464,251,Espacio Público y Parques,Urbana consolidada,2,9.59,0,6.0,14,VIABLE
+859694.3,1133,129,Salud y Postas Médicas,Urbana consolidada,3,19.47,0,6.22,42,RIESGO_MODERADO
+198354.9,671,109,Seguridad Ciudadana,Periurbana,3,3.08,0,4.48,24,VIABLE
+2298150.47,3032,174,Transporte y Vías Urbanas,Urbana consolidada,2,6.05,0,4.53,9,VIABLE
+897476.89,3195,271,Transporte y Vías Urbanas,Periurbana,2,8.89,0,5.82,56,RIESGO_MODERADO
+865618.08,3936,127,Saneamiento y Agua Potable,Periurbana,3,6.63,0,2.2,9,VIABLE
+929991.64,1624,378,Seguridad Ciudadana,Periurbana,2,2.19,1,19.59,79,RIESGO_MODERADO
+418681.42,1098,205,Seguridad Ciudadana,Rural,1,9.14,0,5.58,15,VIABLE
+385062.36,754,215,Transporte y Vías Urbanas,Periurbana,2,15.42,1,34.95,208,CRITICO
+178298.16,430,218,Transporte y Vías Urbanas,Urbana consolidada,2,15.26,1,31.1,154,CRITICO
+1005632.97,3445,155,Saneamiento y Agua Potable,Urbana consolidada,2,20.36,0,7.26,82,RIESGO_MODERADO
+1419240.97,1995,204,Salud y Postas Médicas,Periurbana,2,13.31,1,26.46,247,CRITICO
+795048.06,1173,153,Educación e Infraestructura,Rural,3,9.37,0,3.35,38,RIESGO_MODERADO
+763541.37,2135,189,Transporte y Vías Urbanas,Urbana consolidada,2,8.19,0,5.72,16,VIABLE
+422489.56,1091,173,Saneamiento y Agua Potable,Urbana consolidada,1,13.15,0,8.2,8,VIABLE
+1233809.55,1884,302,Transporte y Vías Urbanas,Urbana consolidada,2,5.44,0,4.95,57,RIESGO_MODERADO
+108416.08,234,198,Seguridad Ciudadana,Periurbana,1,2.24,0,4.23,10,VIABLE
+364396.58,593,190,Transporte y Vías Urbanas,Rural,1,2.51,0,3.42,1,VIABLE
+544392.93,727,180,Saneamiento y Agua Potable,Periurbana,3,9.8,0,5.94,42,RIESGO_MODERADO
+623037.05,891,141,Seguridad Ciudadana,Urbana consolidada,2,11.91,0,6.79,83,RIESGO_MODERADO
+1197947.1,2176,138,Espacio Público y Parques,Urbana consolidada,2,6.28,0,4.92,5,VIABLE
+828054.88,1238,181,Transporte y Vías Urbanas,Urbana consolidada,2,8.59,0,5.06,0,VIABLE
+1132480.95,3839,288,Transporte y Vías Urbanas,Rural,3,5.18,0,4.05,77,RIESGO_MODERADO
+3021294.6,4299,267,Salud y Postas Médicas,Urbana consolidada,3,2.65,0,4.68,26,RIESGO_MODERADO
+3385094.03,10125,196,Espacio Público y Parques,Urbana consolidada,2,10.79,1,25.66,94,CRITICO
+1763563.59,3987,157,Seguridad Ciudadana,Periurbana,2,14.16,1,37.68,140,CRITICO
+3028995.01,5432,211,Salud y Postas Médicas,Urbana consolidada,2,29.6,1,51.6,141,CRITICO
+4670037.25,12250,331,Transporte y Vías Urbanas,Periurbana,2,9.38,1,25.4,180,CRITICO
+1374194.52,1984,275,Saneamiento y Agua Potable,Periurbana,1,6.75,0,2.5,1,VIABLE
+279715.34,509,159,Espacio Público y Parques,Urbana consolidada,3,11.27,0,5.27,49,RIESGO_MODERADO
+2433281.81,3164,180,Transporte y Vías Urbanas,Periurbana,3,16.22,1,31.57,223,CRITICO
+402147.83,1139,222,Saneamiento y Agua Potable,Urbana consolidada,2,11.23,0,5.79,29,RIESGO_MODERADO
+5260143.58,8563,216,Seguridad Ciudadana,Urbana consolidada,2,11.74,1,35.73,230,CRITICO
+4650758.89,16880,242,Espacio Público y Parques,Urbana consolidada,3,3.77,1,23.99,83,RIESGO_MODERADO
+617600.05,2156,303,Salud y Postas Médicas,Periurbana,1,6.16,0,2.01,5,VIABLE
+365929.44,732,143,Transporte y Vías Urbanas,Rural,1,2.86,0,0.89,9,VIABLE
+529775.79,717,198,Salud y Postas Médicas,Rural,2,3.1,0,5.06,15,VIABLE
+928594.1,1963,196,Transporte y Vías Urbanas,Periurbana,2,11.81,1,31.7,147,CRITICO
+3119359.15,5931,297,Espacio Público y Parques,Periurbana,3,2.08,1,11.74,204,CRITICO
+323875.57,420,204,Educación e Infraestructura,Urbana consolidada,2,6.55,0,6.06,15,VIABLE
+2177550.31,7110,120,Transporte y Vías Urbanas,Urbana consolidada,2,15.84,1,30.98,179,CRITICO
+152864.75,217,111,Saneamiento y Agua Potable,Urbana consolidada,1,11.2,0,4.79,2,VIABLE
+2935323.72,4488,269,Seguridad Ciudadana,Periurbana,1,18.76,1,34.86,176,CRITICO
+931203.45,1569,193,Educación e Infraestructura,Urbana consolidada,2,5.73,0,4.68,1,VIABLE
+1178519.2,2838,167,Transporte y Vías Urbanas,Urbana consolidada,3,7.58,0,5.38,5,VIABLE
+894917.24,1248,102,Transporte y Vías Urbanas,Periurbana,3,7.23,0,4.64,79,RIESGO_MODERADO
+2285664.75,2925,237,Transporte y Vías Urbanas,Urbana consolidada,2,18.17,1,38.66,187,CRITICO
+1375298.64,3283,172,Salud y Postas Médicas,Urbana consolidada,3,9.52,0,4.6,4,VIABLE
+4497990.98,10255,304,Transporte y Vías Urbanas,Urbana consolidada,3,1.77,1,21.98,197,CRITICO
+199062.42,312,206,Transporte y Vías Urbanas,Rural,3,3.34,0,1.48,8,VIABLE
+436016.52,863,125,Transporte y Vías Urbanas,Urbana consolidada,2,2.16,0,2.71,21,VIABLE
+293190.32,951,98,Transporte y Vías Urbanas,Rural,3,12.84,1,24.04,69,RIESGO_MODERADO
+1878536.7,2566,173,Transporte y Vías Urbanas,Periurbana,2,5.54,1,27.54,70,RIESGO_MODERADO
+215599.9,359,209,Transporte y Vías Urbanas,Rural,1,2.28,0,6.63,21,VIABLE
+8779424.06,19361,375,Saneamiento y Agua Potable,Periurbana,2,15.38,1,34.75,97,CRITICO
+1069431.47,2455,64,Educación e Infraestructura,Urbana consolidada,3,18.55,0,11.31,30,RIESGO_MODERADO
+2957077.1,5179,324,Educación e Infraestructura,Periurbana,2,14.8,1,30.95,204,CRITICO
+412628.35,1110,205,Espacio Público y Parques,Rural,2,10.36,1,27.51,30,RIESGO_MODERADO
+1174898.73,2083,177,Transporte y Vías Urbanas,Periurbana,3,16.13,1,29.09,132,CRITICO
+1726874.26,6840,73,Seguridad Ciudadana,Urbana consolidada,1,9.72,0,6.48,8,VIABLE
+521411.51,1233,117,Espacio Público y Parques,Urbana consolidada,1,3.24,0,4.34,2,VIABLE
+802121.37,1178,274,Transporte y Vías Urbanas,Rural,2,1.03,1,9.94,49,RIESGO_MODERADO
+3999343.38,15030,251,Espacio Público y Parques,Urbana consolidada,2,14.14,1,28.01,218,CRITICO
+3077890.74,5009,238,Seguridad Ciudadana,Urbana consolidada,2,9.81,1,22.12,96,CRITICO
+1657907.64,2662,184,Seguridad Ciudadana,Periurbana,1,8.0,0,3.82,9,VIABLE
+5804982.18,9077,242,Transporte y Vías Urbanas,Urbana consolidada,3,15.58,1,28.03,131,CRITICO
+170890.64,853,159,Transporte y Vías Urbanas,Urbana consolidada,3,2.97,0,4.68,5,VIABLE
+1279666.58,1848,263,Seguridad Ciudadana,Urbana consolidada,2,16.66,1,32.68,71,RIESGO_MODERADO
+698553.73,2047,251,Saneamiento y Agua Potable,Periurbana,2,18.46,1,40.46,149,CRITICO
+3546110.54,12330,283,Salud y Postas Médicas,Urbana consolidada,2,17.44,1,35.16,91,CRITICO
+2673464.55,10938,208,Educación e Infraestructura,Urbana consolidada,1,6.65,0,3.65,0,VIABLE
+2820703.08,5128,255,Educación e Infraestructura,Periurbana,2,17.88,1,42.75,242,CRITICO
+575393.51,920,298,Salud y Postas Médicas,Urbana consolidada,2,2.84,0,1.8,71,RIESGO_MODERADO
+1632150.77,2836,268,Salud y Postas Médicas,Urbana consolidada,3,4.85,0,7.06,24,VIABLE
+2603115.87,3459,318,Seguridad Ciudadana,Urbana consolidada,1,3.71,0,5.31,48,RIESGO_MODERADO
+3164756.95,7544,137,Transporte y Vías Urbanas,Rural,2,5.06,1,15.75,136,CRITICO
+427726.13,1751,51,Salud y Postas Médicas,Urbana consolidada,1,4.82,0,5.16,4,VIABLE
+532365.47,1475,246,Transporte y Vías Urbanas,Rural,2,6.51,0,7.51,18,VIABLE
+1227740.58,4059,192,Salud y Postas Médicas,Urbana consolidada,2,8.83,0,4.57,19,VIABLE
+3455152.0,5510,45,Espacio Público y Parques,Urbana consolidada,1,6.85,0,5.03,9,VIABLE
+1720725.16,2608,263,Espacio Público y Parques,Periurbana,1,8.37,0,5.7,1,VIABLE
+3396389.82,7109,315,Transporte y Vías Urbanas,Urbana consolidada,2,14.13,1,35.28,91,CRITICO
+169868.68,495,207,Saneamiento y Agua Potable,Urbana consolidada,2,8.42,0,7.61,18,VIABLE
+771064.85,1666,204,Transporte y Vías Urbanas,Periurbana,3,6.46,0,4.84,5,VIABLE
+1542565.68,2592,101,Seguridad Ciudadana,Urbana consolidada,1,8.35,0,7.72,12,VIABLE
+1254974.52,4397,278,Espacio Público y Parques,Urbana consolidada,2,18.86,1,39.69,41,RIESGO_MODERADO
+179479.21,355,361,Transporte y Vías Urbanas,Periurbana,3,9.73,1,25.58,32,RIESGO_MODERADO
+2651911.23,8112,407,Saneamiento y Agua Potable,Urbana consolidada,2,24.15,1,47.32,125,CRITICO
+1343516.05,2050,207,Transporte y Vías Urbanas,Urbana consolidada,3,8.53,0,5.91,17,VIABLE
+647024.31,1278,203,Educación e Infraestructura,Urbana consolidada,1,6.3,0,2.46,8,VIABLE
+2893504.28,6008,285,Educación e Infraestructura,Urbana consolidada,2,1.48,1,13.12,46,RIESGO_MODERADO
+207660.56,415,105,Transporte y Vías Urbanas,Periurbana,1,13.42,1,28.98,63,RIESGO_MODERADO
+621449.02,1580,154,Saneamiento y Agua Potable,Urbana consolidada,2,1.5,0,2.72,6,VIABLE
+2181741.66,3074,268,Transporte y Vías Urbanas,Urbana consolidada,3,7.17,1,23.63,40,RIESGO_MODERADO
+1381102.69,7129,225,Espacio Público y Parques,Urbana consolidada,1,1.28,0,3.52,7,VIABLE
+804343.06,2325,158,Saneamiento y Agua Potable,Urbana consolidada,2,16.73,0,6.72,53,RIESGO_MODERADO
+857349.9,2292,190,Transporte y Vías Urbanas,Urbana consolidada,2,15.83,0,5.63,40,RIESGO_MODERADO
+797957.89,2726,110,Transporte y Vías Urbanas,Rural,1,8.13,0,7.53,3,VIABLE
+2149007.83,3546,191,Educación e Infraestructura,Periurbana,3,12.55,1,33.96,150,CRITICO
+748723.72,3820,273,Seguridad Ciudadana,Periurbana,3,5.93,0,5.62,79,RIESGO_MODERADO
+1812344.76,3244,168,Transporte y Vías Urbanas,Periurbana,1,3.1,0,3.56,69,RIESGO_MODERADO
+150487.22,235,134,Salud y Postas Médicas,Urbana consolidada,2,2.14,0,6.28,13,VIABLE
+2977151.65,8479,202,Saneamiento y Agua Potable,Periurbana,2,7.39,1,17.85,173,CRITICO
+8863033.11,25299,246,Espacio Público y Parques,Urbana consolidada,3,6.79,0,5.26,36,RIESGO_MODERADO
+1543681.36,3336,255,Educación e Infraestructura,Rural,2,8.38,0,3.17,27,RIESGO_MODERADO
+910845.2,2335,89,Transporte y Vías Urbanas,Urbana consolidada,1,3.74,0,3.45,20,VIABLE
+608305.79,1752,126,Transporte y Vías Urbanas,Rural,1,3.16,0,6.72,13,VIABLE
+1848326.73,3180,230,Transporte y Vías Urbanas,Urbana consolidada,3,16.05,1,31.27,245,CRITICO
+548445.64,1566,50,Educación e Infraestructura,Periurbana,3,9.28,0,6.02,74,RIESGO_MODERADO
+471247.87,771,297,Transporte y Vías Urbanas,Rural,3,11.97,1,31.14,149,CRITICO
+144927.1,355,278,Educación e Infraestructura,Periurbana,2,7.41,0,6.15,81,RIESGO_MODERADO
+1224872.53,1743,206,Espacio Público y Parques,Periurbana,2,7.77,0,5.87,56,RIESGO_MODERADO
+757862.14,987,282,Espacio Público y Parques,Urbana consolidada,1,7.74,0,7.29,7,VIABLE
+796218.75,1248,217,Transporte y Vías Urbanas,Urbana consolidada,2,11.94,1,26.18,96,CRITICO
+982564.49,2471,244,Educación e Infraestructura,Urbana consolidada,2,7.78,0,7.8,15,VIABLE
+520577.48,940,273,Espacio Público y Parques,Rural,1,14.59,1,37.49,62,RIESGO_MODERADO
+1165448.37,1759,359,Educación e Infraestructura,Periurbana,2,4.45,0,1.7,22,VIABLE
+372528.96,921,207,Transporte y Vías Urbanas,Urbana consolidada,1,2.47,0,2.51,5,VIABLE
+887486.95,1712,367,Espacio Público y Parques,Periurbana,1,6.06,0,7.17,9,VIABLE
+764306.67,2969,276,Transporte y Vías Urbanas,Urbana consolidada,1,15.52,1,28.75,69,RIESGO_MODERADO
+211617.09,439,302,Saneamiento y Agua Potable,Periurbana,2,9.92,0,4.82,77,RIESGO_MODERADO
+330785.82,760,194,Transporte y Vías Urbanas,Urbana consolidada,2,2.07,0,3.78,13,VIABLE
+577669.79,1642,223,Seguridad Ciudadana,Periurbana,1,11.57,1,29.58,76,RIESGO_MODERADO
+593517.35,1849,354,Educación e Infraestructura,Periurbana,3,7.22,0,7.99,76,RIESGO_MODERADO
+1243299.09,4892,164,Seguridad Ciudadana,Periurbana,2,2.54,0,3.15,50,RIESGO_MODERADO
+683858.26,2908,113,Saneamiento y Agua Potable,Rural,1,12.27,0,5.23,70,RIESGO_MODERADO
+940299.87,4859,364,Transporte y Vías Urbanas,Urbana consolidada,1,4.39,0,2.56,14,VIABLE
+681511.94,2727,53,Espacio Público y Parques,Urbana consolidada,3,11.64,1,31.22,118,CRITICO
+95690.89,122,255,Espacio Público y Parques,Urbana consolidada,1,7.99,0,2.59,21,VIABLE
+881115.13,3060,151,Transporte y Vías Urbanas,Periurbana,1,4.95,0,5.23,12,VIABLE
+461412.16,1096,178,Espacio Público y Parques,Urbana consolidada,2,5.44,0,7.47,15,VIABLE
+852679.55,1073,70,Transporte y Vías Urbanas,Urbana consolidada,1,2.03,0,2.51,21,VIABLE
+494117.91,1150,177,Seguridad Ciudadana,Urbana consolidada,2,8.9,0,6.21,21,VIABLE
+1776417.03,2476,116,Transporte y Vías Urbanas,Rural,2,7.24,0,3.36,8,VIABLE
+944751.98,2750,193,Seguridad Ciudadana,Urbana consolidada,2,6.98,0,7.46,18,VIABLE
+1862525.82,2407,244,Saneamiento y Agua Potable,Urbana consolidada,3,6.9,1,26.99,81,RIESGO_MODERADO
+1989218.97,4373,112,Espacio Público y Parques,Urbana consolidada,2,8.19,0,7.3,41,RIESGO_MODERADO
+591266.83,999,261,Espacio Público y Parques,Periurbana,3,4.68,0,3.18,29,RIESGO_MODERADO
+2050811.01,5413,280,Transporte y Vías Urbanas,Periurbana,3,2.02,1,14.43,121,CRITICO
+1209674.66,3921,51,Espacio Público y Parques,Urbana consolidada,2,8.56,0,3.64,0,VIABLE
+379969.5,1255,152,Espacio Público y Parques,Urbana consolidada,2,13.1,0,6.78,51,RIESGO_MODERADO
+887020.8,2712,141,Transporte y Vías Urbanas,Urbana consolidada,1,14.24,0,9.93,17,VIABLE
+1071598.9,2059,451,Educación e Infraestructura,Urbana consolidada,2,20.2,1,43.87,251,CRITICO
+3087665.7,5833,233,Seguridad Ciudadana,Rural,3,13.18,1,35.88,150,CRITICO
+719484.34,1173,93,Saneamiento y Agua Potable,Urbana consolidada,2,8.68,0,3.62,16,VIABLE
+4048180.38,9461,261,Educación e Infraestructura,Urbana consolidada,1,8.62,0,7.82,18,VIABLE
+1968714.27,7457,121,Transporte y Vías Urbanas,Urbana consolidada,1,3.74,0,5.35,16,VIABLE
+146850.17,259,129,Saneamiento y Agua Potable,Periurbana,2,3.46,0,1.8,44,RIESGO_MODERADO
+387697.87,1557,281,Salud y Postas Médicas,Urbana consolidada,1,13.88,0,5.61,26,RIESGO_MODERADO
+1669263.53,2181,208,Transporte y Vías Urbanas,Urbana consolidada,1,11.28,0,4.49,46,RIESGO_MODERADO
+265720.22,407,194,Espacio Público y Parques,Periurbana,1,3.19,0,3.08,22,VIABLE
+1511426.24,2823,285,Transporte y Vías Urbanas,Periurbana,3,11.45,1,22.73,198,CRITICO
+3417274.99,13751,380,Salud y Postas Médicas,Periurbana,2,8.21,1,20.06,227,CRITICO
+773479.82,1639,218,Espacio Público y Parques,Rural,3,4.71,1,25.22,57,RIESGO_MODERADO
+3495277.8,12706,161,Transporte y Vías Urbanas,Urbana consolidada,2,11.06,1,28.99,144,CRITICO
+3241481.71,4116,231,Espacio Público y Parques,Urbana consolidada,2,5.26,0,6.49,55,RIESGO_MODERADO
+935926.32,2135,220,Seguridad Ciudadana,Urbana consolidada,2,10.25,0,5.91,55,RIESGO_MODERADO
+955487.04,1626,187,Transporte y Vías Urbanas,Urbana consolidada,2,9.11,0,5.92,17,VIABLE
+1159053.95,4606,249,Transporte y Vías Urbanas,Periurbana,1,2.74,0,4.84,11,VIABLE
+1469459.48,3297,154,Transporte y Vías Urbanas,Rural,2,6.54,0,4.62,50,RIESGO_MODERADO
+242386.19,860,318,Transporte y Vías Urbanas,Urbana consolidada,2,10.61,1,33.65,73,RIESGO_MODERADO
+864213.27,1608,232,Educación e Infraestructura,Rural,2,15.85,1,30.37,204,CRITICO
+218397.31,276,70,Educación e Infraestructura,Periurbana,3,8.53,0,8.1,78,RIESGO_MODERADO
+721711.03,1601,195,Transporte y Vías Urbanas,Urbana consolidada,3,14.24,1,35.19,60,RIESGO_MODERADO
+808176.05,1304,248,Seguridad Ciudadana,Urbana consolidada,2,3.75,0,2.15,17,VIABLE
+191820.16,816,216,Saneamiento y Agua Potable,Urbana consolidada,2,11.44,1,32.95,56,RIESGO_MODERADO
+315784.95,942,299,Seguridad Ciudadana,Periurbana,2,5.67,0,3.91,49,RIESGO_MODERADO
+688120.42,2669,120,Seguridad Ciudadana,Urbana consolidada,2,15.16,0,8.72,26,RIESGO_MODERADO
+6881248.05,23627,185,Saneamiento y Agua Potable,Urbana consolidada,2,16.83,1,29.78,149,CRITICO
+282642.14,1005,248,Espacio Público y Parques,Urbana consolidada,1,24.14,0,9.6,28,RIESGO_MODERADO
+1101404.92,1898,169,Transporte y Vías Urbanas,Urbana consolidada,1,20.1,0,10.64,21,VIABLE
+440561.54,943,163,Seguridad Ciudadana,Urbana consolidada,2,6.44,0,2.59,22,VIABLE
+702542.79,1304,254,Salud y Postas Médicas,Urbana consolidada,2,1.14,0,3.83,18,VIABLE
+2389651.3,4271,151,Transporte y Vías Urbanas,Urbana consolidada,2,10.98,1,27.92,247,CRITICO
+1302019.75,3357,107,Salud y Postas Médicas,Periurbana,2,9.95,0,5.43,6,VIABLE
+1444394.47,2038,123,Transporte y Vías Urbanas,Rural,1,21.6,0,11.84,32,RIESGO_MODERADO
+1528630.6,3041,257,Educación e Infraestructura,Urbana consolidada,3,7.12,0,3.44,24,VIABLE
+1652747.55,2288,197,Espacio Público y Parques,Urbana consolidada,1,8.57,0,6.22,12,VIABLE
+140728.77,209,130,Transporte y Vías Urbanas,Urbana consolidada,2,8.25,0,3.08,6,VIABLE
+1393656.75,2264,54,Espacio Público y Parques,Periurbana,1,14.81,0,5.81,32,RIESGO_MODERADO
+912025.76,1846,245,Educación e Infraestructura,Urbana consolidada,3,11.1,1,26.35,184,CRITICO
+1408035.52,2021,127,Seguridad Ciudadana,Urbana consolidada,3,8.3,0,6.14,7,VIABLE
+2090135.02,3463,262,Educación e Infraestructura,Urbana consolidada,2,12.72,1,24.17,90,CRITICO
+1431304.07,2227,174,Seguridad Ciudadana,Urbana consolidada,1,18.09,0,7.17,11,VIABLE
+1832811.19,8386,232,Transporte y Vías Urbanas,Rural,3,4.57,1,19.08,185,CRITICO
+343069.25,804,135,Saneamiento y Agua Potable,Urbana consolidada,3,2.25,0,4.43,15,VIABLE
+1473315.94,2508,229,Educación e Infraestructura,Periurbana,3,8.08,0,2.81,57,RIESGO_MODERADO
+892389.09,3984,45,Salud y Postas Médicas,Urbana consolidada,2,5.61,0,4.66,23,VIABLE
+910870.63,1843,139,Saneamiento y Agua Potable,Urbana consolidada,1,1.73,0,3.78,17,VIABLE
+3172788.0,6163,271,Saneamiento y Agua Potable,Periurbana,2,12.06,1,22.9,131,CRITICO
+634248.53,1859,298,Transporte y Vías Urbanas,Periurbana,3,14.99,1,35.89,248,CRITICO
+540394.66,1496,223,Educación e Infraestructura,Periurbana,1,11.38,1,30.9,254,CRITICO
+301881.21,477,135,Transporte y Vías Urbanas,Urbana consolidada,2,5.02,0,6.75,3,VIABLE
+754612.02,3275,147,Espacio Público y Parques,Periurbana,2,16.06,1,31.4,28,RIESGO_MODERADO
+2580819.72,13841,230,Educación e Infraestructura,Periurbana,2,1.71,1,12.05,180,CRITICO
+219474.06,289,97,Saneamiento y Agua Potable,Periurbana,2,3.32,0,2.57,24,VIABLE
+1234400.78,1986,275,Saneamiento y Agua Potable,Periurbana,2,18.18,1,34.05,232,CRITICO
+100761.78,191,326,Transporte y Vías Urbanas,Urbana consolidada,2,11.32,1,29.69,82,RIESGO_MODERADO
+529012.38,802,152,Salud y Postas Médicas,Periurbana,2,14.14,1,38.71,88,CRITICO
+1459701.82,4226,45,Educación e Infraestructura,Urbana consolidada,1,14.95,0,8.77,17,VIABLE
+606400.63,1003,134,Saneamiento y Agua Potable,Urbana consolidada,2,10.86,1,27.75,136,CRITICO
+333756.89,607,171,Saneamiento y Agua Potable,Urbana consolidada,2,3.24,0,3.76,1,VIABLE
+706861.1,1933,151,Espacio Público y Parques,Urbana consolidada,2,6.06,0,6.26,1,VIABLE
+2398125.0,6652,308,Transporte y Vías Urbanas,Periurbana,3,6.32,1,27.78,145,CRITICO
+3770587.98,7838,315,Transporte y Vías Urbanas,Urbana consolidada,2,5.16,1,20.13,204,CRITICO
+3840025.31,16380,185,Transporte y Vías Urbanas,Urbana consolidada,2,11.73,1,24.33,220,CRITICO
+1819477.07,2913,296,Salud y Postas Médicas,Urbana consolidada,1,8.83,0,2.81,79,RIESGO_MODERADO
+1362077.07,1823,323,Salud y Postas Médicas,Periurbana,2,16.0,1,38.32,200,CRITICO
+2391077.06,3222,100,Saneamiento y Agua Potable,Urbana consolidada,2,5.43,0,1.9,31,RIESGO_MODERADO
+347759.06,637,169,Transporte y Vías Urbanas,Periurbana,3,12.06,1,25.23,251,CRITICO
+411563.1,1321,196,Educación e Infraestructura,Urbana consolidada,2,15.72,0,5.33,44,RIESGO_MODERADO
+3148385.7,16991,335,Espacio Público y Parques,Urbana consolidada,2,1.54,0,4.6,50,RIESGO_MODERADO
+2127899.62,4113,104,Espacio Público y Parques,Urbana consolidada,1,9.15,0,7.99,9,VIABLE
+2164227.29,6488,193,Educación e Infraestructura,Urbana consolidada,1,22.44,1,47.85,103,CRITICO
+1202175.3,3347,150,Espacio Público y Parques,Periurbana,1,0.49,0,4.89,2,VIABLE
+468599.91,791,125,Transporte y Vías Urbanas,Urbana consolidada,1,3.92,0,2.59,9,VIABLE
+372468.61,1453,172,Transporte y Vías Urbanas,Urbana consolidada,1,7.98,0,3.67,24,VIABLE
+2290411.87,4140,272,Saneamiento y Agua Potable,Urbana consolidada,2,4.87,0,6.29,41,RIESGO_MODERADO
+2609173.21,4059,269,Salud y Postas Médicas,Periurbana,1,9.09,0,4.53,62,RIESGO_MODERADO
+359178.29,1783,281,Transporte y Vías Urbanas,Urbana consolidada,1,9.47,0,3.62,5,VIABLE
+506073.56,959,152,Espacio Público y Parques,Rural,1,13.71,0,7.36,26,RIESGO_MODERADO
+897524.92,1430,205,Transporte y Vías Urbanas,Urbana consolidada,2,8.63,0,5.34,1,VIABLE
+2163362.01,4822,254,Transporte y Vías Urbanas,Periurbana,2,19.28,1,32.82,91,CRITICO
+724701.71,1975,296,Saneamiento y Agua Potable,Urbana consolidada,3,8.74,0,4.45,14,VIABLE
+457254.84,1650,123,Saneamiento y Agua Potable,Periurbana,1,4.08,0,4.36,16,VIABLE
+2396636.95,3103,221,Seguridad Ciudadana,Periurbana,1,4.5,0,6.79,76,RIESGO_MODERADO
+1685455.26,3896,138,Transporte y Vías Urbanas,Urbana consolidada,2,5.38,0,5.23,10,VIABLE
+527112.84,1750,217,Espacio Público y Parques,Urbana consolidada,3,20.32,1,38.7,56,RIESGO_MODERADO
+543932.92,2571,78,Seguridad Ciudadana,Rural,1,4.18,0,6.82,3,VIABLE
+2673712.48,8216,140,Educación e Infraestructura,Urbana consolidada,2,5.81,0,7.49,33,RIESGO_MODERADO
+310895.67,448,187,Saneamiento y Agua Potable,Periurbana,2,9.95,0,5.85,61,RIESGO_MODERADO
+756465.15,2565,113,Educación e Infraestructura,Periurbana,1,7.37,0,4.24,19,VIABLE
+1475307.26,2475,227,Educación e Infraestructura,Periurbana,2,13.64,1,38.09,219,CRITICO
+1141607.11,1525,139,Transporte y Vías Urbanas,Urbana consolidada,3,4.53,0,1.5,18,VIABLE
+2272686.74,5431,52,Transporte y Vías Urbanas,Periurbana,2,8.37,1,31.66,113,CRITICO
+211100.11,414,132,Espacio Público y Parques,Periurbana,2,6.93,0,3.67,44,RIESGO_MODERADO
+1000337.54,3620,273,Educación e Infraestructura,Urbana consolidada,1,5.92,0,2.24,12,VIABLE
+1291152.49,4016,229,Saneamiento y Agua Potable,Urbana consolidada,2,3.09,0,3.86,45,RIESGO_MODERADO
+1329398.27,3167,241,Salud y Postas Médicas,Urbana consolidada,2,15.75,1,33.68,194,CRITICO
+1654852.58,2742,45,Espacio Público y Parques,Urbana consolidada,1,5.61,0,3.5,3,VIABLE
+344489.73,716,148,Saneamiento y Agua Potable,Urbana consolidada,2,4.35,0,5.33,6,VIABLE
+3615101.3,5115,282,Espacio Público y Parques,Rural,2,6.26,1,19.17,200,CRITICO
+1481608.17,2302,185,Saneamiento y Agua Potable,Periurbana,1,1.76,0,6.03,18,VIABLE
+1630776.83,3064,264,Transporte y Vías Urbanas,Urbana consolidada,3,3.98,0,4.41,18,VIABLE
+585851.1,1304,225,Salud y Postas Médicas,Urbana consolidada,2,13.69,0,9.98,52,RIESGO_MODERADO
+1158544.53,2200,159,Transporte y Vías Urbanas,Urbana consolidada,2,4.96,0,3.17,15,VIABLE
+3260577.37,7257,302,Espacio Público y Parques,Periurbana,2,17.96,1,38.78,174,CRITICO
+971249.3,2067,302,Seguridad Ciudadana,Urbana consolidada,3,3.99,0,3.83,17,VIABLE
+1173876.01,3182,253,Transporte y Vías Urbanas,Urbana consolidada,2,2.07,0,2.67,4,VIABLE
+1309354.09,4577,248,Transporte y Vías Urbanas,Urbana consolidada,1,18.83,0,11.33,29,RIESGO_MODERADO
+226442.4,291,98,Seguridad Ciudadana,Periurbana,1,2.96,0,4.7,18,VIABLE
+842978.12,4027,205,Transporte y Vías Urbanas,Urbana consolidada,2,2.01,0,5.52,2,VIABLE
+1837129.51,8688,230,Saneamiento y Agua Potable,Urbana consolidada,2,5.19,1,18.09,45,RIESGO_MODERADO
+634320.14,2559,120,Seguridad Ciudadana,Urbana consolidada,2,16.33,0,6.5,75,RIESGO_MODERADO
+947941.11,2215,172,Transporte y Vías Urbanas,Urbana consolidada,2,11.95,1,23.49,180,CRITICO
+956013.42,1927,149,Transporte y Vías Urbanas,Rural,2,6.51,0,6.09,50,RIESGO_MODERADO
+237530.28,643,270,Transporte y Vías Urbanas,Periurbana,3,12.41,1,31.62,232,CRITICO
+2030671.34,3167,141,Transporte y Vías Urbanas,Periurbana,1,2.61,1,22.24,78,RIESGO_MODERADO
+291082.0,721,199,Transporte y Vías Urbanas,Urbana consolidada,1,1.57,0,1.93,20,VIABLE
+1440356.41,5623,200,Saneamiento y Agua Potable,Periurbana,3,5.0,0,3.86,24,VIABLE
+873063.05,1959,232,Saneamiento y Agua Potable,Urbana consolidada,3,6.03,0,3.71,34,RIESGO_MODERADO
+724319.98,1589,188,Seguridad Ciudadana,Urbana consolidada,1,8.2,0,3.84,18,VIABLE
+1045601.33,2109,134,Salud y Postas Médicas,Urbana consolidada,2,5.84,0,3.61,1,VIABLE
+1940219.35,5320,229,Transporte y Vías Urbanas,Urbana consolidada,1,10.1,1,21.73,84,RIESGO_MODERADO
+2047465.39,4701,351,Saneamiento y Agua Potable,Periurbana,1,17.65,1,34.11,214,CRITICO
+668433.9,1689,224,Transporte y Vías Urbanas,Periurbana,2,7.61,0,5.58,46,RIESGO_MODERADO
+849142.84,2904,267,Saneamiento y Agua Potable,Urbana consolidada,1,7.53,0,3.18,22,VIABLE
+454300.35,1132,74,Transporte y Vías Urbanas,Periurbana,3,12.96,1,37.2,94,CRITICO
+264250.04,455,311,Saneamiento y Agua Potable,Rural,1,6.89,0,7.79,7,VIABLE
+2317142.83,2951,303,Transporte y Vías Urbanas,Urbana consolidada,2,6.14,1,20.78,26,RIESGO_MODERADO
+366763.45,755,178,Seguridad Ciudadana,Urbana consolidada,1,8.73,0,7.56,0,VIABLE
+507996.42,1053,238,Saneamiento y Agua Potable,Periurbana,1,4.75,0,3.89,22,VIABLE
+1385350.55,3927,325,Transporte y Vías Urbanas,Urbana consolidada,1,1.43,0,4.93,14,VIABLE
+292751.07,683,180,Saneamiento y Agua Potable,Urbana consolidada,1,14.55,0,9.4,22,VIABLE
+1516758.67,2059,127,Salud y Postas Médicas,Urbana consolidada,3,15.38,0,8.17,40,RIESGO_MODERADO
+460757.95,1518,245,Saneamiento y Agua Potable,Urbana consolidada,1,5.05,0,4.94,20,VIABLE
+354057.09,755,168,Saneamiento y Agua Potable,Periurbana,3,22.98,1,41.01,227,CRITICO
+583850.01,762,225,Salud y Postas Médicas,Urbana consolidada,2,7.82,0,3.35,10,VIABLE
+457737.21,742,164,Transporte y Vías Urbanas,Urbana consolidada,2,9.04,0,5.24,0,VIABLE
+1217670.98,2181,92,Seguridad Ciudadana,Periurbana,1,13.37,0,7.46,67,RIESGO_MODERADO
+3528281.58,6808,205,Seguridad Ciudadana,Periurbana,3,6.4,1,19.74,69,RIESGO_MODERADO
+1806048.61,9515,247,Transporte y Vías Urbanas,Urbana consolidada,3,3.65,1,22.89,27,RIESGO_MODERADO
+1496209.56,2843,126,Transporte y Vías Urbanas,Rural,1,10.19,0,3.22,34,RIESGO_MODERADO
+565925.52,1422,304,Espacio Público y Parques,Urbana consolidada,3,1.84,0,6.33,1,VIABLE
+792526.34,2902,49,Salud y Postas Médicas,Urbana consolidada,2,6.22,0,4.48,10,VIABLE
+1069958.89,2476,134,Transporte y Vías Urbanas,Periurbana,1,4.2,0,2.16,10,VIABLE
+919615.17,1910,213,Saneamiento y Agua Potable,Rural,2,7.84,0,6.63,84,RIESGO_MODERADO
+1101450.71,1761,211,Seguridad Ciudadana,Periurbana,1,11.2,1,22.48,35,RIESGO_MODERADO
+327875.57,593,241,Seguridad Ciudadana,Periurbana,1,15.71,1,30.97,64,RIESGO_MODERADO
+4711295.38,14218,269,Educación e Infraestructura,Urbana consolidada,1,5.92,0,5.72,20,VIABLE
+286730.34,519,298,Saneamiento y Agua Potable,Urbana consolidada,1,14.11,0,4.51,78,RIESGO_MODERADO
+833618.61,1722,160,Transporte y Vías Urbanas,Rural,1,5.67,0,2.49,1,VIABLE
+1998394.09,4589,255,Seguridad Ciudadana,Urbana consolidada,2,16.33,1,29.69,217,CRITICO
+484538.32,860,141,Saneamiento y Agua Potable,Rural,1,3.02,0,2.76,23,VIABLE
+2436874.42,5321,302,Salud y Postas Médicas,Urbana consolidada,2,19.92,1,42.31,184,CRITICO
+265641.82,451,170,Educación e Infraestructura,Periurbana,1,15.58,0,10.45,59,RIESGO_MODERADO
+483932.12,641,166,Saneamiento y Agua Potable,Periurbana,2,12.62,1,28.72,158,CRITICO
+113732.89,217,181,Transporte y Vías Urbanas,Periurbana,2,6.47,0,6.91,48,RIESGO_MODERADO
+2389543.54,4158,155,Saneamiento y Agua Potable,Urbana consolidada,3,5.11,0,5.54,18,VIABLE
+321413.16,909,158,Educación e Infraestructura,Periurbana,1,13.59,0,6.45,71,RIESGO_MODERADO
+504019.54,1303,75,Seguridad Ciudadana,Periurbana,3,3.93,0,5.89,72,RIESGO_MODERADO
+1868853.83,7311,189,Saneamiento y Agua Potable,Urbana consolidada,3,16.87,1,39.99,93,CRITICO
+1276223.44,2281,196,Salud y Postas Médicas,Urbana consolidada,2,11.73,0,8.43,68,RIESGO_MODERADO
+2436920.24,6688,266,Transporte y Vías Urbanas,Rural,2,34.42,1,62.29,171,CRITICO
+1673036.52,5249,178,Salud y Postas Médicas,Rural,1,11.55,0,3.95,26,RIESGO_MODERADO
+2081748.21,2708,123,Transporte y Vías Urbanas,Urbana consolidada,1,4.21,0,1.86,20,VIABLE
+605295.76,1530,187,Saneamiento y Agua Potable,Periurbana,1,8.53,0,3.94,20,VIABLE
+863066.8,2549,152,Educación e Infraestructura,Urbana consolidada,1,5.62,0,7.36,4,VIABLE
+1811638.17,5144,145,Salud y Postas Médicas,Rural,2,1.06,1,22.24,133,CRITICO
+1833444.12,3178,332,Transporte y Vías Urbanas,Urbana consolidada,3,9.97,1,28.29,70,RIESGO_MODERADO
+2181198.54,4380,199,Saneamiento y Agua Potable,Periurbana,1,4.95,0,2.07,38,RIESGO_MODERADO
+467335.84,875,391,Saneamiento y Agua Potable,Urbana consolidada,3,7.67,0,7.91,6,VIABLE
+347079.07,919,160,Salud y Postas Médicas,Rural,1,15.09,0,9.22,64,RIESGO_MODERADO
+300858.83,391,110,Espacio Público y Parques,Periurbana,2,6.72,0,3.42,79,RIESGO_MODERADO
+607815.88,1595,172,Transporte y Vías Urbanas,Urbana consolidada,2,9.65,0,6.87,18,VIABLE
+849562.26,3738,136,Transporte y Vías Urbanas,Periurbana,2,8.31,0,6.62,19,VIABLE
+317903.79,576,238,Saneamiento y Agua Potable,Rural,2,7.78,0,6.14,32,RIESGO_MODERADO
+788355.62,1051,157,Transporte y Vías Urbanas,Urbana consolidada,2,22.64,0,8.86,61,RIESGO_MODERADO
+1642050.75,5536,209,Salud y Postas Médicas,Periurbana,1,5.73,0,2.27,10,VIABLE
+2265182.36,8205,274,Saneamiento y Agua Potable,Periurbana,2,31.52,1,56.69,174,CRITICO
+548300.97,2871,182,Saneamiento y Agua Potable,Urbana consolidada,2,8.52,0,6.86,20,VIABLE
+1550579.22,2113,220,Transporte y Vías Urbanas,Periurbana,2,13.11,1,28.49,166,CRITICO
+294884.78,576,144,Salud y Postas Médicas,Periurbana,2,6.67,0,6.33,38,RIESGO_MODERADO
+513464.12,791,255,Educación e Infraestructura,Periurbana,3,4.5,1,21.02,158,CRITICO
+1023596.34,1287,316,Transporte y Vías Urbanas,Periurbana,2,14.34,1,30.2,147,CRITICO
+520119.03,777,175,Seguridad Ciudadana,Urbana consolidada,2,20.31,0,6.81,30,RIESGO_MODERADO
+461426.01,803,120,Saneamiento y Agua Potable,Periurbana,2,20.91,1,40.15,135,CRITICO
+1183833.48,3316,210,Transporte y Vías Urbanas,Rural,1,19.54,0,8.46,72,RIESGO_MODERADO
+381063.36,1655,310,Transporte y Vías Urbanas,Urbana consolidada,1,14.04,0,4.8,65,RIESGO_MODERADO
+1027226.79,2740,185,Educación e Infraestructura,Urbana consolidada,1,12.35,0,3.86,10,VIABLE
+844119.78,4186,299,Transporte y Vías Urbanas,Periurbana,2,13.17,1,28.7,257,CRITICO
+1468907.52,2082,145,Educación e Infraestructura,Periurbana,1,2.11,0,2.34,1,VIABLE
+1832671.52,2831,200,Educación e Infraestructura,Urbana consolidada,2,2.92,0,6.29,48,RIESGO_MODERADO
+1047313.54,1749,272,Transporte y Vías Urbanas,Rural,3,2.9,1,18.11,52,RIESGO_MODERADO
+593839.78,1112,211,Salud y Postas Médicas,Periurbana,2,8.29,0,2.56,44,RIESGO_MODERADO
+2299650.18,4063,189,Educación e Infraestructura,Periurbana,3,9.54,1,24.96,216,CRITICO
+1107999.09,2306,323,Saneamiento y Agua Potable,Periurbana,2,8.82,0,8.4,46,RIESGO_MODERADO
+420261.71,1885,187,Educación e Infraestructura,Rural,2,3.91,0,2.8,20,VIABLE
+1083544.04,1368,209,Saneamiento y Agua Potable,Urbana consolidada,1,7.32,0,7.97,3,VIABLE
+534504.71,1798,174,Espacio Público y Parques,Periurbana,3,5.97,0,2.2,7,VIABLE
+95581.12,461,124,Transporte y Vías Urbanas,Periurbana,2,12.95,1,25.49,185,CRITICO
+391257.28,783,202,Saneamiento y Agua Potable,Rural,2,5.66,0,7.62,61,RIESGO_MODERADO
+659378.68,2600,283,Transporte y Vías Urbanas,Urbana consolidada,1,1.48,0,6.13,6,VIABLE
+614084.39,1481,184,Educación e Infraestructura,Periurbana,1,12.57,0,3.91,30,RIESGO_MODERADO
+232252.65,333,273,Transporte y Vías Urbanas,Urbana consolidada,3,13.97,0,4.73,32,RIESGO_MODERADO
+676831.75,1539,133,Saneamiento y Agua Potable,Urbana consolidada,3,1.51,0,0.92,11,VIABLE
+1361282.9,4070,219,Educación e Infraestructura,Rural,2,7.72,0,3.67,54,RIESGO_MODERADO
+332344.43,658,234,Seguridad Ciudadana,Urbana consolidada,3,9.3,0,5.45,18,VIABLE
+1167915.04,3966,237,Espacio Público y Parques,Periurbana,2,6.0,0,3.21,50,RIESGO_MODERADO
+149602.21,379,172,Saneamiento y Agua Potable,Periurbana,3,18.96,1,32.48,75,RIESGO_MODERADO
+1460427.85,1888,71,Saneamiento y Agua Potable,Urbana consolidada,3,18.52,0,8.16,26,RIESGO_MODERADO
+556684.9,1741,181,Salud y Postas Médicas,Urbana consolidada,3,6.05,0,4.14,17,VIABLE
+277429.94,405,249,Salud y Postas Médicas,Urbana consolidada,2,7.99,0,2.48,8,VIABLE
+2511899.61,3343,268,Saneamiento y Agua Potable,Periurbana,3,39.48,1,63.87,186,CRITICO
+1406969.59,1766,198,Seguridad Ciudadana,Periurbana,2,9.71,0,4.09,75,RIESGO_MODERADO
+2174698.39,12056,314,Transporte y Vías Urbanas,Urbana consolidada,3,16.39,1,32.15,246,CRITICO
+1222964.68,6714,127,Transporte y Vías Urbanas,Urbana consolidada,2,3.86,0,4.44,1,VIABLE
+1263884.43,4780,232,Seguridad Ciudadana,Urbana consolidada,3,9.67,0,4.16,5,VIABLE
+654817.38,1187,309,Salud y Postas Médicas,Periurbana,2,14.79,1,28.6,219,CRITICO
+1351448.54,2661,315,Espacio Público y Parques,Rural,1,7.63,0,3.61,3,VIABLE
+857251.14,1219,335,Transporte y Vías Urbanas,Periurbana,2,5.05,0,5.61,1,VIABLE
+520346.04,2367,104,Espacio Público y Parques,Urbana consolidada,2,21.5,0,11.99,52,RIESGO_MODERADO
+779615.17,1685,166,Espacio Público y Parques,Periurbana,1,3.53,0,6.39,22,VIABLE
+293710.95,438,198,Transporte y Vías Urbanas,Urbana consolidada,3,9.55,0,6.11,1,VIABLE
+902123.26,1556,254,Transporte y Vías Urbanas,Periurbana,3,12.36,1,29.88,98,CRITICO
+1370362.56,3495,121,Transporte y Vías Urbanas,Urbana consolidada,1,8.57,0,8.11,21,VIABLE
+1032127.33,3387,220,Seguridad Ciudadana,Urbana consolidada,1,4.89,0,1.55,4,VIABLE
+1535791.07,3523,149,Transporte y Vías Urbanas,Urbana consolidada,1,5.21,0,5.35,11,VIABLE
+698340.33,2528,186,Transporte y Vías Urbanas,Urbana consolidada,2,8.38,0,8.49,9,VIABLE
+950390.4,3365,85,Transporte y Vías Urbanas,Periurbana,2,4.56,0,6.07,7,VIABLE
+946349.19,1374,242,Saneamiento y Agua Potable,Periurbana,2,26.35,1,51.49,245,CRITICO
+5199643.9,24094,134,Saneamiento y Agua Potable,Urbana consolidada,1,14.05,0,7.13,64,RIESGO_MODERADO
+287544.2,408,214,Saneamiento y Agua Potable,Periurbana,2,19.5,1,35.31,96,CRITICO
+5629536.64,21204,187,Espacio Público y Parques,Rural,3,6.45,1,25.26,234,CRITICO
+480538.8,1691,133,Transporte y Vías Urbanas,Periurbana,2,14.91,1,39.59,164,CRITICO
+683508.51,2873,235,Espacio Público y Parques,Urbana consolidada,3,4.57,0,1.49,24,VIABLE
+1183996.13,3096,222,Saneamiento y Agua Potable,Periurbana,2,12.25,1,26.94,169,CRITICO
+1551368.45,2977,119,Saneamiento y Agua Potable,Urbana consolidada,3,16.62,1,33.59,46,RIESGO_MODERADO
+901756.39,1991,45,Transporte y Vías Urbanas,Periurbana,1,2.72,0,2.06,15,VIABLE
+1126999.31,1553,213,Transporte y Vías Urbanas,Urbana consolidada,1,5.29,0,6.29,0,VIABLE
+3210193.57,5579,249,Transporte y Vías Urbanas,Urbana consolidada,3,1.61,1,14.89,183,CRITICO
+9446469.71,23655,232,Salud y Postas Médicas,Urbana consolidada,1,12.84,1,32.01,51,RIESGO_MODERADO
+1335219.44,2934,328,Seguridad Ciudadana,Urbana consolidada,1,1.98,0,0.96,16,VIABLE
+1725573.73,5457,271,Transporte y Vías Urbanas,Periurbana,2,26.34,1,50.41,115,CRITICO
+848087.46,1382,90,Seguridad Ciudadana,Urbana consolidada,2,9.55,0,7.35,11,VIABLE
+4078986.74,8048,311,Transporte y Vías Urbanas,Periurbana,1,6.66,0,5.68,60,RIESGO_MODERADO
+837962.99,1469,99,Transporte y Vías Urbanas,Urbana consolidada,2,8.13,0,3.49,20,VIABLE
+1460474.75,7325,315,Transporte y Vías Urbanas,Periurbana,3,7.87,0,7.53,73,RIESGO_MODERADO
+365291.26,505,305,Transporte y Vías Urbanas,Periurbana,1,9.48,0,5.74,14,VIABLE
+86544.27,120,306,Transporte y Vías Urbanas,Rural,3,4.96,1,14.7,81,RIESGO_MODERADO
+7028823.8,11186,209,Transporte y Vías Urbanas,Urbana consolidada,3,10.22,1,25.03,152,CRITICO
+2405968.84,10362,196,Seguridad Ciudadana,Urbana consolidada,2,17.61,1,42.79,94,CRITICO
+2104809.42,5327,125,Salud y Postas Médicas,Periurbana,2,11.36,1,22.28,228,CRITICO
+405304.74,1157,119,Educación e Infraestructura,Urbana consolidada,1,4.76,0,6.21,22,VIABLE
+217579.3,492,329,Educación e Infraestructura,Urbana consolidada,3,16.71,1,31.09,62,RIESGO_MODERADO
+752646.4,3093,203,Saneamiento y Agua Potable,Rural,3,8.9,0,4.2,60,RIESGO_MODERADO
+1033218.98,3212,181,Transporte y Vías Urbanas,Urbana consolidada,2,8.45,0,2.72,8,VIABLE
+1769888.43,3869,197,Saneamiento y Agua Potable,Periurbana,2,14.32,1,30.8,225,CRITICO
+940248.26,1311,137,Espacio Público y Parques,Urbana consolidada,3,3.95,0,1.82,15,VIABLE
+2913535.05,4168,190,Saneamiento y Agua Potable,Periurbana,3,3.34,1,21.22,157,CRITICO
+1268772.0,2171,238,Saneamiento y Agua Potable,Urbana consolidada,2,11.95,1,23.86,138,CRITICO
+1227141.7,6333,179,Transporte y Vías Urbanas,Periurbana,1,5.13,0,4.44,4,VIABLE
+2623189.81,5368,197,Transporte y Vías Urbanas,Periurbana,1,9.25,0,2.99,67,RIESGO_MODERADO
+514059.14,678,176,Espacio Público y Parques,Urbana consolidada,3,17.44,0,8.64,29,RIESGO_MODERADO
+1312817.94,3949,209,Educación e Infraestructura,Periurbana,1,19.37,0,11.42,75,RIESGO_MODERADO
+568417.83,2821,178,Seguridad Ciudadana,Rural,1,13.43,0,7.43,80,RIESGO_MODERADO
+510946.39,1330,154,Salud y Postas Médicas,Urbana consolidada,2,8.0,0,5.42,2,VIABLE
+3583879.04,7884,210,Espacio Público y Parques,Urbana consolidada,2,6.38,1,18.11,43,RIESGO_MODERADO
+2466850.28,3186,253,Saneamiento y Agua Potable,Urbana consolidada,3,12.3,1,31.54,147,CRITICO
+1503030.72,1898,181,Transporte y Vías Urbanas,Urbana consolidada,1,4.99,0,7.11,23,VIABLE
+2992378.84,12920,215,Espacio Público y Parques,Periurbana,3,17.02,1,31.74,253,CRITICO
+1303959.44,2298,154,Transporte y Vías Urbanas,Urbana consolidada,3,8.69,0,3.83,7,VIABLE
+3114787.72,7288,226,Transporte y Vías Urbanas,Urbana consolidada,1,10.5,1,31.28,60,RIESGO_MODERADO
+439945.5,714,224,Transporte y Vías Urbanas,Periurbana,2,14.5,1,35.38,138,CRITICO
+820860.37,1112,66,Seguridad Ciudadana,Urbana consolidada,3,3.4,0,2.22,12,VIABLE
+1315417.2,2032,215,Educación e Infraestructura,Urbana consolidada,2,4.02,0,5.51,16,VIABLE
+382067.64,827,231,Transporte y Vías Urbanas,Rural,2,23.03,1,38.78,241,CRITICO
+514904.87,2534,190,Salud y Postas Médicas,Periurbana,2,11.95,1,24.73,41,RIESGO_MODERADO
+310460.35,411,141,Saneamiento y Agua Potable,Urbana consolidada,3,3.74,0,5.06,19,VIABLE
+1712658.28,2254,276,Transporte y Vías Urbanas,Periurbana,1,18.02,0,7.7,34,RIESGO_MODERADO
+620879.02,1074,259,Espacio Público y Parques,Periurbana,2,12.25,1,23.26,138,CRITICO
+1191860.39,1634,136,Transporte y Vías Urbanas,Rural,3,3.37,0,2.35,26,RIESGO_MODERADO
+1495696.85,3888,237,Transporte y Vías Urbanas,Periurbana,2,39.17,1,62.25,142,CRITICO
+815666.34,2057,210,Saneamiento y Agua Potable,Urbana consolidada,1,4.62,0,2.05,5,VIABLE
+958369.86,1230,52,Salud y Postas Médicas,Rural,1,7.5,0,3.39,2,VIABLE
+1061078.03,2732,221,Transporte y Vías Urbanas,Urbana consolidada,2,10.11,1,28.34,49,RIESGO_MODERADO
+1370724.94,2969,104,Saneamiento y Agua Potable,Urbana consolidada,2,8.15,0,6.83,17,VIABLE
+3096149.4,8113,233,Transporte y Vías Urbanas,Urbana consolidada,1,25.7,1,41.28,252,CRITICO
+353905.2,1127,81,Seguridad Ciudadana,Urbana consolidada,2,3.94,0,3.22,4,VIABLE
+1017759.83,2257,233,Transporte y Vías Urbanas,Urbana consolidada,2,5.93,0,1.88,48,RIESGO_MODERADO
+323982.79,500,351,Educación e Infraestructura,Periurbana,1,11.96,1,33.84,37,RIESGO_MODERADO
+3400102.32,5331,192,Saneamiento y Agua Potable,Urbana consolidada,1,12.1,1,35.6,70,RIESGO_MODERADO
+185073.02,884,116,Transporte y Vías Urbanas,Rural,2,5.9,0,4.45,57,RIESGO_MODERADO
+1089560.67,2844,84,Salud y Postas Médicas,Urbana consolidada,1,4.13,0,4.77,22,VIABLE
+649330.06,954,118,Transporte y Vías Urbanas,Urbana consolidada,2,10.68,0,3.66,34,RIESGO_MODERADO
+564450.17,811,262,Transporte y Vías Urbanas,Urbana consolidada,1,8.52,0,5.77,0,VIABLE
+1770494.79,4627,212,Saneamiento y Agua Potable,Rural,1,11.77,1,31.16,66,RIESGO_MODERADO
+1504909.66,2225,83,Transporte y Vías Urbanas,Periurbana,3,15.03,1,29.17,26,RIESGO_MODERADO
+401950.15,640,169,Educación e Infraestructura,Urbana consolidada,2,4.26,0,2.83,20,VIABLE
+1416170.37,3570,176,Salud y Postas Médicas,Urbana consolidada,2,14.38,0,6.03,40,RIESGO_MODERADO
+1211794.77,2374,242,Transporte y Vías Urbanas,Periurbana,2,4.31,0,6.6,46,RIESGO_MODERADO
+484554.35,1688,152,Educación e Infraestructura,Rural,2,5.73,0,5.46,75,RIESGO_MODERADO
+257629.94,1299,211,Saneamiento y Agua Potable,Urbana consolidada,2,17.81,1,34.58,47,RIESGO_MODERADO
+1892408.68,5959,203,Transporte y Vías Urbanas,Periurbana,2,9.26,1,31.5,182,CRITICO
+1737105.55,3237,89,Saneamiento y Agua Potable,Urbana consolidada,2,6.18,0,7.55,8,VIABLE
+1483706.12,2240,131,Espacio Público y Parques,Urbana consolidada,2,14.87,0,6.23,37,RIESGO_MODERADO
+586943.3,786,281,Transporte y Vías Urbanas,Urbana consolidada,2,11.59,0,5.18,27,RIESGO_MODERADO
+2741348.43,3743,250,Transporte y Vías Urbanas,Rural,2,19.12,1,33.02,113,CRITICO
+15000000.0,71808,443,Espacio Público y Parques,Periurbana,2,10.94,1,25.18,184,CRITICO
+1077434.51,1510,196,Salud y Postas Médicas,Urbana consolidada,2,17.5,1,39.23,178,CRITICO
+1495169.07,6109,89,Saneamiento y Agua Potable,Urbana consolidada,1,9.77,0,4.53,19,VIABLE
+451813.61,1951,168,Transporte y Vías Urbanas,Urbana consolidada,1,10.58,0,7.74,15,VIABLE
+455277.97,1219,217,Espacio Público y Parques,Periurbana,3,20.59,1,42.12,119,CRITICO
+4426856.91,12270,305,Seguridad Ciudadana,Urbana consolidada,2,4.88,1,19.0,45,RIESGO_MODERADO
+6997445.42,9942,370,Seguridad Ciudadana,Periurbana,2,20.51,1,43.49,247,CRITICO
+745602.34,1786,219,Salud y Postas Médicas,Periurbana,3,6.33,0,6.23,80,RIESGO_MODERADO
+518149.11,1435,230,Transporte y Vías Urbanas,Urbana consolidada,3,1.24,0,2.57,5,VIABLE
+408538.43,794,148,Saneamiento y Agua Potable,Periurbana,3,13.66,1,33.24,88,CRITICO
+538165.65,703,289,Saneamiento y Agua Potable,Urbana consolidada,2,2.81,0,2.86,6,VIABLE
+969355.47,2733,129,Transporte y Vías Urbanas,Urbana consolidada,2,8.43,0,6.04,12,VIABLE
+304404.55,439,209,Transporte y Vías Urbanas,Urbana consolidada,3,17.69,0,9.42,28,RIESGO_MODERADO
+490646.68,776,171,Espacio Público y Parques,Urbana consolidada,2,7.15,0,7.72,6,VIABLE
+2140887.57,4546,305,Transporte y Vías Urbanas,Urbana consolidada,2,11.31,1,29.05,203,CRITICO
+792144.9,1234,185,Salud y Postas Médicas,Rural,2,14.58,1,31.23,180,CRITICO
+457457.35,936,241,Saneamiento y Agua Potable,Urbana consolidada,1,12.82,0,5.88,61,RIESGO_MODERADO
+321807.86,523,137,Transporte y Vías Urbanas,Urbana consolidada,2,8.0,0,6.07,14,VIABLE
+2377229.71,5960,305,Saneamiento y Agua Potable,Urbana consolidada,2,4.59,1,18.59,74,RIESGO_MODERADO
+359186.67,756,255,Espacio Público y Parques,Urbana consolidada,2,16.29,1,32.6,160,CRITICO
+804490.35,2590,305,Transporte y Vías Urbanas,Urbana consolidada,3,4.4,0,3.14,15,VIABLE
+2231048.24,5941,199,Transporte y Vías Urbanas,Rural,2,4.52,1,20.38,39,RIESGO_MODERADO
+1477999.08,1857,271,Saneamiento y Agua Potable,Periurbana,2,20.61,1,45.91,176,CRITICO
+1184235.18,2152,253,Transporte y Vías Urbanas,Urbana consolidada,2,8.27,0,6.18,32,RIESGO_MODERADO
+1194456.53,2100,284,Transporte y Vías Urbanas,Urbana consolidada,3,11.75,1,31.52,163,CRITICO
+391528.06,1024,242,Seguridad Ciudadana,Urbana consolidada,1,6.4,0,7.73,17,VIABLE
+479760.07,855,205,Espacio Público y Parques,Urbana consolidada,2,18.98,0,11.49,38,RIESGO_MODERADO
+602821.57,1775,276,Salud y Postas Médicas,Urbana consolidada,2,8.93,0,5.58,5,VIABLE
+80000.0,194,45,Espacio Público y Parques,Urbana consolidada,3,9.39,0,5.69,4,VIABLE
+629506.03,799,172,Transporte y Vías Urbanas,Periurbana,3,12.49,1,27.68,245,CRITICO
+835433.14,1276,138,Espacio Público y Parques,Periurbana,1,9.6,0,8.64,15,VIABLE
+848029.63,1893,279,Saneamiento y Agua Potable,Urbana consolidada,2,5.2,0,7.14,17,VIABLE
+818208.01,1552,185,Transporte y Vías Urbanas,Urbana consolidada,1,8.08,0,6.58,14,VIABLE
+1096616.11,2945,255,Saneamiento y Agua Potable,Urbana consolidada,2,6.58,0,3.11,20,VIABLE
+1163221.49,1887,214,Saneamiento y Agua Potable,Rural,2,4.45,0,2.55,76,RIESGO_MODERADO
+3943598.0,10923,327,Seguridad Ciudadana,Urbana consolidada,3,37.87,1,60.13,203,CRITICO
+1051067.18,1496,260,Salud y Postas Médicas,Urbana consolidada,1,13.09,0,6.0,52,RIESGO_MODERADO
+1964398.61,2561,218,Transporte y Vías Urbanas,Urbana consolidada,2,3.59,0,2.09,47,RIESGO_MODERADO
+538443.42,904,230,Transporte y Vías Urbanas,Periurbana,3,40.0,1,59.04,198,CRITICO
+1228188.11,4030,206,Espacio Público y Parques,Urbana consolidada,1,1.51,0,1.49,16,VIABLE
+1191135.67,2639,174,Transporte y Vías Urbanas,Urbana consolidada,3,8.45,0,7.17,5,VIABLE
+749828.89,2087,233,Seguridad Ciudadana,Periurbana,1,9.92,0,3.29,1,VIABLE
+199279.01,488,298,Seguridad Ciudadana,Urbana consolidada,3,4.09,0,4.21,39,RIESGO_MODERADO
+276217.29,984,251,Saneamiento y Agua Potable,Periurbana,3,11.06,1,25.62,88,CRITICO
+1378471.81,2484,153,Transporte y Vías Urbanas,Urbana consolidada,3,4.28,0,6.43,16,VIABLE
+881064.32,2311,260,Espacio Público y Parques,Urbana consolidada,1,19.47,0,9.59,40,RIESGO_MODERADO
+740674.46,2616,141,Salud y Postas Médicas,Periurbana,2,7.33,0,4.55,65,RIESGO_MODERADO
+503216.15,660,45,Espacio Público y Parques,Urbana consolidada,2,15.48,0,5.99,44,RIESGO_MODERADO
+1002636.05,5060,134,Educación e Infraestructura,Periurbana,1,16.84,0,8.25,68,RIESGO_MODERADO
+1546528.69,1935,222,Educación e Infraestructura,Periurbana,3,8.03,0,7.28,33,RIESGO_MODERADO
+4910723.59,20087,164,Transporte y Vías Urbanas,Urbana consolidada,3,8.99,0,5.84,66,RIESGO_MODERADO
+918327.3,2017,213,Espacio Público y Parques,Urbana consolidada,1,7.92,0,4.63,3,VIABLE
+796148.54,1654,279,Transporte y Vías Urbanas,Urbana consolidada,2,9.18,0,7.33,75,RIESGO_MODERADO
+1190796.38,1861,198,Seguridad Ciudadana,Urbana consolidada,3,8.87,0,3.76,10,VIABLE
+2656263.61,3556,259,Educación e Infraestructura,Urbana consolidada,1,18.08,1,33.71,193,CRITICO
+7411395.32,17686,288,Transporte y Vías Urbanas,Urbana consolidada,2,1.81,1,13.07,41,RIESGO_MODERADO
+1549445.54,2508,45,Transporte y Vías Urbanas,Urbana consolidada,2,9.74,0,7.8,20,VIABLE
+258501.9,1323,205,Saneamiento y Agua Potable,Periurbana,2,4.01,0,5.19,27,RIESGO_MODERADO
+962184.34,4931,147,Seguridad Ciudadana,Periurbana,2,17.91,1,36.98,27,RIESGO_MODERADO
+340109.19,876,209,Educación e Infraestructura,Urbana consolidada,2,7.17,0,5.52,11,VIABLE
+397261.99,948,53,Salud y Postas Médicas,Periurbana,1,7.17,0,7.31,20,VIABLE
+4787983.97,11426,276,Transporte y Vías Urbanas,Urbana consolidada,3,17.81,1,33.74,252,CRITICO
+691808.4,1571,233,Espacio Público y Parques,Urbana consolidada,1,3.85,0,6.05,1,VIABLE
+498331.4,882,289,Educación e Infraestructura,Periurbana,2,7.8,1,30.12,40,RIESGO_MODERADO
+3244873.09,10312,254,Transporte y Vías Urbanas,Periurbana,2,3.64,1,15.81,109,CRITICO
+1018490.51,2450,108,Seguridad Ciudadana,Urbana consolidada,2,3.41,0,6.17,21,VIABLE
+343962.24,892,192,Transporte y Vías Urbanas,Periurbana,3,5.5,0,4.8,65,RIESGO_MODERADO
+1004969.46,1263,64,Salud y Postas Médicas,Periurbana,2,10.27,1,26.99,201,CRITICO
+272399.81,956,56,Educación e Infraestructura,Periurbana,3,3.07,0,1.39,44,RIESGO_MODERADO
+441409.61,2077,209,Seguridad Ciudadana,Rural,2,18.51,0,7.74,74,RIESGO_MODERADO
+1130575.8,3816,243,Educación e Infraestructura,Urbana consolidada,1,5.75,0,2.35,12,VIABLE
+97024.55,154,201,Espacio Público y Parques,Periurbana,1,14.7,0,9.4,34,RIESGO_MODERADO
+1820067.45,6394,299,Espacio Público y Parques,Urbana consolidada,3,5.0,1,18.86,219,CRITICO
+1204507.1,2207,261,Transporte y Vías Urbanas,Urbana consolidada,2,2.83,0,3.97,3,VIABLE
+2042288.2,3400,259,Transporte y Vías Urbanas,Periurbana,1,4.29,1,20.87,56,RIESGO_MODERADO
+676379.02,1923,81,Saneamiento y Agua Potable,Rural,2,4.29,0,3.75,53,RIESGO_MODERADO
+1405144.66,2032,159,Saneamiento y Agua Potable,Urbana consolidada,3,11.76,1,34.38,29,RIESGO_MODERADO
+396539.7,515,203,Transporte y Vías Urbanas,Urbana consolidada,2,14.59,1,26.29,82,RIESGO_MODERADO
+420514.22,1241,90,Saneamiento y Agua Potable,Periurbana,1,7.0,0,5.85,4,VIABLE
+1057833.52,2692,116,Saneamiento y Agua Potable,Urbana consolidada,3,2.82,0,4.83,6,VIABLE
+988773.36,1905,93,Transporte y Vías Urbanas,Urbana consolidada,1,5.47,0,4.49,16,VIABLE
+957369.36,2472,152,Espacio Público y Parques,Urbana consolidada,2,6.21,0,2.31,7,VIABLE
+3251247.71,4502,250,Transporte y Vías Urbanas,Urbana consolidada,1,9.03,0,3.97,30,RIESGO_MODERADO
+755608.18,952,280,Saneamiento y Agua Potable,Urbana consolidada,2,5.41,0,7.0,18,VIABLE
+1447547.76,3058,211,Educación e Infraestructura,Urbana consolidada,3,9.7,0,3.87,11,VIABLE
+1317288.02,2169,181,Transporte y Vías Urbanas,Urbana consolidada,2,4.88,0,3.09,0,VIABLE
+1114931.44,5210,129,Salud y Postas Médicas,Urbana consolidada,3,9.3,0,5.86,11,VIABLE
+1401421.7,2311,299,Seguridad Ciudadana,Periurbana,1,14.45,0,7.43,59,RIESGO_MODERADO
+203946.43,694,205,Espacio Público y Parques,Urbana consolidada,2,2.73,0,6.77,14,VIABLE
+588053.24,1349,244,Saneamiento y Agua Potable,Urbana consolidada,1,16.89,0,5.91,80,RIESGO_MODERADO
+2607865.93,3263,154,Transporte y Vías Urbanas,Periurbana,1,13.48,1,36.17,82,RIESGO_MODERADO
+743539.7,2468,108,Transporte y Vías Urbanas,Rural,2,11.26,1,32.92,187,CRITICO
+1812667.17,2645,231,Espacio Público y Parques,Periurbana,1,12.39,1,31.49,226,CRITICO
+1479300.76,6692,216,Transporte y Vías Urbanas,Urbana consolidada,1,4.05,0,5.81,20,VIABLE
+80000.0,120,271,Seguridad Ciudadana,Urbana consolidada,2,15.55,1,37.14,31,RIESGO_MODERADO
+298117.61,1258,142,Transporte y Vías Urbanas,Periurbana,2,10.89,1,21.2,237,CRITICO
+532196.1,2854,175,Educación e Infraestructura,Periurbana,2,29.13,1,45.08,26,RIESGO_MODERADO
+524816.97,2203,156,Transporte y Vías Urbanas,Periurbana,2,11.31,1,32.28,172,CRITICO
+646446.56,1032,267,Seguridad Ciudadana,Urbana consolidada,2,5.88,0,2.65,16,VIABLE
+656261.06,1642,138,Transporte y Vías Urbanas,Rural,2,6.13,0,6.36,52,RIESGO_MODERADO
+465038.7,1683,246,Saneamiento y Agua Potable,Periurbana,3,17.81,1,36.95,210,CRITICO
+531281.94,824,188,Transporte y Vías Urbanas,Periurbana,2,12.67,1,34.65,244,CRITICO
+166906.08,283,225,Saneamiento y Agua Potable,Urbana consolidada,3,5.88,0,7.01,3,VIABLE
+5523894.8,23338,370,Educación e Infraestructura,Urbana consolidada,3,10.47,1,28.66,161,CRITICO
+3368593.72,6257,275,Transporte y Vías Urbanas,Periurbana,2,10.4,1,31.6,127,CRITICO
+2119451.57,4497,354,Transporte y Vías Urbanas,Urbana consolidada,2,5.47,0,6.24,36,RIESGO_MODERADO
+894247.01,1230,223,Saneamiento y Agua Potable,Urbana consolidada,2,8.03,0,3.89,4,VIABLE
+424726.96,589,62,Educación e Infraestructura,Urbana consolidada,2,6.29,0,2.52,22,VIABLE
+8621940.62,19400,353,Espacio Público y Parques,Urbana consolidada,1,4.67,0,4.54,15,VIABLE
+412481.37,787,175,Educación e Infraestructura,Periurbana,2,6.37,0,6.42,26,RIESGO_MODERADO
+3486009.41,8144,180,Educación e Infraestructura,Periurbana,1,5.47,0,5.31,56,RIESGO_MODERADO
+1270514.62,4077,190,Salud y Postas Médicas,Urbana consolidada,2,6.22,0,3.86,12,VIABLE
+423561.87,679,128,Saneamiento y Agua Potable,Urbana consolidada,1,1.35,0,3.12,24,VIABLE
+461163.16,767,220,Espacio Público y Parques,Urbana consolidada,1,19.23,0,10.06,49,RIESGO_MODERADO
+658332.25,2797,213,Espacio Público y Parques,Urbana consolidada,1,1.44,0,4.04,16,VIABLE
+547679.46,799,254,Espacio Público y Parques,Urbana consolidada,3,10.98,1,30.48,232,CRITICO
+269025.99,360,231,Transporte y Vías Urbanas,Urbana consolidada,1,6.48,0,4.5,17,VIABLE
+1406775.07,3234,251,Transporte y Vías Urbanas,Urbana consolidada,3,4.8,0,7.07,0,VIABLE
+420177.74,1114,92,Transporte y Vías Urbanas,Urbana consolidada,3,4.5,0,3.55,23,VIABLE
+1907096.76,6104,194,Seguridad Ciudadana,Periurbana,2,4.54,1,26.26,125,CRITICO
+817406.95,1222,59,Saneamiento y Agua Potable,Urbana consolidada,2,4.38,0,3.02,11,VIABLE
+1090884.57,3616,242,Transporte y Vías Urbanas,Urbana consolidada,2,7.66,0,4.99,5,VIABLE
+1065016.9,1500,199,Salud y Postas Médicas,Urbana consolidada,1,10.25,0,6.0,23,VIABLE
+676850.75,1740,212,Espacio Público y Parques,Periurbana,2,7.4,0,7.28,64,RIESGO_MODERADO
+878732.81,2895,189,Seguridad Ciudadana,Urbana consolidada,3,3.98,0,2.17,5,VIABLE
+1120861.95,1404,221,Transporte y Vías Urbanas,Urbana consolidada,2,6.09,0,3.25,4,VIABLE
+7668946.99,10776,166,Saneamiento y Agua Potable,Urbana consolidada,3,25.47,1,51.11,147,CRITICO
+301429.19,757,209,Transporte y Vías Urbanas,Urbana consolidada,2,4.45,0,6.04,22,VIABLE
+509075.01,1582,312,Saneamiento y Agua Potable,Periurbana,3,25.21,1,43.46,42,RIESGO_MODERADO
+675569.75,1121,219,Transporte y Vías Urbanas,Periurbana,3,17.59,1,40.89,227,CRITICO
+307951.0,553,155,Transporte y Vías Urbanas,Urbana consolidada,3,13.17,0,7.72,43,RIESGO_MODERADO
+287421.52,413,279,Espacio Público y Parques,Rural,1,21.78,0,7.55,35,RIESGO_MODERADO
+235435.07,420,208,Transporte y Vías Urbanas,Rural,2,4.57,0,6.1,12,VIABLE
+896446.51,2072,222,Transporte y Vías Urbanas,Urbana consolidada,2,8.94,0,5.39,8,VIABLE
+582052.89,1313,330,Saneamiento y Agua Potable,Urbana consolidada,3,9.47,0,6.9,65,RIESGO_MODERADO
+1094617.11,2960,232,Seguridad Ciudadana,Rural,3,7.97,0,3.12,47,RIESGO_MODERADO
+259806.79,820,140,Espacio Público y Parques,Urbana consolidada,2,4.24,0,5.36,21,VIABLE
+420549.77,1062,129,Transporte y Vías Urbanas,Periurbana,3,13.98,1,35.84,244,CRITICO
+2128700.9,3509,294,Transporte y Vías Urbanas,Urbana consolidada,3,12.83,1,33.05,159,CRITICO
+1840917.25,2307,97,Salud y Postas Médicas,Urbana consolidada,1,5.83,0,2.37,23,VIABLE
+229882.96,318,149,Educación e Infraestructura,Periurbana,3,3.02,0,4.17,20,VIABLE
+1964846.36,6383,166,Espacio Público y Parques,Urbana consolidada,1,2.9,0,3.6,23,VIABLE
+569380.93,852,259,Espacio Público y Parques,Urbana consolidada,2,5.2,0,2.12,10,VIABLE
+343786.27,1324,171,Saneamiento y Agua Potable,Urbana consolidada,2,6.38,0,5.46,13,VIABLE
+1790487.49,2461,223,Seguridad Ciudadana,Urbana consolidada,2,12.67,1,29.02,215,CRITICO
+2086574.24,6022,84,Seguridad Ciudadana,Periurbana,3,6.47,1,24.58,243,CRITICO
+98554.32,205,146,Salud y Postas Médicas,Urbana consolidada,3,4.17,0,2.95,23,VIABLE
+2013577.87,7400,211,Espacio Público y Parques,Urbana consolidada,3,4.08,0,5.9,57,RIESGO_MODERADO
+588528.17,1198,186,Transporte y Vías Urbanas,Rural,2,5.85,0,7.71,3,VIABLE
+573643.57,740,189,Espacio Público y Parques,Urbana consolidada,2,4.02,0,1.78,20,VIABLE
+655219.76,914,232,Educación e Infraestructura,Periurbana,3,3.29,0,5.8,64,RIESGO_MODERADO
+2393449.04,5692,237,Saneamiento y Agua Potable,Urbana consolidada,2,5.93,0,1.87,41,RIESGO_MODERADO
+2821930.08,11817,320,Espacio Público y Parques,Rural,1,5.96,1,27.61,200,CRITICO
+1223923.18,2189,163,Transporte y Vías Urbanas,Periurbana,1,2.57,0,0.91,45,RIESGO_MODERADO
+1815997.41,2883,201,Saneamiento y Agua Potable,Urbana consolidada,2,16.36,1,32.13,59,RIESGO_MODERADO
+6086003.95,8206,250,Transporte y Vías Urbanas,Rural,1,11.06,1,27.03,155,CRITICO
+878140.2,1352,304,Saneamiento y Agua Potable,Urbana consolidada,3,17.9,1,37.59,68,RIESGO_MODERADO
+358684.8,490,275,Transporte y Vías Urbanas,Urbana consolidada,2,5.73,0,7.4,9,VIABLE
+1428577.5,2235,110,Transporte y Vías Urbanas,Urbana consolidada,3,17.17,0,10.15,78,RIESGO_MODERADO
+1678959.23,4103,118,Educación e Infraestructura,Urbana consolidada,2,7.74,0,8.0,20,VIABLE
+774551.29,986,256,Educación e Infraestructura,Periurbana,1,11.86,0,4.55,64,RIESGO_MODERADO
+751795.41,2130,264,Educación e Infraestructura,Urbana consolidada,1,2.59,0,3.65,12,VIABLE
+6152807.88,13084,320,Espacio Público y Parques,Urbana consolidada,2,5.68,0,6.02,61,RIESGO_MODERADO
+709861.01,1252,89,Transporte y Vías Urbanas,Urbana consolidada,1,10.09,0,3.53,15,VIABLE
+401302.31,722,146,Transporte y Vías Urbanas,Rural,2,9.43,0,4.99,2,VIABLE
+80323.04,132,135,Transporte y Vías Urbanas,Urbana consolidada,1,11.66,0,3.59,7,VIABLE
+1872681.92,3494,192,Seguridad Ciudadana,Urbana consolidada,3,23.02,1,48.04,168,CRITICO
+2818969.6,10873,214,Saneamiento y Agua Potable,Periurbana,2,12.37,1,25.2,177,CRITICO
+314061.91,459,71,Espacio Público y Parques,Urbana consolidada,3,10.04,1,26.82,136,CRITICO
+1518668.05,2470,157,Espacio Público y Parques,Urbana consolidada,3,13.94,0,4.67,56,RIESGO_MODERADO
+664532.82,2467,153,Salud y Postas Médicas,Urbana consolidada,2,14.08,0,7.74,61,RIESGO_MODERADO
+957508.26,1634,49,Espacio Público y Parques,Urbana consolidada,3,5.34,0,4.09,9,VIABLE
+532563.47,1653,306,Espacio Público y Parques,Periurbana,1,13.64,0,7.91,79,RIESGO_MODERADO
+895952.83,1793,312,Saneamiento y Agua Potable,Rural,2,3.8,0,2.9,69,RIESGO_MODERADO
+1971927.6,4247,153,Transporte y Vías Urbanas,Urbana consolidada,3,0.93,0,3.8,49,RIESGO_MODERADO
+573980.81,1961,152,Espacio Público y Parques,Urbana consolidada,2,12.63,0,4.25,41,RIESGO_MODERADO
+493773.88,1144,152,Espacio Público y Parques,Periurbana,1,10.58,1,25.87,63,RIESGO_MODERADO
+367180.71,1004,132,Salud y Postas Médicas,Periurbana,2,4.96,0,4.73,21,VIABLE
+2499984.16,3910,260,Espacio Público y Parques,Urbana consolidada,3,13.24,1,31.58,186,CRITICO
+430169.44,2019,110,Saneamiento y Agua Potable,Rural,1,5.6,0,7.31,4,VIABLE
+1592166.95,4219,271,Espacio Público y Parques,Urbana consolidada,2,17.56,0,11.25,76,RIESGO_MODERADO
+297726.74,1508,228,Saneamiento y Agua Potable,Urbana consolidada,3,9.33,0,3.78,79,RIESGO_MODERADO
+134263.51,233,181,Educación e Infraestructura,Periurbana,3,5.91,0,5.4,23,VIABLE
+550179.03,734,326,Educación e Infraestructura,Urbana consolidada,2,8.5,0,5.56,17,VIABLE
+1124674.91,2195,257,Espacio Público y Parques,Rural,3,22.86,1,35.53,103,CRITICO
+2412312.74,3195,194,Saneamiento y Agua Potable,Urbana consolidada,3,3.45,0,1.65,58,RIESGO_MODERADO
+1862720.54,3352,197,Educación e Infraestructura,Urbana consolidada,1,11.06,0,5.79,73,RIESGO_MODERADO
+1216916.97,1759,281,Saneamiento y Agua Potable,Urbana consolidada,2,3.07,0,4.93,5,VIABLE
+97293.39,197,127,Transporte y Vías Urbanas,Periurbana,2,10.34,1,30.41,129,CRITICO
+1405127.1,1964,129,Transporte y Vías Urbanas,Rural,2,15.64,1,33.92,156,CRITICO
+241986.07,1000,241,Transporte y Vías Urbanas,Rural,1,1.01,0,1.67,17,VIABLE
+487775.74,1014,240,Transporte y Vías Urbanas,Periurbana,1,9.13,0,4.92,21,VIABLE
+4543115.98,12668,204,Salud y Postas Médicas,Urbana consolidada,2,11.69,1,35.43,162,CRITICO
+2246652.13,6583,352,Educación e Infraestructura,Urbana consolidada,2,3.04,1,22.4,146,CRITICO
+347247.52,644,158,Transporte y Vías Urbanas,Urbana consolidada,2,4.02,0,3.93,2,VIABLE
+670966.13,2646,264,Transporte y Vías Urbanas,Urbana consolidada,2,11.25,1,30.08,90,CRITICO
+1857773.75,2498,245,Transporte y Vías Urbanas,Urbana consolidada,1,15.5,1,27.18,233,CRITICO
+803953.99,2109,138,Transporte y Vías Urbanas,Urbana consolidada,1,15.58,0,5.69,22,VIABLE
+756406.0,3348,186,Salud y Postas Médicas,Urbana consolidada,2,3.52,0,6.31,15,VIABLE
+335481.56,1033,45,Transporte y Vías Urbanas,Rural,2,14.21,1,35.09,233,CRITICO
+1489012.51,3678,275,Transporte y Vías Urbanas,Urbana consolidada,1,3.94,0,2.88,17,VIABLE
+1678567.75,3903,214,Educación e Infraestructura,Urbana consolidada,1,16.98,0,8.49,15,VIABLE
+449973.13,2397,256,Salud y Postas Médicas,Urbana consolidada,1,8.65,0,4.01,11,VIABLE
+149218.29,503,126,Salud y Postas Médicas,Periurbana,3,5.8,0,7.71,6,VIABLE
+4668479.72,9131,246,Seguridad Ciudadana,Urbana consolidada,1,7.63,0,5.34,84,RIESGO_MODERADO
+491720.45,1419,93,Espacio Público y Parques,Urbana consolidada,2,18.97,0,10.29,47,RIESGO_MODERADO
+1342975.58,3350,152,Educación e Infraestructura,Rural,3,8.21,0,6.3,63,RIESGO_MODERADO
+429172.89,717,243,Seguridad Ciudadana,Periurbana,3,12.77,1,29.82,201,CRITICO
+473999.14,737,226,Seguridad Ciudadana,Periurbana,2,7.14,0,2.87,31,RIESGO_MODERADO
+2184633.59,4254,312,Transporte y Vías Urbanas,Rural,3,9.21,1,19.86,243,CRITICO
+696962.38,1583,267,Educación e Infraestructura,Urbana consolidada,3,6.67,0,2.19,13,VIABLE
+1852329.97,4174,224,Espacio Público y Parques,Urbana consolidada,1,2.77,0,3.33,73,RIESGO_MODERADO
+1892716.5,5201,45,Salud y Postas Médicas,Periurbana,3,7.72,1,30.33,113,CRITICO
+585298.7,736,293,Transporte y Vías Urbanas,Periurbana,3,3.5,0,3.13,70,RIESGO_MODERADO
+1208917.04,4664,217,Educación e Infraestructura,Periurbana,3,8.75,0,4.49,44,RIESGO_MODERADO
+1861407.33,2753,435,Salud y Postas Médicas,Urbana consolidada,2,3.27,0,5.03,84,RIESGO_MODERADO
+2835442.64,7766,361,Transporte y Vías Urbanas,Urbana consolidada,1,31.6,1,50.99,78,RIESGO_MODERADO
+732386.07,1024,240,Transporte y Vías Urbanas,Periurbana,2,5.01,0,5.33,34,RIESGO_MODERADO
+939945.93,1236,215,Saneamiento y Agua Potable,Rural,1,10.95,0,7.6,71,RIESGO_MODERADO
+401440.73,708,169,Salud y Postas Médicas,Urbana consolidada,1,5.29,0,7.19,17,VIABLE
+1882864.09,2696,138,Salud y Postas Médicas,Rural,2,4.96,1,18.22,69,RIESGO_MODERADO
+1022795.67,1431,156,Saneamiento y Agua Potable,Urbana consolidada,3,12.7,0,8.61,76,RIESGO_MODERADO
+282684.86,744,183,Seguridad Ciudadana,Urbana consolidada,2,24.32,0,12.68,34,RIESGO_MODERADO
+683776.88,2883,118,Salud y Postas Médicas,Urbana consolidada,1,8.19,0,8.4,22,VIABLE
+844853.5,1089,175,Transporte y Vías Urbanas,Urbana consolidada,3,8.38,0,6.04,54,RIESGO_MODERADO
+552504.73,866,267,Seguridad Ciudadana,Periurbana,1,15.26,1,34.09,56,RIESGO_MODERADO
+491725.62,681,120,Transporte y Vías Urbanas,Urbana consolidada,1,7.79,0,2.64,17,VIABLE
+216630.35,1170,170,Transporte y Vías Urbanas,Urbana consolidada,1,10.4,0,6.38,23,VIABLE
+1025597.98,1553,178,Espacio Público y Parques,Periurbana,1,17.25,0,5.7,76,RIESGO_MODERADO
+642397.5,972,202,Transporte y Vías Urbanas,Urbana consolidada,2,7.62,0,7.85,0,VIABLE
+2139834.52,3342,151,Saneamiento y Agua Potable,Periurbana,3,3.34,1,17.06,89,CRITICO
+857458.85,1075,165,Educación e Infraestructura,Urbana consolidada,2,14.12,0,4.74,56,RIESGO_MODERADO
+1996793.01,2646,52,Transporte y Vías Urbanas,Periurbana,3,3.45,0,3.9,46,RIESGO_MODERADO
