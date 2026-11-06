@@ -485,12 +485,10 @@ CREATE TABLE IF NOT EXISTS legal_assessments (
     legal_alert_motive TEXT,
     legal_alert_norm VARCHAR(255),
     is_resolved BOOLEAN NOT NULL DEFAULT FALSE,
-    resolved_by_user_id UUID,
-    resolved_at TIMESTAMPTZ,
     resolution_justification TEXT,
     evaluated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT uq_legal_assessment_project UNIQUE (project_id)
+    CONSTRAINT uq_legal_assessment_proj_ver UNIQUE (project_id, project_version_id)
 );
 
 CREATE TABLE IF NOT EXISTS legal_alert_resolutions (
@@ -500,6 +498,7 @@ CREATE TABLE IF NOT EXISTS legal_alert_resolutions (
     resolved_by_user_id UUID NOT NULL,
     resolution_action VARCHAR(64) NOT NULL,
     justification TEXT NOT NULL,
+    evidence_reference TEXT,
     resolved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     idempotency_key VARCHAR(120) NOT NULL UNIQUE
 );
@@ -638,6 +637,7 @@ CREATE TABLE IF NOT EXISTS technical_feasibility_assessments (
     score_explanation TEXT,
     dimension_conclusion TEXT NOT NULL,
     dimension_justification TEXT NOT NULL,
+    evidence_reference TEXT,
     evaluated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_tech_assess_version UNIQUE (project_version_id)
 );

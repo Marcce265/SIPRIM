@@ -20,8 +20,9 @@ export function RevisionJuridicaPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [resolving, setResolving] = useState(false)
-  const [resolveAction, setResolveAction] = useState('Subsanación técnica de franja marginal')
+  const [resolveAction, setResolveAction] = useState('subsanado_en_expediente')
   const [resolveJustification, setResolveJustification] = useState('')
+  const [evidenceReference, setEvidenceReference] = useState('')
 
   useEffect(() => {
     if (!projectId) return
@@ -169,6 +170,7 @@ export function RevisionJuridicaPage() {
                           {
                             resolution_action: resolveAction.trim(),
                             justification: resolveJustification.trim(),
+                            evidence_reference: evidenceReference.trim() || undefined,
                           },
                           newIdempotencyKey('resolve-alert'),
                         )
@@ -193,12 +195,26 @@ export function RevisionJuridicaPage() {
                       Levantamiento de Alerta Legal (Asesoría Jurídica)
                     </h5>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <input
-                        type="text"
-                        placeholder="Acción resolutiva (ej. Subsanación técnica de franja marginal)"
+                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+                        Tipo de decisión formal (HU2.3):
+                      </label>
+                      <select
                         value={resolveAction}
                         onChange={(e) => setResolveAction(e.target.value)}
                         required
+                        className="form-field-input"
+                        style={{ fontSize: '0.85rem', padding: '0.4rem' }}
+                      >
+                        <option value="subsanado_en_expediente">Subsanado en expediente / Replanteo técnico</option>
+                        <option value="falso_positivo">Falso positivo / Determinación no aplicable tras análisis técnico</option>
+                        <option value="excepcion_fundada">Excepción legal fundada / Régimen normativo especial</option>
+                        <option value="riesgo_asumido">Riesgo normativo evaluado y mitigado con sustento</option>
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Referencia documental / Expediente de sustento (ej. RD-ANA-045-2026, Informe Legal 12-2026)"
+                        value={evidenceReference}
+                        onChange={(e) => setEvidenceReference(e.target.value)}
                         className="form-field-input"
                         style={{ fontSize: '0.85rem', padding: '0.4rem' }}
                       />

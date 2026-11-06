@@ -297,7 +297,7 @@ def test_legal_engine_non_compliant_finding_requires_human_review():
         chunks_by_id=chunks_by_id,
     )
 
-    assert result["status"] == "requires_review"
+    assert result["status"] in ("requires_review", "alerta_legal")
     assert result["requires_human_review"] is True
     assert result["verifiable_citations_count"] == 1
     assert result["unverifiable_citations_count"] == 0

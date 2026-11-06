@@ -77,6 +77,7 @@ class CheckpointResponse(BaseModel):
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
+
 class PertEstimateCreate(BaseModel):
     """Solicitud de registro o cálculo de estimación PERT (HU1.9)."""
 
@@ -477,8 +478,19 @@ class LegalFindingItem(BaseModel):
 class LegalAlertResolveRequest(BaseModel):
     """Solicitud formal de levantamiento o subsanación de alerta legal (HU2.3)."""
 
-    resolution_action: str = Field(description="Acción realizada (ej. subsanado, replanteo_faja, excepcion_aprobada)")
-    justification: str = Field(description="Justificación legal formal del levantamiento de la alerta", min_length=5)
+    resolution_action: str = Field(
+        ...,
+        description="Acción formal ('falso_positivo', 'subsanado_en_expediente', 'excepcion_fundada', 'riesgo_asumido')",
+    )
+    justification: str = Field(
+        ...,
+        min_length=5,
+        description="Justificación legal formal y motivada del levantamiento de la alerta",
+    )
+    evidence_reference: str | None = Field(
+        None,
+        description="Referencia o código de sustento documental probatorio (ej. informe legal, resolución)",
+    )
 
 
 class LegalAlertResolutionResponse(BaseModel):
@@ -490,6 +502,7 @@ class LegalAlertResolutionResponse(BaseModel):
     resolved_by_user_id: UUID
     resolution_action: str
     justification: str
+    evidence_reference: str | None = None
     resolved_at: datetime
     duplicated: bool = False
 

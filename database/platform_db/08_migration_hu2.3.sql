@@ -37,8 +37,16 @@ CREATE TABLE IF NOT EXISTS legal_alert_resolutions (
     resolved_by_user_id UUID NOT NULL,
     resolution_action VARCHAR(64) NOT NULL,
     justification TEXT NOT NULL,
+    evidence_reference TEXT,
     resolved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     idempotency_key VARCHAR(120) NOT NULL UNIQUE
 );
 
 CREATE INDEX IF NOT EXISTS legal_alert_resolutions_proj_idx ON legal_alert_resolutions(project_id, project_version_id);
+
+-- 5. Aislamiento estricto por version en legal_assessments
+ALTER TABLE legal_assessments DROP CONSTRAINT IF EXISTS uq_legal_assessment_project;
+ALTER TABLE legal_assessments DROP CONSTRAINT IF EXISTS uq_legal_assessment_proj_ver;
+ALTER TABLE legal_assessments ADD CONSTRAINT uq_legal_assessment_proj_ver UNIQUE (project_id, project_version_id);
+
+ALTER TABLE legal_alert_resolutions ADD COLUMN IF NOT EXISTS evidence_reference TEXT;

@@ -124,6 +124,7 @@ export interface LegalFindingItem {
 export interface LegalAlertResolveRequest {
   resolution_action: string
   justification: string
+  evidence_reference?: string | null
 }
 
 export interface LegalAlertResolutionResponse {
@@ -133,6 +134,7 @@ export interface LegalAlertResolutionResponse {
   resolved_by_user_id: string
   resolution_action: string
   justification: string
+  evidence_reference?: string | null
   resolved_at: string
   duplicated?: boolean
 }

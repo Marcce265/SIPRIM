@@ -258,6 +258,7 @@ def resolve_legal_alert(
         resolution_action=payload.resolution_action,
         justification=payload.justification,
         idempotency_key=idempotency_key,
+        evidence_reference=payload.evidence_reference,
     )
 
 

@@ -20,7 +20,9 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from backend.application.dto.pmv1_dto import PMV1ProjectCreate, PertEstimateCreate
+from backend.infrastructure.config.settings import get_settings
 from backend.domain.exceptions.pmv1_exceptions import (
+    AccesoDenegadoError,
     VersionNoPertenecienteError,
     ConfiguracionPMV1Error,
     CredencialesInvalidasError,
@@ -2520,7 +2522,7 @@ class PlatformService:
                  requires_human_review, has_legal_alert, legal_alert_motive, legal_alert_norm,
                  is_resolved, resolved_by_user_id, resolved_at, resolution_justification, evaluated_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (project_id) DO UPDATE SET
+                ON CONFLICT (project_id, project_version_id) DO UPDATE SET
                     project_version_id = EXCLUDED.project_version_id,
                     status = EXCLUDED.status,
                     summary = EXCLUDED.summary,
@@ -2637,6 +2639,49 @@ class PlatformService:
 
         return self.evaluate_legal_assessment(project_id, UUID("10000000-0000-4000-a000-000000000004"))
 
+    ALLOWED_LEGAL_RESOLUTION_ACTIONS = {
+        "falso_positivo",
+        "subsanado_en_expediente",
+        "excepcion_fundada",
+        "riesgo_asumido",
+    }
+
+    ACTION_NORMALIZATION = {
+        "falso_positivo": "falso_positivo",
+        "falso positivo": "falso_positivo",
+        "subsanado_en_expediente": "subsanado_en_expediente",
+        "subsanado": "subsanado_en_expediente",
+        "subsanación": "subsanado_en_expediente",
+        "subsanacion": "subsanado_en_expediente",
+        "excepcion_fundada": "excepcion_fundada",
+        "excepcion": "excepcion_fundada",
+        "excepción fundada": "excepcion_fundada",
+        "riesgo_asumido": "riesgo_asumido",
+        "riesgo normativo asumido": "riesgo_asumido",
+    }
+
+    def _verify_legal_resolution_actor(self, actor_id: UUID) -> None:
+        """Verifica que el actor tenga rol LEGAL_ADVISOR, ADMIN o SUPERADMIN en auth_db."""
+        settings = get_settings()
+        auth_dsn = _dsn(settings.auth_db_url)
+        with psycopg.connect(auth_dsn, row_factory=dict_row) as conn:
+            rows = conn.execute(
+                """
+                SELECT r.code
+                FROM users u
+                JOIN user_roles ur ON u.id = ur.user_id
+                JOIN roles r ON ur.role_id = r.id
+                WHERE u.id = %s
+                """,
+                (actor_id,),
+            ).fetchall()
+            roles = {r["code"] for r in rows}
+            if not (roles & {"LEGAL_ADVISOR", "ADMIN", "SUPERADMIN"}):
+                raise AccesoDenegadoError(
+                    f"El usuario {actor_id} no cuenta con perfil de Asesor Jurídico o Administrador autorizado. "
+                    "Se requiere rol LEGAL_ADVISOR o ADMIN."
+                )
+
     def resolve_legal_alert(
         self,
         project_id: UUID,
@@ -2644,29 +2689,53 @@ class PlatformService:
         resolution_action: str,
         justification: str,
         idempotency_key: str,
+        evidence_reference: str | None = None,
     ) -> dict[str, Any]:
-        """Permite al Asesor Jurídico o Administrador levantar formalmente una alerta legal (HU2.3)."""
+        """Permite al Asesor Jurídico o Administrador levantar formalmente una alerta legal activa (HU2.3)."""
         cleaned_key = idempotency_key.strip()
         if not cleaned_key:
             raise ConfiguracionPMV1Error("Idempotency-Key es obligatorio")
+
         cleaned_action = resolution_action.strip()
-        if len(cleaned_action) < 3:
-            raise ConfiguracionPMV1Error("Acción de resolución no válida")
+        normalized_action = self.ACTION_NORMALIZATION.get(cleaned_action.lower())
+        if not normalized_action:
+            for k, norm_k in self.ACTION_NORMALIZATION.items():
+                if k in cleaned_action.lower():
+                    normalized_action = norm_k
+                    break
+        if not normalized_action:
+            raise ConfiguracionPMV1Error(
+                f"Acción de resolución '{cleaned_action}' no válida. "
+                "Las decisiones permitidas son: 'falso_positivo', 'subsanado_en_expediente', "
+                "'excepcion_fundada', 'riesgo_asumido'."
+            )
+
         cleaned_justification = justification.strip()
         if len(cleaned_justification) < 5:
             raise ConfiguracionPMV1Error("La justificación debe tener al menos 5 caracteres")
+
+        cleaned_evidence = evidence_reference.strip() if evidence_reference and evidence_reference.strip() else None
+
+        # Exigir usuario con rol autorizado
+        self._verify_legal_resolution_actor(actor_id)
 
         project = self.get_project(project_id)
         version_id = project["project_version_id"]
 
         with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
+            # 1. Comprobación estricta de idempotencia
             prev = conn.execute(
                 "SELECT * FROM legal_alert_resolutions WHERE idempotency_key = %s",
                 (cleaned_key,),
             ).fetchone()
             if prev:
-                if prev["project_id"] != project_id:
-                    raise ConfiguracionPMV1Error("Idempotency-Key ya fue utilizada para otro expediente")
+                if prev["project_id"] != project_id or prev["project_version_id"] != version_id:
+                    raise ConfiguracionPMV1Error("Idempotency-Key ya fue utilizada para otro expediente o versión")
+                if (
+                    prev["resolution_action"] != normalized_action
+                    or prev["justification"] != cleaned_justification
+                ):
+                    raise ConfiguracionPMV1Error("Idempotency-Key no puede ser reutilizada con datos de resolución distintos")
                 return {
                     "resolution_id": prev["id"],
                     "project_id": prev["project_id"],
@@ -2674,56 +2743,85 @@ class PlatformService:
                     "resolved_by_user_id": prev["resolved_by_user_id"],
                     "resolution_action": prev["resolution_action"],
                     "justification": prev["justification"],
+                    "evidence_reference": prev.get("evidence_reference"),
                     "resolved_at": prev["resolved_at"],
                     "duplicated": True,
                 }
 
+            # 2. Solo permite resolver una alerta activa de la versión vigente.
+            current_assessment = conn.execute(
+                """
+                SELECT id, status, has_legal_alert, is_resolved, summary, unverifiable_citations_count
+                FROM legal_assessments
+                WHERE project_id = %s AND project_version_id = %s
+                """,
+                (project_id, version_id),
+            ).fetchone()
+
+            if (
+                not current_assessment
+                or not current_assessment.get("has_legal_alert")
+                or current_assessment.get("is_resolved", False)
+            ):
+                raise ConfiguracionPMV1Error(
+                    f"No existe una Alerta Legal activa sin resolver en la versión vigente del expediente. "
+                    "Operación rechazada."
+                )
+
+            # 3. Registrar la decisión humana POR SEPARADO con usuario, fecha, versión, acción, justificación y evidencia
             resolution_id = uuid4()
             now = datetime.now(timezone.utc)
             conn.execute(
                 """
                 INSERT INTO legal_alert_resolutions
-                (id, project_id, project_version_id, resolved_by_user_id, resolution_action, justification, resolved_at, idempotency_key)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                (id, project_id, project_version_id, resolved_by_user_id, resolution_action, justification, evidence_reference, resolved_at, idempotency_key)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     resolution_id,
                     project_id,
                     version_id,
                     actor_id,
-                    cleaned_action,
+                    normalized_action,
                     cleaned_justification,
+                    cleaned_evidence,
                     now,
                     cleaned_key,
                 ),
             )
 
-            # Actualizar hallazgos del proyecto para esta versión
-            conn.execute(
-                """
-                UPDATE project_legal_findings
-                SET complies = TRUE, requires_human_review = FALSE,
-                    notes = COALESCE(notes, '') || ' [Alerta legal levantada por Asesoría Jurídica: ' || %s || ']'
-                WHERE project_id = %s AND (project_version_id = %s OR project_version_id IS NULL)
-                  AND complies = FALSE
-                """,
-                (cleaned_justification, project_id, version_id),
+            # 4. Conservar hallazgos históricos intactos: NO se muta project_legal_findings a complies=TRUE.
+
+            # 5. Limitar actualización de estado exclusivamente a la versión correcta:
+            new_status = (
+                "verified"
+                if current_assessment.get("unverifiable_citations_count", 0) == 0
+                and normalized_action == "subsanado_en_expediente"
+                else "requires_review"
             )
 
-            # Actualizar legal_assessments
             conn.execute(
                 """
                 UPDATE legal_assessments
-                SET status = 'verified',
+                SET status = %s,
                     has_legal_alert = FALSE,
                     is_resolved = TRUE,
                     resolved_by_user_id = %s,
                     resolved_at = %s,
                     resolution_justification = %s,
-                    summary = summary || ' [ALERTA LEVANTADA: ' || %s || ']'
-                WHERE project_id = %s
+                    summary = summary || ' [ALERTA LEVANTADA (' || %s || '): ' || %s || ']'
+                WHERE project_id = %s AND project_version_id = %s
                 """,
-                (actor_id, now, cleaned_justification, cleaned_justification, project_id),
+                (
+                    new_status,
+                    actor_id,
+                    now,
+                    cleaned_justification,
+                    normalized_action,
+                    cleaned_justification,
+                    project_id,
+                    version_id,
+                ),
             )
 
             conn.execute(
@@ -2737,8 +2835,9 @@ class PlatformService:
                     project_id,
                     Jsonb({
                         "project_code": project["code"],
-                        "resolution_action": cleaned_action,
+                        "resolution_action": normalized_action,
                         "justification": cleaned_justification,
+                        "evidence_reference": cleaned_evidence,
                         "project_version_id": str(version_id),
                     }),
                 ),
@@ -2749,8 +2848,9 @@ class PlatformService:
             "project_id": project_id,
             "project_version_id": version_id,
             "resolved_by_user_id": actor_id,
-            "resolution_action": cleaned_action,
+            "resolution_action": normalized_action,
             "justification": cleaned_justification,
+            "evidence_reference": cleaned_evidence,
             "resolved_at": now,
             "duplicated": False,
         }
@@ -3054,6 +3154,54 @@ class PlatformService:
                     "chunks_count": count,
                 })
             return res
+
+    def verify_prioritization_allowed(self, project_id: UUID) -> dict[str, Any]:
+        """Control de precondiciones para la futura priorización definitiva (HU2.3 / HU3.1 / HU1.12).
+
+        Verifica que el expediente no tenga Alerta Legal activa sin resolver,
+        que no tenga puntos de control (checkpoints) en pausa/revisión humana pendiente,
+        y que se encuentre debidamente evaluado.
+        """
+        project = self.get_project(project_id)
+        version_id = project["project_version_id"]
+        blocking_reasons: list[str] = []
+
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            # 1. Control HU2.3: Alerta Legal activa
+            legal_row = conn.execute(
+                """
+                SELECT status, has_legal_alert, legal_alert_motive, legal_alert_norm, is_resolved
+                FROM legal_assessments
+                WHERE project_id = %s AND project_version_id = %s
+                ORDER BY evaluated_at DESC LIMIT 1
+                """,
+                (project_id, version_id),
+            ).fetchone()
+            if legal_row and (legal_row["status"] == "alerta_legal" or legal_row.get("has_legal_alert")) and not legal_row.get("is_resolved", False):
+                motive = legal_row.get("legal_alert_motive") or "Incompatibilidad territorial o normativa"
+                norm = legal_row.get("legal_alert_norm") or "Normativa territorial"
+                blocking_reasons.append(
+                    f"Alerta Legal activa por incompatibilidad territorial/normativa (HU2.3): {motive} [{norm}]. "
+                    "Se requiere resolución formal de Asesoría Jurídica antes de la priorización definitiva."
+                )
+
+            # 2. Control HU3.1 / HU3.4: Checkpoint HITL pendiente
+            if RiskCheckpointEngine.has_pending_checkpoint(conn, version_id):
+                active_cp = RiskCheckpointEngine.get_active_checkpoint(conn, version_id)
+                reason = active_cp["reason"] if active_cp else "Punto de control de riesgo alto activo"
+                blocking_reasons.append(
+                    f"Punto de control de riesgo alto en estado 'Pendiente de revisión' (HU3.1/HU3.4): {reason}. "
+                    "Se requiere autorización y reanudación por Gerencia antes de la priorización definitiva."
+                )
+
+        allows_prioritization = len(blocking_reasons) == 0
+        return {
+            "project_id": str(project_id),
+            "project_version_id": str(version_id),
+            "project_code": project["code"],
+            "allows_prioritization": allows_prioritization,
+            "blocking_reasons": blocking_reasons,
+        }
 
     def submit_human_approval(
         self,
