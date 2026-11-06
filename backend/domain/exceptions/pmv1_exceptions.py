@@ -39,3 +39,16 @@ class EstimacionPERTInvalidaError(Exception):
         self.motivo = motivo
         super().__init__(mensaje)
 
+
+class VersionNoPertenecienteError(Exception):
+    """Error cuando el project_version_id proporcionado no pertenece al project_id de la URL."""
+
+    def __init__(
+        self,
+        mensaje: str,
+        project_id: str | None = None,
+        version_id: str | None = None,
+    ) -> None:
+        self.project_id = project_id
+        self.version_id = version_id
+        super().__init__(mensaje)

@@ -21,6 +21,7 @@ from psycopg.types.json import Jsonb
 
 from backend.application.dto.pmv1_dto import PMV1ProjectCreate, PertEstimateCreate
 from backend.domain.exceptions.pmv1_exceptions import (
+    VersionNoPertenecienteError,
     ConfiguracionPMV1Error,
     CredencialesInvalidasError,
     EstimacionPERTInvalidaError,
@@ -1043,9 +1044,27 @@ class PlatformService:
     ) -> dict[str, Any] | None:
         """Recupera la estimación de duración PERT para la versión del expediente (HU1.9)."""
         project = self.get_project(project_id)
-        target_version_id = project_version_id or project["project_version_id"]
+        target_version_id = UUID(str(project_version_id)) if project_version_id else project["project_version_id"]
         with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            if project_version_id is not None:
+                self._verify_version_belongs_to_project(conn, project_id, target_version_id)
             return self._get_pert_estimate_with_conn(conn, target_version_id)
+
+    def _verify_version_belongs_to_project(
+        self, conn: psycopg.Connection[Any], project_id: UUID, version_id: UUID
+    ) -> None:
+        """Comprueba que project_version_id pertenece a project_id. Lanza VersionNoPertenecienteError si no."""
+        row = conn.execute(
+            "SELECT 1 FROM project_versions WHERE id = %s AND project_id = %s",
+            (version_id, project_id),
+        ).fetchone()
+        if not row:
+            raise VersionNoPertenecienteError(
+                f"La versión {version_id} no pertenece al expediente {project_id}. "
+                "Operación rechazada sin modificar ninguna estimación.",
+                project_id=str(project_id),
+                version_id=str(version_id),
+            )
 
     def register_pert_estimate(
         self,
@@ -1068,7 +1087,7 @@ class PlatformService:
             pess = data.pessimistic_duration
             t_unit = data.time_unit
 
-        version_id = req_version_id or project["project_version_id"]
+        version_id = UUID(str(req_version_id)) if req_version_id else project["project_version_id"]
 
         a, m, b, unit = PertDurationEngine.validate_inputs(
             optimistic=opt,
@@ -1086,6 +1105,7 @@ class PlatformService:
 
         estimate_id = uuid4()
         with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
+            self._verify_version_belongs_to_project(conn, project_id, version_id)
             row = conn.execute(
                 """
                 INSERT INTO project_pert_estimates

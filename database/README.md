@@ -193,6 +193,7 @@ Las migraciones DDL (`03_migration_hu1.4.sql` y `03_migration_hu1.6.sql`) contie
   - `uq_pert_project_version`: Restricción `UNIQUE (project_version_id)` que garantiza estricto aislamiento por versión. Una versión nueva no hereda ni sobreescribe estimaciones de versiones anteriores.
   - `chk_pert_order`: Restricción `CHECK (optimistic_duration <= most_likely_duration AND most_likely_duration <= pessimistic_duration)` que impide registrar datos que violen la jerarquía PERT $0 \le a \le m \le b$.
   - `chk_pert_non_negative`: Restricción `CHECK (optimistic_duration >= 0 AND most_likely_duration >= 0 AND pessimistic_duration >= 0)` que impide valores negativos.
+  - `fk_pert_project_version_pair`: Clave foránea compuesta `FOREIGN KEY (project_id, project_version_id) REFERENCES project_versions(project_id, id) ON DELETE CASCADE` con `UNIQUE (project_id, id)` en `project_versions`, que refuerza a nivel de base de datos la pertenencia obligatoria de la versión al expediente, impidiendo almacenar estimaciones asociadas a versiones ajenas.
 - Vista en español:
   - `vista_estimaciones_pert`: Integra código y versión del expediente, unidad temporal, valores ingresados, duración esperada, incertidumbre, varianza e intervalo de referencia.
 - Criterios de aceptación cumplidos:

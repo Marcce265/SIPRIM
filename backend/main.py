@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.domain.exceptions.pmv1_exceptions import (
+    VersionNoPertenecienteError,
     AccesoDenegadoError,
     ConfiguracionPMV1Error,
     CredencialesInvalidasError,
@@ -127,6 +128,22 @@ def create_app() -> FastAPI:
                 "detail": str(exc),
                 "field": exc.campo,
                 "reason": exc.motivo,
+            },
+        )
+
+    
+    @application.exception_handler(VersionNoPertenecienteError)
+    async def version_no_perteneciente_handler(
+        request: Request, exc: VersionNoPertenecienteError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "detail": str(exc),
+                "field": "project_version_id",
+                "reason": "La versión indicada no pertenece al expediente especificado.",
+                "project_id": exc.project_id,
+                "version_id": exc.version_id,
             },
         )
 

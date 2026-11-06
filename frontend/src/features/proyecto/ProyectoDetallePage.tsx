@@ -1297,7 +1297,12 @@ export function ProyectoDetallePage() {
                       id="pert-unit"
                       className="form-field-input"
                       value={pertTimeUnit}
-                      onChange={(e) => setPertTimeUnit(e.target.value)}
+                      onChange={(e) => {
+                      setPertTimeUnit(e.target.value)
+                      setPertEstimate(null)
+                      setPertSuccess(null)
+                      setPertError(null)
+                    }}
                     >
                       <option value="meses">Meses</option>
                       <option value="días">Días</option>
@@ -1320,7 +1325,9 @@ export function ProyectoDetallePage() {
                       value={pertInputA}
                       onChange={(e) => {
                         setPertInputA(e.target.value)
+                        setPertEstimate(null)
                         setPertSuccess(null)
+                        setPertError(null)
                       }}
                     />
                   </div>
@@ -1340,7 +1347,9 @@ export function ProyectoDetallePage() {
                       value={pertInputM}
                       onChange={(e) => {
                         setPertInputM(e.target.value)
+                        setPertEstimate(null)
                         setPertSuccess(null)
+                        setPertError(null)
                       }}
                     />
                   </div>
@@ -1360,7 +1369,9 @@ export function ProyectoDetallePage() {
                       value={pertInputB}
                       onChange={(e) => {
                         setPertInputB(e.target.value)
+                        setPertEstimate(null)
                         setPertSuccess(null)
+                        setPertError(null)
                       }}
                     />
                   </div>
@@ -1407,7 +1418,11 @@ export function ProyectoDetallePage() {
               </div>
             )}
 
-            {pertSuccess && <Alert variant="success">{pertSuccess}</Alert>}
+            {pertSuccess && (
+              <div className="pert-success-alert">
+                <Alert variant="success">{pertSuccess}</Alert>
+              </div>
+            )}
 
             {pertEstimate && !pertError && (
               <div className="pert-result-container">

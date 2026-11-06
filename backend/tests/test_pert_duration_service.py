@@ -10,6 +10,7 @@ from backend.application.services.pmv1_services import (
     PlatformService,
 )
 from backend.domain.exceptions.pmv1_exceptions import (
+    VersionNoPertenecienteError,
     EstimacionPERTInvalidaError,
     RecursoPMV1NoEncontradoError,
 )
@@ -294,3 +295,126 @@ def test_pert_invalid_submission_does_not_return_valid_previous():
                 "time_unit": "meses",
             },
         )
+
+# 10. Rechazo estricto de versión ajena sin mutar ninguno de los expedientes
+def test_pert_alien_version_rejected_without_modifications():
+    """Comprueba que pasar un project_version_id que pertenece a otro proyecto
+    es rechazado con VersionNoPertenecienteError, y ninguna tabla/estimación de
+    ninguno de los dos proyectos es insertada ni modificada."""
+    db_url = get_test_db_url()
+    service = get_test_platform_service()
+
+    proj1_id = uuid4()
+    v1_id = uuid4()
+    proj2_id = uuid4()
+    v2_id = uuid4()
+
+    with psycopg.connect(db_url, row_factory=dict_row) as conn:
+        # Proyecto 1 y versión 1
+        conn.execute(
+            """INSERT INTO projects (id, code, created_by_user_id, status)
+            VALUES (%s, %s, %s, 'ready')""",
+            (proj1_id, f"PRY-P1-{uuid4().hex[:6]}", PLANNER_ID),
+        )
+        conn.execute(
+            """INSERT INTO project_versions (id, project_id, version_number, title,
+            description, location_description, proposed_land_use, estimated_budget_pen,
+            beneficiaries_count, created_by_user_id)
+            VALUES (%s, %s, 1, 'Proyecto 1 v1', 'Desc 1', 'El Tambo', 'recreacion', 100000, 500, %s)""",
+            (v1_id, proj1_id, PLANNER_ID),
+        )
+
+        # Proyecto 2 y versión 2
+        conn.execute(
+            """INSERT INTO projects (id, code, created_by_user_id, status)
+            VALUES (%s, %s, %s, 'ready')""",
+            (proj2_id, f"PRY-P2-{uuid4().hex[:6]}", PLANNER_ID),
+        )
+        conn.execute(
+            """INSERT INTO project_versions (id, project_id, version_number, title,
+            description, location_description, proposed_land_use, estimated_budget_pen,
+            beneficiaries_count, created_by_user_id)
+            VALUES (%s, %s, 1, 'Proyecto 2 v2', 'Desc 2', 'El Tambo', 'recreacion', 200000, 800, %s)""",
+            (v2_id, proj2_id, PLANNER_ID),
+        )
+
+    # Registrar estimación legítima en Proyecto 1: a=4, m=6, b=10 (μ=6.3333)
+    reg_p1 = service.register_pert_estimate(
+        project_id=proj1_id,
+        actor_id=PLANNER_ID,
+        data={
+            "project_version_id": v1_id,
+            "optimistic_duration": "4.0",
+            "most_likely_duration": "6.0",
+            "pessimistic_duration": "10.0",
+            "time_unit": "meses",
+        },
+    )
+    assert float(reg_p1["expected_duration"]) == pytest.approx(6.3333, abs=0.001)
+
+    # Registrar estimación legítima en Proyecto 2: a=5, m=10, b=15 (μ=10.0)
+    reg_p2 = service.register_pert_estimate(
+        project_id=proj2_id,
+        actor_id=PLANNER_ID,
+        data={
+            "project_version_id": v2_id,
+            "optimistic_duration": "5.0",
+            "most_likely_duration": "10.0",
+            "pessimistic_duration": "15.0",
+            "time_unit": "meses",
+        },
+    )
+    assert float(reg_p2["expected_duration"]) == 10.0
+
+    # INTENTO FRAUDULENTO: Registrar en Proyecto 1 pero pasando la versión 2 (de Proyecto 2)
+    with pytest.raises(VersionNoPertenecienteError) as exc_info:
+        service.register_pert_estimate(
+            project_id=proj1_id,
+            actor_id=PLANNER_ID,
+            data={
+                "project_version_id": v2_id,  # Pertenece a Proyecto 2!
+                "optimistic_duration": "1.0",
+                "most_likely_duration": "2.0",
+                "pessimistic_duration": "3.0",
+                "time_unit": "meses",
+            },
+        )
+    assert str(v2_id) in str(exc_info.value)
+    assert str(proj1_id) in str(exc_info.value)
+
+    # COMPROBAR AUSENCIA DE CAMBIOS:
+    # 1. Proyecto 1 sigue teniendo exactamente su estimación v1 intacta
+    check_p1 = service.get_pert_estimate(proj1_id, project_version_id=v1_id)
+    assert check_p1 is not None
+    assert float(check_p1["expected_duration"]) == pytest.approx(6.3333, abs=0.001)
+    assert float(check_p1["optimistic_duration"]) == 4.0
+
+    # 2. Proyecto 2 sigue teniendo exactamente su estimación v2 intacta (no fue sobreescrita ni alterada)
+    check_p2 = service.get_pert_estimate(proj2_id, project_version_id=v2_id)
+    assert check_p2 is not None
+    assert float(check_p2["expected_duration"]) == 10.0
+    assert float(check_p2["optimistic_duration"]) == 5.0
+
+    # 3. No existe ninguna estimación huérfana o cruzada en la base de datos
+    with psycopg.connect(db_url, row_factory=dict_row) as conn:
+        rows = conn.execute(
+            """SELECT project_id, project_version_id, expected_duration
+            FROM project_pert_estimates
+            WHERE project_id IN (%s, %s)""",
+            (proj1_id, proj2_id),
+        ).fetchall()
+        assert len(rows) == 2
+        for r in rows:
+            if r["project_id"] == proj1_id:
+                assert r["project_version_id"] == v1_id
+            elif r["project_id"] == proj2_id:
+                assert r["project_version_id"] == v2_id
+
+
+# 11. get_pert_estimate con versión ajena es rechazado
+def test_pert_get_alien_version_rejected():
+    service = get_test_platform_service()
+    alien_version = uuid4()
+    with pytest.raises(VersionNoPertenecienteError) as exc_info:
+        service.get_pert_estimate(PROJECT_A_ID, project_version_id=alien_version)
+    assert str(alien_version) in str(exc_info.value)

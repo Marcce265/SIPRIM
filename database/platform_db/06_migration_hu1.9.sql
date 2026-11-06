@@ -37,3 +37,22 @@ CREATE TABLE IF NOT EXISTS project_pert_estimates (
 
 CREATE INDEX IF NOT EXISTS idx_pert_project ON project_pert_estimates(project_id);
 CREATE INDEX IF NOT EXISTS idx_pert_version ON project_pert_estimates(project_version_id);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'uq_project_versions_project_version'
+    ) THEN
+        ALTER TABLE project_versions
+        ADD CONSTRAINT uq_project_versions_project_version UNIQUE (project_id, id);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_pert_project_version_pair'
+    ) THEN
+        ALTER TABLE project_pert_estimates
+        ADD CONSTRAINT fk_pert_project_version_pair
+        FOREIGN KEY (project_id, project_version_id)
+        REFERENCES project_versions(project_id, id) ON DELETE CASCADE;
+    END IF;
+END $$;

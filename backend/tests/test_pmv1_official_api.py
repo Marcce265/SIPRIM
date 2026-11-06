@@ -809,6 +809,13 @@ class FakePlatform:
     def get_pert_estimate(
         self, project_id: UUID, project_version_id: UUID | None = None
     ) -> dict[str, Any] | None:
+        if project_version_id and str(project_version_id) != str(VERSION_ID):
+            from backend.domain.exceptions.pmv1_exceptions import VersionNoPertenecienteError
+            raise VersionNoPertenecienteError(
+                f"La versión {project_version_id} no pertenece al expediente {project_id}.",
+                project_id=str(project_id),
+                version_id=str(project_version_id),
+            )
         if str(project_id).endswith("b"):
             return None
         return {
@@ -835,6 +842,14 @@ class FakePlatform:
     def register_pert_estimate(
         self, project_id: UUID, actor_id: UUID, data: Any
     ) -> dict[str, Any]:
+        req_ver = getattr(data, "project_version_id", None) if not isinstance(data, dict) else data.get("project_version_id")
+        if req_ver and str(req_ver) != str(VERSION_ID):
+            from backend.domain.exceptions.pmv1_exceptions import VersionNoPertenecienteError
+            raise VersionNoPertenecienteError(
+                f"La versión {req_ver} no pertenece al expediente {project_id}.",
+                project_id=str(project_id),
+                version_id=str(req_ver),
+            )
         opt = data.optimistic_duration if hasattr(data, "optimistic_duration") else data["optimistic_duration"]
         ml = data.most_likely_duration if hasattr(data, "most_likely_duration") else data["most_likely_duration"]
         pess = data.pessimistic_duration if hasattr(data, "pessimistic_duration") else data["pessimistic_duration"]
@@ -1759,3 +1774,23 @@ def test_pert_estimate_api_forbidden_without_auth(client: TestClient):
         json={"optimistic_duration": "3.0", "most_likely_duration": "5.0", "pessimistic_duration": "8.0"},
     )
     assert resp.status_code == 401
+
+def test_pert_estimate_api_alien_version_rejected_400(client: TestClient):
+    """Rechazo HTTP 400 cuando se envía un project_version_id que no pertenece al proyecto."""
+    headers = {"Authorization": "Bearer token-prueba"}
+    alien_version = uuid4()
+    resp = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/pert-estimate",
+        headers=headers,
+        json={
+            "project_version_id": str(alien_version),
+            "optimistic_duration": "4.0",
+            "most_likely_duration": "6.0",
+            "pessimistic_duration": "10.0",
+            "time_unit": "meses",
+        },
+    )
+    assert resp.status_code == 400
+    data = resp.json()
+    assert "no pertenece al expediente" in data["detail"]
+    assert data["field"] == "project_version_id"
