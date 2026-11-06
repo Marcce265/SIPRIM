@@ -315,6 +315,7 @@ CREATE INDEX IF NOT EXISTS demographic_equity_code_idx ON project_demographic_eq
 CREATE TABLE IF NOT EXISTS project_environmental_records (
     id UUID PRIMARY KEY,
     project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+    project_version_id UUID REFERENCES project_versions(id) ON DELETE CASCADE,
     project_code VARCHAR(40) NOT NULL,
     has_sufficient_data BOOLEAN NOT NULL DEFAULT TRUE,
     environmental_component VARCHAR(64) NOT NULL,
@@ -342,6 +343,9 @@ ALTER TABLE project_environmental_records
     ALTER COLUMN is_in_protected_or_risk_area DROP NOT NULL;
 ALTER TABLE project_environmental_records
     ALTER COLUMN is_in_protected_or_risk_area SET DEFAULT NULL;
+ALTER TABLE project_environmental_records
+    ADD COLUMN IF NOT EXISTS project_version_id UUID REFERENCES project_versions(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_project_env_version ON project_environmental_records(project_version_id);
 
 CREATE TABLE IF NOT EXISTS environmental_assessments (
     id UUID PRIMARY KEY,
@@ -383,6 +387,7 @@ CREATE INDEX IF NOT EXISTS env_assessments_risk_idx ON environmental_assessments
 CREATE TABLE IF NOT EXISTS project_green_area_records (
     id UUID PRIMARY KEY,
     project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+    project_version_id UUID REFERENCES project_versions(id) ON DELETE CASCADE,
     project_code VARCHAR(40) NOT NULL,
     has_sufficient_data BOOLEAN NOT NULL DEFAULT TRUE,
     total_project_area_m2 NUMERIC(10,2),
@@ -418,6 +423,9 @@ CREATE TABLE IF NOT EXISTS project_green_area_records (
 
 CREATE INDEX IF NOT EXISTS green_area_records_project_idx ON project_green_area_records(project_id);
 CREATE INDEX IF NOT EXISTS green_area_records_code_idx ON project_green_area_records(project_code);
+ALTER TABLE project_green_area_records
+    ADD COLUMN IF NOT EXISTS project_version_id UUID REFERENCES project_versions(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_project_green_version ON project_green_area_records(project_version_id);
 
 -- Ampliación de environmental_assessments para almacenar el dictamen y puntaje de áreas verdes
 ALTER TABLE environmental_assessments

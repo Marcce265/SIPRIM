@@ -106,12 +106,41 @@ class FakePlatform:
     def request_evaluation(
         self, project_version_id: UUID, actor_id: UUID, idempotency_key: str
     ) -> dict[str, Any]:
+        if idempotency_key.startswith("high-risk"):
+            return {
+                "evaluation_id": EVALUATION_ID,
+                "event_id": None,
+                "status": "pending_review",
+                "status_label": "Pendiente de revisión",
+                "duplicated": idempotency_key == "high-risk-repeat",
+                "publication_pending": False,
+                "checkpoint": {
+                    "checkpoint_id": UUID("f1000000-0000-4000-a000-000000000001"),
+                    "project_id": PROJECT_ID,
+                    "project_version_id": VERSION_ID,
+                    "evaluation_id": EVALUATION_ID,
+                    "checkpoint_type": "high_risk_pause",
+                    "status": "pending_review",
+                    "status_label": "Pendiente de revisión",
+                    "reason": "Riesgo ambiental alto detectado.",
+                    "risk_source": "environmental",
+                    "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
+                    "risk_level": "high",
+                    "risk_level_label": "Riesgo Alto",
+                    "requires_human_review": True,
+                    "allows_final_approval": False,
+                    "details": {},
+                    "created_at": datetime.now(timezone.utc),
+                    "updated_at": datetime.now(timezone.utc),
+                },
+            }
         return {
             "evaluation_id": EVALUATION_ID,
             "event_id": EVENT_ID,
             "status": "queued",
             "duplicated": idempotency_key == "repetida",
             "publication_pending": False,
+            "checkpoint": None,
         }
 
     def get_evaluation(self, evaluation_id: UUID) -> dict[str, Any]:
@@ -1561,3 +1590,36 @@ def test_get_project_checkpoint_forbidden_citizen(client: TestClient):
         headers={"Authorization": "Bearer token-citizen"},
     )
     assert resp.status_code == 403
+
+
+def test_request_evaluation_high_risk_idempotency_api(client: TestClient):
+    """HU3.1: Verificación API de que la ruta POST /api/v1/evaluaciones
+    soporta reintentos idempotentes ante riesgo alto devolviendo event_id=None y el checkpoint."""
+    headers = {"Authorization": "Bearer token-prueba"}
+
+    resp1 = client.post(
+        "/api/v1/evaluations",
+        headers={**headers, "Idempotency-Key": "high-risk-initial"},
+        json={"project_version_id": str(VERSION_ID)},
+    )
+    assert resp1.status_code == 202
+    data1 = resp1.json()
+    assert data1["status"] == "pending_review"
+    assert data1["status_label"] == "Pendiente de revisión"
+    assert data1["event_id"] is None
+    assert data1["duplicated"] is False
+    assert data1["checkpoint"] is not None
+    assert data1["checkpoint"]["checkpoint_type"] == "high_risk_pause"
+
+    resp2 = client.post(
+        "/api/v1/evaluations",
+        headers={**headers, "Idempotency-Key": "high-risk-repeat"},
+        json={"project_version_id": str(VERSION_ID)},
+    )
+    assert resp2.status_code == 202
+    data2 = resp2.json()
+    assert data2["status"] == "pending_review"
+    assert data2["status_label"] == "Pendiente de revisión"
+    assert data2["event_id"] is None
+    assert data2["duplicated"] is True
+    assert data2["checkpoint"] is not None

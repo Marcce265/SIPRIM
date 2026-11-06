@@ -512,34 +512,42 @@ class RiskCheckpointEngine:
             (project_version_id,),
         ).fetchone()
 
-        if row and row["risk_level"] in cls.PAUSE_RISK_LEVELS and row.get("requires_human_review"):
-            return {
-                "risk_source": "environmental",
-                "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
-                "risk_level": row["risk_level"],
-                "risk_level_label": "Riesgo Alto",
-                "reason": (
-                    row.get("risk_observation")
-                    or "Riesgo ambiental alto detectado por proximidad crítica a cuerpo de agua o faja marginal ribereña."
-                ),
-                "details": {
-                    "environmental_assessment_id": str(row["id"]),
+        if row:
+            if row["risk_level"] in cls.PAUSE_RISK_LEVELS and row.get("requires_human_review"):
+                return {
+                    "risk_source": "environmental",
+                    "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
                     "risk_level": row["risk_level"],
-                    "risk_observation": row.get("risk_observation"),
-                    "requires_human_review": True,
-                    "declared_vs_evidence": row.get("declared_vs_evidence_json"),
-                },
-            }
+                    "risk_level_label": "Riesgo Alto",
+                    "reason": (
+                        row.get("risk_observation")
+                        or "Riesgo ambiental alto detectado por proximidad crítica a cuerpo de agua o faja marginal ribereña."
+                    ),
+                    "details": {
+                        "environmental_assessment_id": str(row["id"]),
+                        "risk_level": row["risk_level"],
+                        "risk_observation": row.get("risk_observation"),
+                        "requires_human_review": True,
+                        "declared_vs_evidence": row.get("declared_vs_evidence_json"),
+                    },
+                }
+            # Si ya existe una evaluación formal registrada para esta versión y no es de riesgo alto,
+            # no hereda riesgos ni registros de versiones anteriores.
+            return None
 
         # 2. Si aún no existe fila en environmental_assessments, inspeccionar project_environmental_records
+        # asegurando que solo aplique a registros de esta versión específica (o v1 si es retrocompatible)
         rec_row = conn.execute(
             """
             SELECT r.id, r.project_id, r.environmental_component, r.declared_impacts,
                    r.verifiable_evidence, r.proximity_to_water_meters, r.is_in_protected_or_risk_area,
                    r.source_name
             FROM project_environmental_records r
-            JOIN project_versions pv ON pv.project_id = r.project_id
-            WHERE pv.id = %s AND (
+            JOIN project_versions pv ON pv.id = %s
+            WHERE (
+                (r.project_version_id = pv.id)
+                OR (r.project_version_id IS NULL AND r.project_id = pv.project_id AND pv.version_number = 1)
+            ) AND (
                 r.is_in_protected_or_risk_area = TRUE
                 OR (r.proximity_to_water_meters IS NOT NULL AND r.proximity_to_water_meters < 50.0)
             )
@@ -879,15 +887,30 @@ class PlatformService:
             raise ConfiguracionPMV1Error("Idempotency-Key es obligatorio")
         with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
                 previous = conn.execute(
-                    """SELECT e.id AS evaluation_id, e.status, o.id AS event_id, o.payload,
-                              o.published_at IS NULL AS publication_pending
-                       FROM evaluations e JOIN outbox_events o ON o.aggregate_id=e.id
+                    """SELECT e.id AS evaluation_id, e.status, e.project_version_id,
+                              o.id AS event_id, o.payload,
+                              (o.id IS NOT NULL AND o.published_at IS NULL) AS publication_pending
+                       FROM evaluations e
+                       LEFT JOIN outbox_events o ON o.aggregate_id=e.id
                        WHERE e.idempotency_key=%s""",
                     (idempotency_key,),
                 ).fetchone()
                 if previous:
                     previous = dict(previous)
                     previous["duplicated"] = True
+                    if previous["status"] == "pending_review":
+                        previous["event_id"] = None
+                        previous["publication_pending"] = False
+                        previous["status_label"] = "Pendiente de revisión"
+                        checkpoint = RiskCheckpointEngine.get_active_checkpoint(
+                            conn, previous["project_version_id"]
+                        )
+                        previous["checkpoint"] = checkpoint
+                    else:
+                        previous["status_label"] = None
+                        previous["checkpoint"] = None
+                    previous.pop("project_version_id", None)
+                    previous.pop("payload", None)
                     return previous
 
                 snapshot = conn.execute(
@@ -932,7 +955,7 @@ class PlatformService:
                     )
                     return {
                         "evaluation_id": evaluation_id,
-                        "event_id": uuid4(),
+                        "event_id": None,
                         "status": "pending_review",
                         "status_label": "Pendiente de revisión",
                         "duplicated": False,
@@ -1003,6 +1026,7 @@ class PlatformService:
             "status": "queued",
             "duplicated": False,
             "publication_pending": publication_pending,
+            "checkpoint": None,
         }
 
     def get_evaluation(self, evaluation_id: UUID) -> dict[str, Any]:
@@ -1021,7 +1045,7 @@ class PlatformService:
                 raise RecursoPMV1NoEncontradoError("Evaluacion no encontrada")
             checkpoint = RiskCheckpointEngine.get_active_checkpoint(conn, row["project_version_id"])
             result = None
-            if row["economic_assessment_id"]:
+            if row["status"] != "pending_review" and checkpoint is None and row["economic_assessment_id"]:
                 result = {
                     "economic_assessment_id": row["economic_assessment_id"],
                     "cost_per_beneficiary_pen": row["cost_per_beneficiary_pen"],
@@ -1942,22 +1966,38 @@ class PlatformService:
                         "duplicated": True,
                     }
 
+            pv_id = project.get("project_version_id")
+            ver_num = project.get("version_number", 1)
+
             rows = conn.execute(
                 """
-                SELECT id, project_id, project_code, has_sufficient_data,
+                SELECT id, project_id, project_version_id, project_code, has_sufficient_data,
                        environmental_component, declared_impacts, declared_measures,
                        verifiable_evidence, proximity_to_water_meters,
                        is_in_protected_or_risk_area, source_name, data_origin, description
                 FROM project_environmental_records
-                WHERE project_id = %s OR project_code = %s
+                WHERE project_version_id = %s
                 ORDER BY created_at ASC
                 """,
-                (project_id, project["code"]),
+                (pv_id,),
             ).fetchall()
+            if not rows and ver_num == 1:
+                rows = conn.execute(
+                    """
+                    SELECT id, project_id, project_version_id, project_code, has_sufficient_data,
+                           environmental_component, declared_impacts, declared_measures,
+                           verifiable_evidence, proximity_to_water_meters,
+                           is_in_protected_or_risk_area, source_name, data_origin, description
+                    FROM project_environmental_records
+                    WHERE (project_id = %s OR project_code = %s) AND project_version_id IS NULL
+                    ORDER BY created_at ASC
+                    """,
+                    (project_id, project["code"]),
+                ).fetchall()
 
             green_rows = conn.execute(
                 """
-                SELECT id, project_id, project_code, has_sufficient_data,
+                SELECT id, project_id, project_version_id, project_code, has_sufficient_data,
                        total_project_area_m2, green_area_m2, green_area_percentage,
                        delimitation_description, declared_affectation, verifiable_affectation,
                        affectation_type, protection_measures, has_sufficient_measures,
@@ -1965,11 +2005,27 @@ class PlatformService:
                        source_name, data_origin, description,
                        (data_origin = 'simulated') AS is_simulated
                 FROM project_green_area_records
-                WHERE project_id = %s OR project_code = %s
+                WHERE project_version_id = %s
                 ORDER BY created_at ASC
                 """,
-                (project_id, project["code"]),
+                (pv_id,),
             ).fetchall()
+            if not green_rows and ver_num == 1:
+                green_rows = conn.execute(
+                    """
+                    SELECT id, project_id, project_version_id, project_code, has_sufficient_data,
+                           total_project_area_m2, green_area_m2, green_area_percentage,
+                           delimitation_description, declared_affectation, verifiable_affectation,
+                           affectation_type, protection_measures, has_sufficient_measures,
+                           score_effect_pts, effect_type, calculation_explanation,
+                           source_name, data_origin, description,
+                           (data_origin = 'simulated') AS is_simulated
+                    FROM project_green_area_records
+                    WHERE (project_id = %s OR project_code = %s) AND project_version_id IS NULL
+                    ORDER BY created_at ASC
+                    """,
+                    (project_id, project["code"]),
+                ).fetchall()
 
             assessment = EnvironmentalAssessmentEngine.evaluate(
                 project_id=project_id,
@@ -2902,10 +2958,57 @@ class CompletionProcessor:
                 ).fetchone()
                 if not inserted:
                     return
+
+                ev_row = conn.execute(
+                    """SELECT e.id, e.status, e.project_version_id, pv.project_id
+                    FROM evaluations e
+                    JOIN project_versions pv ON pv.id = e.project_version_id
+                    WHERE e.id = %s""",
+                    (evaluation_id,),
+                ).fetchone()
+
+                if not ev_row:
+                    return
+
+                project_id = ev_row["project_id"]
+                project_version_id = ev_row["project_version_id"]
+
+                # Comprobar si la evaluación ya está en pausa o si existe o surge una condición de riesgo alto
+                is_already_paused = (ev_row["status"] == "pending_review")
+                existing_checkpoint = RiskCheckpointEngine.get_active_checkpoint(conn, project_version_id)
+                risk_info = RiskCheckpointEngine.detect_high_risk_condition(conn, project_version_id)
+
+                if is_already_paused or existing_checkpoint or risk_info:
+                    if not existing_checkpoint and risk_info:
+                        RiskCheckpointEngine.create_or_get_checkpoint(
+                            conn,
+                            project_id=project_id,
+                            project_version_id=project_version_id,
+                            evaluation_id=evaluation_id,
+                            risk_info=risk_info,
+                        )
+                    conn.execute(
+                        "UPDATE evaluations SET status='pending_review' WHERE id=%s",
+                        (evaluation_id,),
+                    )
+                    conn.execute(
+                        "UPDATE projects SET status='pending_review', updated_at=now() WHERE id=%s",
+                        (project_id,),
+                    )
+                    # Detención estricta: NO insertar en economic_result_projections para evaluaciones pausadas
+                    return
+
+                # CA-HU3.1-02: Continuación cuando no hay riesgo alto
                 conn.execute(
                     """INSERT INTO economic_result_projections
                     (evaluation_id,economic_assessment_id,cost_per_beneficiary_pen,score_0_100,
-                     explanation,algorithm_version) VALUES (%s,%s,%s,%s,%s,%s)""",
+                     explanation,algorithm_version) VALUES (%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (evaluation_id) DO UPDATE SET
+                        economic_assessment_id = EXCLUDED.economic_assessment_id,
+                        cost_per_beneficiary_pen = EXCLUDED.cost_per_beneficiary_pen,
+                        score_0_100 = EXCLUDED.score_0_100,
+                        explanation = EXCLUDED.explanation,
+                        algorithm_version = EXCLUDED.algorithm_version""",
                     (
                         evaluation_id,
                         UUID(payload["economic_assessment_id"]),
@@ -2915,42 +3018,13 @@ class CompletionProcessor:
                         payload["algorithm_version"],
                     ),
                 )
-                ev_row = conn.execute(
-                    """SELECT e.id, e.project_version_id, pv.project_id
-                    FROM evaluations e
-                    JOIN project_versions pv ON pv.id = e.project_version_id
-                    WHERE e.id = %s""",
-                    (evaluation_id,),
-                ).fetchone()
-
-                if ev_row:
-                    project_id = ev_row["project_id"]
-                    project_version_id = ev_row["project_version_id"]
-
-                    # Comprobar si existe condición de riesgo alto configurada para revisión (CA-HU3.1-01)
-                    risk_info = RiskCheckpointEngine.detect_high_risk_condition(conn, project_version_id)
-                    if risk_info:
-                        # CA-HU3.1-01: Detener procesamiento en checkpoint persistente,
-                        # estado 'pending_review' y no continuar automáticamente.
-                        RiskCheckpointEngine.create_or_get_checkpoint(
-                            conn,
-                            project_id=project_id,
-                            project_version_id=project_version_id,
-                            evaluation_id=evaluation_id,
-                            risk_info=risk_info,
-                        )
-                        return
-
-                # CA-HU3.1-02: Continuación cuando no hay riesgo alto
                 conn.execute(
                     "UPDATE evaluations SET status='completed',finished_at=now() WHERE id=%s",
                     (evaluation_id,),
                 )
                 conn.execute(
-                    """UPDATE projects SET status='evaluated',updated_at=now()
-                    WHERE id=(SELECT pv.project_id FROM project_versions pv JOIN evaluations e
-                              ON e.project_version_id=pv.id WHERE e.id=%s)""",
-                    (evaluation_id,),
+                    "UPDATE projects SET status='evaluated',updated_at=now() WHERE id=%s",
+                    (project_id,),
                 )
                 conn.execute(
                     """INSERT INTO audit_events (action,entity_type,entity_id,details)

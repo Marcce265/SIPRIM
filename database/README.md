@@ -167,8 +167,12 @@ Las migraciones DDL (`03_migration_hu1.4.sql` y `03_migration_hu1.6.sql`) contie
 - Restricciones de estado:
   - `projects_status_check`: Ampliado para incluir el estado `'pending_review'` («Pendiente de revisión»).
   - `evaluations_status_check`: Ampliado para incluir el estado `'pending_review'` («Pendiente de revisión»).
+- Aislamiento real por versión:
+  - `project_environmental_records.project_version_id` y `project_green_area_records.project_version_id`: Vinculación explícita a la versión del expediente para evitar que registros o alertas de versiones previas contaminen versiones posteriores mitigadas.
 - Reglas de control de flujo HITL:
   - **`CA-HU3.1-01` (Pausa automática ante riesgo):** Si una evaluación detecta un riesgo alto configurado para revisión humana (ej. riesgo ambiental alto por ubicación en faja marginal ribereña en `PRY-C`), el sistema detiene el procesamiento en un checkpoint persistente, cambia el estado del expediente y de la evaluación a **“Pendiente de revisión”** (`pending_review`), y no continúa automáticamente hacia la finalización.
-  - **`CA-HU3.1-02` (Continuación cuando no hay riesgo alto):** Si no hay riesgo alto (riesgo bajo o moderado, ej. `PRY-A`), el procesamiento asíncrono y los consumidores de eventos continúan normalmente hacia el estado `completed` y `evaluated`, sin solicitar revisión humana innecesaria.
+  - **`CA-HU3.1-02` (Continuación cuando no hay riesgo alto):** Si no hay riesgo alto (riesgo bajo o moderado, ej. `PRY-A`, o `PRY-C` v2 con retiro acreditado), el procesamiento asíncrono y los consumidores de eventos continúan normalmente hacia el estado `completed` y `evaluated`, sin solicitar revisión humana innecesaria.
+  - **Idempotencia sin eventos ficticios:** Repetir `request_evaluation` con la misma `Idempotency-Key` en un expediente con riesgo alto recupera la evaluación pausada y el checkpoint activo con `duplicated=True`, sin generar errores de clave duplicada y devolviendo `event_id=None` (no inventado).
+  - **Protección contra exposición prematura o tardía de resultados:** `CompletionProcessor.process` y `get_evaluation` impiden que una evaluación pausada registre o exponga resultados económicos o puntajes como si hubiera concluido.
   - **Impedimento de aprobación mientras esté pendiente:** Mientras exista un punto de control en estado pendiente, ningún proceso puede marcar la evaluación como completada ni emitir una aprobación final humana.
-  - **Aislamiento entre versiones:** Si la versión del expediente cambia, no se reutiliza silenciosamente la decisión de riesgo de la versión anterior; cada versión es evaluada de manera independiente.
+  - **Aislamiento entre versiones:** Si la versión del expediente cambia, no se reutiliza silenciosamente la decisión de riesgo de la versión anterior; cada versión es evaluada de manera independiente con sus propias evidencias técnicas.

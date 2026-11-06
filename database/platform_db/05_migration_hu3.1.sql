@@ -34,3 +34,29 @@ CREATE TABLE IF NOT EXISTS evaluation_checkpoints (
 
 CREATE INDEX IF NOT EXISTS idx_checkpoints_project ON evaluation_checkpoints(project_id, status);
 CREATE INDEX IF NOT EXISTS idx_checkpoints_version ON evaluation_checkpoints(project_version_id, status);
+
+-- 4. Soporte de aislamiento real por versión en evidencias ambientales y áreas verdes
+ALTER TABLE project_environmental_records
+    ADD COLUMN IF NOT EXISTS project_version_id UUID REFERENCES project_versions(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_project_env_version ON project_environmental_records(project_version_id);
+
+ALTER TABLE project_green_area_records
+    ADD COLUMN IF NOT EXISTS project_version_id UUID REFERENCES project_versions(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_project_green_version ON project_green_area_records(project_version_id);
+
+-- 5. Backfill de project_version_id para registros preexistentes hacia la versión 1 de cada proyecto
+UPDATE project_environmental_records r
+SET project_version_id = (
+    SELECT pv.id FROM project_versions pv
+    WHERE pv.project_id = r.project_id AND pv.version_number = 1
+    LIMIT 1
+)
+WHERE r.project_version_id IS NULL;
+
+UPDATE project_green_area_records r
+SET project_version_id = (
+    SELECT pv.id FROM project_versions pv
+    WHERE pv.project_id = r.project_id AND pv.version_number = 1
+    LIMIT 1
+)
+WHERE r.project_version_id IS NULL;

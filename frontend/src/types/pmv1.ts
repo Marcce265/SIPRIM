@@ -62,7 +62,7 @@ export interface PMV1ValidationResponse {
 
 export interface EvaluationAccepted {
   evaluation_id: string
-  event_id: string
+  event_id?: string | null
   status: string
   duplicated: boolean
   publication_pending: boolean

@@ -358,10 +358,14 @@ export function ProyectoDetallePage() {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={busy !== null || !project?.project_version_id}
+              disabled={busy !== null || !project?.project_version_id || isPaused}
               onClick={() => void runEvaluation()}
             >
-              {busy === 'evaluation' ? 'Procesando…' : 'Solicitar evaluación'}
+              {busy === 'evaluation'
+                ? 'Procesando…'
+                : isPaused
+                  ? 'Evaluación en pausa por riesgo'
+                  : 'Solicitar evaluación'}
             </button>
             {evaluation?.result && (
               <Alert variant="success">

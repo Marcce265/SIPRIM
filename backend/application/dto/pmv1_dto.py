@@ -104,7 +104,7 @@ class EvaluationCreate(BaseModel):
 
 class EvaluationAccepted(BaseModel):
     evaluation_id: UUID
-    event_id: UUID
+    event_id: UUID | None = None
     status: str
     status_label: str | None = None
     duplicated: bool
