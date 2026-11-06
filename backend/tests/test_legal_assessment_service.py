@@ -42,7 +42,7 @@ def test_legal_engine_exact_verifiable_citation():
             "chunk_location": "Arts. 53 y 54",
             "content": "Artículo 53.- De las actuaciones preparatorias y expedientes técnicos para obras municipales...",
             "in_force": True,
-            "data_origin": "simulated",
+            "data_origin": "public",
         }
     }
 
@@ -91,9 +91,266 @@ def test_legal_engine_exact_verifiable_citation():
     assert citation["citation_hash"] is not None
     assert len(citation["citation_hash"]) == 64  # SHA-256
     assert citation["limitation_note"] is None
-    assert citation["is_simulated"] is True
-    assert citation["data_origin"] == "simulated"
+    assert citation["is_simulated"] is False
+    assert citation["data_origin"] == "public"
 
+
+
+def test_legal_engine_simulated_source_is_unverifiable():
+    """
+    HU2.2: Si la fuente proviene de datos simulados o corpus no oficial,
+    la cita NO debe marcarse como verificable ni exponerse como sustento comprobado,
+    forzando requires_human_review=True.
+    """
+    chunk_id = "SIM-CHUNK-1"
+    chunks_by_id = {
+        chunk_id: {
+            "id": chunk_id,
+            "document_name": "Reglamento Local Simulado de Prueba",
+            "short_code": "SIM-REG",
+            "version": "1.0",
+            "topic": "Norma simulada (Art. 10)",
+            "content": "Art. 10.- Disposición simulada para pruebas...",
+            "in_force": True,
+            "data_origin": "simulated",
+        }
+    }
+
+    finding_rows = [
+        {
+            "id": uuid4(),
+            "finding_key": "fuente_simulada_chk",
+            "title": "Evaluación con norma simulada",
+            "description": "El administrado presentó un reglamento no oficial.",
+            "normative_chunk_id": chunk_id,
+            "has_precise_reference": True,
+            "custom_article_or_section": "Art. 10",
+            "complies": True,
+            "requires_human_review": False,
+        }
+    ]
+
+    result = LegalAssessmentEngine.evaluate(
+        project_id=PROJECT_B_ID,
+        project_code="PRY-B",
+        project_version_id=uuid4(),
+        finding_rows=finding_rows,
+        chunks_by_id=chunks_by_id,
+    )
+
+    assert result["status"] == "requires_review"
+    assert result["verifiable_citations_count"] == 0
+    assert result["unverifiable_citations_count"] == 1
+    assert result["requires_human_review"] is True
+
+    f = result["findings"][0]
+    assert f["citation"]["citation_status"] == "no_verificable"
+    assert f["citation"]["is_verifiable"] is False
+    assert f["citation"]["article_or_section"] is None
+    assert "simulado" in f["citation"]["limitation_note"].lower()
+    assert f["complies"] is None  # Jamás confirmado
+
+
+def test_legal_engine_apocryphal_article_rejected():
+    """
+    HU2.2: Si se cita un número de artículo inventado o apócrifo que no coincide
+    con el texto del fragmento normativo oficial (ej. 'Art. 9999'), se rechaza la cita
+    como no verificable sin fabricar el artículo y requiriendo revisión humana.
+    """
+    chunk_id = "LEY-32069-TEST"
+    chunks_by_id = {
+        chunk_id: {
+            "id": chunk_id,
+            "document_name": "Ley General de Contrataciones Públicas (Ley 32069)",
+            "short_code": "LEY-32069",
+            "version": "1.0",
+            "topic": "Métodos de contratación (Arts. 53 y 54)",
+            "content": "Art. 54.1.- Son procedimientos de selección competitivos: a) Licitación pública...",
+            "in_force": True,
+            "data_origin": "public",
+        }
+    }
+
+    finding_rows = [
+        {
+            "id": uuid4(),
+            "finding_key": "articulo_apocrifo_chk",
+            "title": "Cita apócrifa inexistente",
+            "description": "Se alega el Artículo 9999 que no existe en la Ley.",
+            "normative_chunk_id": chunk_id,
+            "has_precise_reference": True,
+            "custom_article_or_section": "Art. 9999",  # Apócrifo
+            "complies": True,
+            "requires_human_review": False,
+        }
+    ]
+
+    result = LegalAssessmentEngine.evaluate(
+        project_id=PROJECT_B_ID,
+        project_code="PRY-B",
+        project_version_id=uuid4(),
+        finding_rows=finding_rows,
+        chunks_by_id=chunks_by_id,
+    )
+
+    assert result["status"] == "requires_review"
+    assert result["verifiable_citations_count"] == 0
+    assert result["unverifiable_citations_count"] == 1
+    assert result["requires_human_review"] is True
+
+    f = result["findings"][0]
+    assert f["citation"]["citation_status"] == "no_verificable"
+    assert f["citation"]["is_verifiable"] is False
+    assert f["citation"]["article_or_section"] is None
+    assert "no coincide" in f["citation"]["limitation_note"].lower()
+
+
+def test_legal_engine_fragment_without_article_rejected():
+    """
+    HU2.2: Si el fragmento normativo no contiene un artículo identificable
+    (resumen o preámbulo sin articulado), se rechaza como cita no verificable.
+    """
+    chunk_id = "PREAMBULO-1"
+    chunks_by_id = {
+        chunk_id: {
+            "id": chunk_id,
+            "document_name": "Disposiciones Generales del Plan",
+            "short_code": "DISP-GEN",
+            "version": "1.0",
+            "topic": "Consideraciones preliminares",
+            "content": "El presente documento establece las orientaciones y principios generales de la gestión territorial sin articulado específico.",
+            "in_force": True,
+            "data_origin": "public",
+        }
+    }
+
+    finding_rows = [
+        {
+            "id": uuid4(),
+            "finding_key": "sin_articulado_chk",
+            "title": "Fragmento sin número de artículo",
+            "description": "Cita sin artículo verificable.",
+            "normative_chunk_id": chunk_id,
+            "has_precise_reference": True,
+            "custom_article_or_section": None,
+            "complies": True,
+            "requires_human_review": False,
+        }
+    ]
+
+    result = LegalAssessmentEngine.evaluate(
+        project_id=PROJECT_B_ID,
+        project_code="PRY-B",
+        project_version_id=uuid4(),
+        finding_rows=finding_rows,
+        chunks_by_id=chunks_by_id,
+    )
+
+    assert result["status"] == "requires_review"
+    assert result["verifiable_citations_count"] == 0
+    assert result["unverifiable_citations_count"] == 1
+    assert result["requires_human_review"] is True
+
+    f = result["findings"][0]
+    assert f["citation"]["citation_status"] == "no_verificable"
+    assert f["citation"]["article_or_section"] is None
+
+
+def test_legal_engine_non_compliant_finding_requires_human_review():
+    """
+    HU2.2 / HU2.3: Si un hallazgo tiene complies=False (ej. incompatibilidad territorial / faja marginal),
+    la evaluación completa NO puede declararse como 'cumple'; debe reflejar requires_human_review=True.
+    """
+    chunk_id = "PDUPDM-04"
+    chunks_by_id = {
+        chunk_id: {
+            "id": chunk_id,
+            "document_name": "PDM Huancayo 2017-2037 (O.M. Nº 636-2020-MPH/CM)",
+            "short_code": "PDU_EL_TAMBO",
+            "version": "2020-OM636",
+            "topic": "Zonas de riesgo alto o no mitigable (SINAGERD - Ley 29664)",
+            "content": "PDM Huancayo 2017-2037: Las zonas no mitigables son intangibles e inhabitables; se prohíbe la emisión de licencias...",
+            "in_force": True,
+            "data_origin": "public",
+        }
+    }
+
+    finding_rows = [
+        {
+            "id": uuid4(),
+            "finding_key": "zonas_riesgo_intangibles",
+            "title": "Zonas de riesgo no mitigable y faja marginal (SINAGERD)",
+            "description": "El trazo del proyecto invade faja marginal intangible no mitigable.",
+            "normative_chunk_id": chunk_id,
+            "has_precise_reference": True,
+            "custom_article_or_section": "SINAGERD - Ley 29664",
+            "complies": False,  # NO CUMPLE
+            "requires_human_review": True,
+        }
+    ]
+
+    result = LegalAssessmentEngine.evaluate(
+        project_id=PROJECT_D_ID,
+        project_code="PRY-D",
+        project_version_id=uuid4(),
+        finding_rows=finding_rows,
+        chunks_by_id=chunks_by_id,
+    )
+
+    assert result["status"] == "requires_review"
+    assert result["requires_human_review"] is True
+    assert result["verifiable_citations_count"] == 1
+    assert result["unverifiable_citations_count"] == 0
+
+    f = result["findings"][0]
+    assert f["complies"] is False
+    assert f["requires_human_review"] is True
+
+
+def test_legal_engine_human_review_finding_propagates_even_with_verified_citations():
+    """
+    HU2.2: Si todos los hallazgos tienen citas verificables pero uno tiene requires_human_review=True,
+    la evaluación general debe tener requires_human_review=True y status='requires_review'.
+    """
+    chunk_id = "LEY-32069-VALID"
+    chunks_by_id = {
+        chunk_id: {
+            "id": chunk_id,
+            "document_name": "Ley General de Contrataciones Públicas",
+            "short_code": "LEY-32069",
+            "version": "1.0",
+            "topic": "Actuaciones preparatorias (Art. 46)",
+            "content": "Art. 46.1.- El requerimiento da inicio al proceso de contratación...",
+            "in_force": True,
+            "data_origin": "public",
+        }
+    }
+
+    finding_rows = [
+        {
+            "id": uuid4(),
+            "finding_key": "req_revision_manual",
+            "title": "Revisión especial de convenio",
+            "description": "Cita exacta verificable, pero requiere verificación manual del convenio de coejecución.",
+            "normative_chunk_id": chunk_id,
+            "has_precise_reference": True,
+            "custom_article_or_section": "Art. 46",
+            "complies": True,
+            "requires_human_review": True,  # Requiere revisión
+        }
+    ]
+
+    result = LegalAssessmentEngine.evaluate(
+        project_id=PROJECT_A_ID,
+        project_code="PRY-A",
+        project_version_id=uuid4(),
+        finding_rows=finding_rows,
+        chunks_by_id=chunks_by_id,
+    )
+
+    assert result["status"] == "requires_review"
+    assert result["requires_human_review"] is True
+    assert result["verifiable_citations_count"] == 1
 
 def test_legal_engine_unverifiable_citation_no_fabricated_article():
     """

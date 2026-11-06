@@ -290,7 +290,58 @@ class LegalAssessmentEngine:
     - CA-HU2.2-02: Cuando el material recuperado no permite ubicar el artículo o fragmento
       exacto, el sistema indica 'Cita no verificable' y marca el hallazgo para revisión humana,
       sin inventar un número de artículo ficticio y sin confirmar cumplimiento.
+    - Regla de rigor normativo (HU2.2):
+      * Si la fuente es un resumen no oficial o un dato simulado, la cita se marca como no verificable.
+      * Si el fragmento normativo no contiene el artículo exacto o es apócrifo, se rechaza la pseudovalidación.
+      * Si cualquier hallazgo requiere revisión o no es verificable, la evaluación completa
+        refleja requires_human_review=True y estado de advertencia.
     """
+
+    @classmethod
+    def _verify_exact_article_in_chunk(
+        cls,
+        claimed_loc: str,
+        chunk_content: str,
+        chunk_topic: str,
+    ) -> tuple[bool, str | None]:
+        """Coteja si el artículo o sección alegado existe realmente en el texto o tema del fragmento."""
+        if not claimed_loc or not claimed_loc.strip():
+            return False, None
+        claimed = claimed_loc.strip()
+        full_text = f"{chunk_topic} \n {chunk_content}"
+
+        # 1. Coincidencia directa exacta de la cadena
+        if claimed.lower() in full_text.lower():
+            return True, claimed
+
+        # 2. Búsqueda de números de artículo específicos (evitar falsos positivos como 'Art. 999')
+        art_nums = re.findall(r"\b\d+(?:\.\d+)*(?:[a-z])?\b", claimed)
+        if art_nums:
+            matched_any = False
+            for num in art_nums:
+                pattern = rf"(?:Art|Arts|Art[ií]culo|Art[ií]culos)?\.?\s*(?:[Nn][°º]\s*)?{re.escape(num)}\b"
+                if re.search(pattern, full_text, re.IGNORECASE):
+                    matched_any = True
+                    break
+            if matched_any:
+                return True, claimed
+            return False, None
+
+        # 3. Numerales romanos o secciones explícitas (e.g. Título III, Art. IV TP)
+        roman_match = re.search(
+            r"\b(?:T[ií]tulo|Cap[ií]tulo|Art(?:[ií]culo)?\.?)\s+([IVXLCDM]+(?:\s+TP)?)\b",
+            claimed,
+            re.IGNORECASE,
+        )
+        if roman_match and roman_match.group(0).lower() in full_text.lower():
+            return True, claimed
+
+        # 4. Palabras clave normativas identificables (SINAGERD, Ley DUS, RNE)
+        law_match = re.search(r"\b(?:Ley\s+\d+|SINAGERD|RNE\s+[A-Z0-9\.]+)\b", claimed, re.IGNORECASE)
+        if law_match and law_match.group(0).lower() in full_text.lower():
+            return True, claimed
+
+        return False, None
 
     @classmethod
     def build_citation(
@@ -345,13 +396,71 @@ class LegalAssessmentEngine:
                 "citation_hash": None,
             }
 
-        # 3. Caso norma vigente: resolución de ubicación precisa
+        # 3. Caso fuente simulada o corpus no oficial (HU2.2)
+        # Si la fuente es un resumen no oficial o dato simulado, NO debe marcarse como verificable
+        is_simulated_chunk = (
+            chunk.get("data_origin") == "simulated"
+            or bool(chunk.get("is_simulated", False))
+            or bool(finding_row.get("is_simulated", False))
+            or chunk.get("data_origin") not in ("public", "oficial", "official")
+        )
+        if is_simulated_chunk:
+            return {
+                "fragment_id": chunk.get("id"),
+                "document_name": chunk.get("document_name"),
+                "short_code": chunk.get("short_code"),
+                "version": chunk.get("version"),
+                "article_or_section": None,  # No se certifica artículo de fuente simulada
+                "fragment_content": chunk.get("content"),
+                "citation_status": "no_verificable",
+                "is_verifiable": False,
+                "status_label": "Cita no verificable (Fuente o corpus simulado)",
+                "limitation_note": (
+                    "La fuente consultada corresponde a datos simulados o corpus no oficial. "
+                    "Conforme a HU2.2, no puede certificarse como cita normativa comprobada ni sustento oficial."
+                ),
+                "in_force": True,
+                "is_simulated": True,
+                "data_origin": "simulated",
+                "citation_hash": None,
+            }
+
+        # 4. Caso norma vigente: resolución y cotejo riguroso del artículo
+        chunk_content = str(chunk.get("content", ""))
+        chunk_topic = str(chunk.get("topic", ""))
+
         if custom_loc and str(custom_loc).strip():
-            loc = str(custom_loc).strip()
+            candidate_loc = str(custom_loc).strip()
+            # Cotejar si el artículo alegado realmente existe en el fragmento o tema
+            is_matched, verified_loc = cls._verify_exact_article_in_chunk(
+                candidate_loc, chunk_content, chunk_topic
+            )
+            if not is_matched:
+                return {
+                    "fragment_id": chunk.get("id"),
+                    "document_name": chunk.get("document_name"),
+                    "short_code": chunk.get("short_code"),
+                    "version": chunk.get("version"),
+                    "article_or_section": None,  # Cita apócrifa o no coincidente: jamás validar
+                    "fragment_content": chunk.get("content"),
+                    "citation_status": "no_verificable",
+                    "is_verifiable": False,
+                    "status_label": "Cita no verificable (Artículo no coincide con el fragmento)",
+                    "limitation_note": (
+                        f"El artículo o acápite alegado ('{candidate_loc}') no coincide ni se encuentra "
+                        "en el texto del fragmento normativo oficial. Conforme a HU2.2, se rechaza la pseudovalidación "
+                        "y se requiere revisión humana."
+                    ),
+                    "in_force": True,
+                    "is_simulated": False,
+                    "data_origin": chunk.get("data_origin", "public"),
+                    "citation_hash": None,
+                }
+            loc = verified_loc or candidate_loc
         else:
             loc = NormativeSearchEngine.resolve_location(chunk)
 
-        # Validar si loc contiene realmente un artículo o sección identificable
+        # Validar si loc contiene un artículo o sección identificable real y no es genérico
         is_identifiable_loc = bool(
             re.search(
                 r"(Art|Título|Titulo|Capítulo|Capitulo|Sección|Seccion|Reglamento|Ley DUS|RNE|SINAGERD|Índice|Indice)",
@@ -370,18 +479,18 @@ class LegalAssessmentEngine:
                 "fragment_content": chunk.get("content"),
                 "citation_status": "no_verificable",
                 "is_verifiable": False,
-                "status_label": "Cita no verificable",
+                "status_label": "Cita no verificable (Fragmento sin artículo)",
                 "limitation_note": (
                     "El fragmento normativo no contiene un artículo, sección o acápite identificable. "
                     "Conforme a CA-HU2.2-02, no se fabrica un número de artículo y se requiere revisión humana."
                 ),
                 "in_force": True,
-                "is_simulated": chunk.get("data_origin") == "simulated",
+                "is_simulated": False,
                 "data_origin": chunk.get("data_origin", "public"),
                 "citation_hash": None,
             }
 
-        # 4. Caso exitoso: Cita exacta y comprobable (CA-HU2.2-01)
+        # 5. Caso exitoso: Cita exacta, oficial y comprobable (CA-HU2.2-01)
         citation_raw = f"{chunk['id']}:{chunk.get('version')}:{loc}:{chunk.get('content')}"
         c_hash = hashlib.sha256(citation_raw.encode("utf-8")).hexdigest()
 
@@ -397,7 +506,7 @@ class LegalAssessmentEngine:
             "status_label": "Cita exacta y comprobable",
             "limitation_note": None,
             "in_force": True,
-            "is_simulated": chunk.get("data_origin") == "simulated",
+            "is_simulated": False,
             "data_origin": chunk.get("data_origin", "public"),
             "citation_hash": c_hash,
         }
@@ -445,17 +554,31 @@ class LegalAssessmentEngine:
             })
 
         total = len(findings_output)
+        any_unverifiable = (unverifiable_count > 0)
+        any_requires_review = any(f["requires_human_review"] for f in findings_output)
+        any_non_compliant = any(f["complies"] is False for f in findings_output)
+
         if total == 0:
             status = "insufficient"
             status_label = "Información jurídica insuficiente"
             summary = "El expediente no registra antecedentes jurídicos ni hallazgos normativos vinculados."
             requires_human = True
-        elif unverifiable_count > 0:
+        elif any_non_compliant:
+            status = "requires_review"
+            status_label = "Requiere revisión humana (Alerta de no conformidad legal)"
+            summary = (
+                f"Revisión jurídica con observaciones: se identificó al menos un hallazgo no conforme "
+                f"o incompatible con la normativa ({verifiable_count} cita(s) verificable(s)). "
+                "Requiere intervención obligatoria del Asesor Jurídico."
+            )
+            requires_human = True
+        elif any_unverifiable or any_requires_review:
             status = "requires_review"
             status_label = "Requiere revisión humana"
             summary = (
                 f"Revisión jurídica preliminar: {verifiable_count} cita(s) exacta(s) y {unverifiable_count} "
-                "cita(s) no verificable(s). Se requiere cotejo manual por el Asesor Jurídico."
+                "cita(s) no verificable(s) o pendiente(s) de revisión humana. "
+                "Se requiere cotejo manual por el Asesor Jurídico."
             )
             requires_human = True
         else:
@@ -463,6 +586,8 @@ class LegalAssessmentEngine:
             status_label = "Citas normativas verificadas"
             summary = f"Revisión jurídica completa con {verifiable_count} cita(s) exacta(s) y comprobable(s)."
             requires_human = False
+
+        is_any_simulated = any(f["citation"].get("is_simulated", False) for f in findings_output)
 
         return {
             "assessment_id": str(assessment_id),
@@ -478,10 +603,8 @@ class LegalAssessmentEngine:
             "unverifiable_citations_count": unverifiable_count,
             "requires_human_review": requires_human,
             "evaluated_at": datetime.now(timezone.utc),
-            "is_simulated_corpus": True,
+            "is_simulated_corpus": is_any_simulated,
         }
-
-
 
 class PertDurationEngine:
     """Motor de cálculo y validación de estimación de duración de obra e incertidumbre (PERT) - HU1.9.
@@ -2422,7 +2545,7 @@ class PlatformService:
                     "unverifiable_citations_count": row["unverifiable_citations_count"],
                     "requires_human_review": row["requires_human_review"],
                     "evaluated_at": row["evaluated_at"],
-                    "is_simulated_corpus": True,
+                    "is_simulated_corpus": any(isinstance(f, dict) and f.get("citation", {}).get("is_simulated", False) for f in (row["findings_json"] or [])),
                 }
 
         return self.evaluate_legal_assessment(project_id, UUID("10000000-0000-4000-a000-000000000003"))
