@@ -125,6 +125,20 @@ export function ProyectoDetallePage() {
     try {
       const data = await getProjectCheckpoint(projectId)
       setCheckpoint(data)
+      if (data?.evaluation_id) {
+        try {
+          const persistedEvaluation = await getEvaluation(data.evaluation_id)
+          setEvaluation(
+            persistedEvaluation.project_version_id === data.project_version_id
+              ? persistedEvaluation
+              : null,
+          )
+        } catch {
+          setEvaluation(null)
+        }
+      } else {
+        setEvaluation(null)
+      }
     } catch {
       /* opcional */
     }

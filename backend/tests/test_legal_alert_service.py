@@ -173,15 +173,16 @@ def test_hu2_3_resolution_by_authorized_legal_advisor(service):
         )
         assert res_dup["duplicated"] is True
 
-        # 4. Verificar que get_legal_assessment refleja que la alerta fue levantada
+        # 4. Verificar que get_legal_assessment refleja que la alerta fue levantada pero queda en requires_review
         legal_state = service.get_legal_assessment(proj_id)
         assert legal_state["has_legal_alert"] is False
         assert legal_state["is_resolved"] is True
+        assert legal_state["status"] == "requires_review"
 
-        # 5. La compuerta humana ahora permite aprobación
+        # 5. La compuerta humana: alerta levantada, pero bloquea aprobación definitiva por estar en requires_review
         status_after = service.get_human_approval(proj_id)
         assert status_after["has_legal_alert"] is False
-        assert status_after["allows_final_approval"] is True
+        assert status_after["allows_final_approval"] is False
 
     finally:
         with psycopg.connect(db_url) as conn, conn.transaction():
@@ -289,6 +290,7 @@ def test_hu2_3_resolution_fails_without_active_alert(service):
             project_id=PROJECT_A_ID,
             actor_id=LEGAL_ADVISOR_ID,
             resolution_action="subsanado_en_expediente",
+            evidence_reference="DOC-REF-001",
             justification="Intento de resolver una alerta inexistente",
             idempotency_key=f"no-alert-{uuid4()}",
         )
@@ -308,6 +310,7 @@ def test_hu2_3_resolution_rejected_for_unauthorized_user(service):
             project_id=PROJECT_D_ID,
             actor_id=PLANNER_ID,  # Planificador NO tiene rol de Asesor Jurídico
             resolution_action="subsanado_en_expediente",
+            evidence_reference="DOC-REF-001",
             justification="Planificador intentando levantar alerta legal",
             idempotency_key=f"unauth-{uuid4()}",
         )
@@ -379,6 +382,7 @@ def test_hu2_3_idempotency_prevents_duplicates_and_mismatch(service):
             project_id=proj_id,
             actor_id=LEGAL_ADVISOR_ID,
             resolution_action="subsanado_en_expediente",
+            evidence_reference="DOC-REF-001",
             justification="Justificación original primera vez",
             idempotency_key=key,
         )
@@ -389,6 +393,7 @@ def test_hu2_3_idempotency_prevents_duplicates_and_mismatch(service):
             project_id=proj_id,
             actor_id=LEGAL_ADVISOR_ID,
             resolution_action="subsanado_en_expediente",
+            evidence_reference="DOC-REF-001",
             justification="Justificación original primera vez",
             idempotency_key=key,
         )
@@ -492,6 +497,7 @@ def test_hu2_3_version_isolation_prevents_modifying_other_versions(service):
             project_id=proj_id,
             actor_id=LEGAL_ADVISOR_ID,
             resolution_action="subsanado_en_expediente",
+            evidence_reference="DOC-REF-001",
             justification="Levantamiento formal exclusivamente para la versión 2",
             idempotency_key=f"res-v2-{uuid4()}",
         )
@@ -539,3 +545,110 @@ def test_hu2_3_prioritization_control(service):
     prio_a = service.verify_prioritization_allowed(PROJECT_A_ID)
     assert prio_a["allows_prioritization"] is True
     assert len(prio_a["blocking_reasons"]) == 0
+
+
+def test_hu2_3_resolution_subsanado_requires_evidence_and_prevents_unverified_status(service):
+    """
+    HU2.3 CORRECCIÓN: resolve_legal_alert no debe marcar como 'verified' cuando se elige
+    'subsanado_en_expediente' sin cambio comprobado ni reevaluación de versión modificada.
+    Exige obligatoriamente evidence_reference y deja el caso en 'requires_review'.
+    """
+    settings = get_settings()
+    db_url = settings.platform_db_url.replace("postgresql+psycopg://", "postgresql://", 1)
+
+    proj_id = uuid4()
+    v1_id = uuid4()
+    code = f"PRY-NOVERIF-{uuid4().hex[:6]}"
+
+    try:
+        with psycopg.connect(db_url) as conn, conn.transaction():
+            conn.execute(
+                """
+                INSERT INTO projects (id, code, created_by_user_id, status)
+                VALUES (%s, %s, %s, 'ready')
+                """,
+                (proj_id, code, PLANNER_ID),
+            )
+            conn.execute(
+                """
+                INSERT INTO project_versions
+                (id, project_id, version_number, title, description, location_description, proposed_land_use,
+                 territorial_data_origin, estimated_budget_pen, beneficiaries_count, created_by_user_id)
+                VALUES (%s, %s, 1, 'Proyecto sin subsanación comprobada', 'Desc', 'Zona R3', 'equipamiento_mayor', 'public', 150000, 300, %s)
+                """,
+                (v1_id, proj_id, PLANNER_ID),
+            )
+            conn.execute(
+                """
+                INSERT INTO project_legal_findings
+                (id, project_id, project_version_id, project_code, finding_key, title, description,
+                 normative_chunk_id, has_precise_reference, custom_article_or_section, complies, requires_human_review)
+                VALUES (%s, %s, %s, %s, 'incompatibilidad_uso', 'Incompatibilidad R3', 'Uso no conforme',
+                        'PDUPDM-01', TRUE, 'Art. 42 Plan Desarrollo Metropolitano', FALSE, TRUE)
+                """,
+                (uuid4(), proj_id, v1_id, code),
+            )
+
+        # 1. Evaluar inicialmente: Alerta Legal activa
+        eval_init = service.evaluate_legal_assessment(proj_id, LEGAL_ADVISOR_ID)
+        assert eval_init["has_legal_alert"] is True
+        assert eval_init["status"] == "alerta_legal"
+
+        # 2. Intentar resolver con 'subsanado_en_expediente' SIN referencia de evidencia -> Debe ser rechazado
+        with pytest.raises(ConfiguracionPMV1Error) as exc_info:
+            service.resolve_legal_alert(
+                project_id=proj_id,
+                actor_id=LEGAL_ADVISOR_ID,
+                resolution_action="subsanado_en_expediente",
+                justification="Afirmo que el proyecto ya no vulnera la norma urbana municipal.",
+                evidence_reference=None,  # Faltante
+                idempotency_key=f"res-noev-{uuid4()}",
+            )
+        assert "evidence_reference" in str(exc_info.value) or "referencia documental" in str(exc_info.value)
+
+        # 3. Resolver con referencia probatoria válida
+        res_valid = service.resolve_legal_alert(
+            project_id=proj_id,
+            actor_id=LEGAL_ADVISOR_ID,
+            resolution_action="subsanado_en_expediente",
+            justification="Se presenta plano visado y solicitud formal de cambio de zonificación ante la municipalidad.",
+            evidence_reference="EXP-MUNI-2026-9941",
+            idempotency_key=f"res-valid-{uuid4()}",
+        )
+        assert res_valid["resolution_action"] == "subsanado_en_expediente"
+        assert res_valid["evidence_reference"] == "EXP-MUNI-2026-9941"
+
+        # 4. Comprobar que en base de datos el estado NO ES 'verified'
+        legal_state = service.get_legal_assessment(proj_id)
+        assert legal_state["has_legal_alert"] is False
+        assert legal_state["is_resolved"] is True
+        assert legal_state["status"] == "requires_review", "No debe certificarse como verified sin reevaluación formal"
+
+        # 5. Reevaluar la misma versión sin cambios en los hallazgos: debe mantenerse en 'requires_review'
+        eval_re = service.evaluate_legal_assessment(proj_id, LEGAL_ADVISOR_ID)
+        assert eval_re["has_legal_alert"] is False
+        assert eval_re["is_resolved"] is True
+        assert eval_re["status"] == "requires_review", "No debe declararse verified sin cambio comprobado en los hallazgos"
+
+        # 6. La compuerta humana y la aprobación definitiva deben permanecer bloqueadas
+        approval_gate = service.get_human_approval(proj_id)
+        assert approval_gate["allows_final_approval"] is False
+
+        with pytest.raises(ConfiguracionPMV1Error) as app_exc:
+            service.submit_human_approval(
+                project_id=proj_id,
+                actor_id=PLANNER_ID,
+                decision="approved",
+                justification="Intento de aprobación con dimensión jurídica aún en requires_review.",
+                conditions=None,
+                idempotency_key=f"app-fail-{uuid4()}",
+            )
+        assert "requires_review" in str(app_exc.value)
+
+    finally:
+        with psycopg.connect(db_url) as conn, conn.transaction():
+            conn.execute("DELETE FROM legal_alert_resolutions WHERE project_id = %s", (proj_id,))
+            conn.execute("DELETE FROM legal_assessments WHERE project_id = %s", (proj_id,))
+            conn.execute("DELETE FROM project_legal_findings WHERE project_id = %s", (proj_id,))
+            conn.execute("DELETE FROM project_versions WHERE project_id = %s", (proj_id,))
+            conn.execute("DELETE FROM projects WHERE id = %s", (proj_id,))

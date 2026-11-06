@@ -824,19 +824,34 @@ class RiskCheckpointEngine:
         conn: psycopg.Connection,
         project_version_id: UUID,
     ) -> dict[str, Any] | None:
-        """Detecta si la versión del expediente cumple una condición configurada de riesgo alto."""
-        # 1. Comprobar evaluaciones ambientales registradas para la versión
-        row = conn.execute(
-            """
-            SELECT id, project_id, project_version_id, risk_level, risk_observation,
-                   requires_human_review, declared_vs_evidence_json, impacts_json
-            FROM environmental_assessments
-            WHERE project_version_id = %s
-            ORDER BY evaluated_at DESC
-            LIMIT 1
-            """,
-            (project_version_id,),
-        ).fetchone()
+        """Detecta si la versión del expediente cumple una condición configurada de riesgo alto.
+
+        CA-HU3.4-01: Evita que el mismo riesgo ya autorizado vuelva a crear la misma pausa,
+        sin ignorar riesgos nuevos o evaluaciones en nuevas versiones.
+        """
+        with conn.cursor(row_factory=dict_row) as cur:
+            # Consultar si existen puntos de control ya autorizados y resueltos para esta versión específica
+            resolved_cps = cur.execute(
+                """
+                SELECT id, risk_source, reason, details
+                FROM evaluation_checkpoints
+                WHERE project_version_id = %s AND status = 'resolved'
+                """,
+                (project_version_id,),
+            ).fetchall()
+
+            # 1. Comprobar evaluaciones ambientales registradas para la versión
+            row = cur.execute(
+                """
+                SELECT id, project_id, project_version_id, risk_level, risk_observation,
+                       requires_human_review, declared_vs_evidence_json, impacts_json
+                FROM environmental_assessments
+                WHERE project_version_id = %s
+                ORDER BY evaluated_at DESC
+                LIMIT 1
+                """,
+                (project_version_id,),
+            ).fetchone()
 
         if row:
             if row["risk_level"] in cls.PAUSE_RISK_LEVELS and row.get("requires_human_review"):
@@ -864,29 +879,42 @@ class RiskCheckpointEngine:
                 else:
                     obs = "Observación pendiente de aclaración"
 
-                return {
-                    "risk_source": "environmental",
-                    "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
-                    "risk_level": row["risk_level"],
-                    "risk_level_label": "Riesgo Alto",
-                    "reason": cause,
-                    "details": {
-                        "environmental_assessment_id": str(row["id"]),
+                env_id_str = str(row["id"])
+                # Comprobar si este riesgo específico ya fue resuelto y autorizado por la Gerencia en esta versión
+                is_already_authorized = any(
+                    cp["risk_source"] == "environmental"
+                    and (
+                        (isinstance(cp["details"], dict) and cp["details"].get("environmental_assessment_id") == env_id_str)
+                        or cp["reason"] == cause
+                    )
+                    for cp in resolved_cps
+                )
+
+                if not is_already_authorized:
+                    return {
+                        "risk_source": "environmental",
+                        "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
                         "risk_level": row["risk_level"],
-                        "cause": cause,
-                        "observation": obs,
-                        "risk_observation": obs,
-                        "requires_human_review": True,
-                        "declared_vs_evidence": declared_ev,
-                    },
-                }
-            # Si ya existe una evaluación formal registrada para esta versión y no es de riesgo alto,
-            # no hereda riesgos ni registros de versiones anteriores.
+                        "risk_level_label": "Riesgo Alto",
+                        "reason": cause,
+                        "details": {
+                            "environmental_assessment_id": env_id_str,
+                            "risk_level": row["risk_level"],
+                            "cause": cause,
+                            "observation": obs,
+                            "risk_observation": obs,
+                            "requires_human_review": True,
+                            "declared_vs_evidence": declared_ev,
+                        },
+                    }
+            # Si ya existe una evaluación formal registrada para esta versión y no es de riesgo alto
+            # (o el riesgo ya fue formalmente resuelto), no hereda riesgos ni registros de versiones anteriores.
             return None
 
         # 2. Si aún no existe fila en environmental_assessments, inspeccionar project_environmental_records
         # asegurando que solo aplique a registros de esta versión específica (o v1 si es retrocompatible)
-        rec_row = conn.execute(
+        with conn.cursor(row_factory=dict_row) as cur:
+            rec_row = cur.execute(
             """
             SELECT r.id, r.project_id, r.environmental_component, r.declared_impacts,
                    r.verifiable_evidence, r.proximity_to_water_meters, r.is_in_protected_or_risk_area,
@@ -915,23 +943,35 @@ class RiskCheckpointEngine:
                 if rec_row.get("verifiable_evidence")
                 else "Observación pendiente de aclaración"
             )
-            return {
-                "risk_source": "environmental",
-                "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
-                "risk_level": "high",
-                "risk_level_label": "Riesgo Alto",
-                "reason": cause_text,
-                "details": {
-                    "record_id": str(rec_row["id"]),
-                    "component": rec_row["environmental_component"],
-                    "proximity_to_water_meters": float(rec_row["proximity_to_water_meters"]) if rec_row["proximity_to_water_meters"] else None,
-                    "is_in_protected_or_risk_area": rec_row["is_in_protected_or_risk_area"],
-                    "source_name": rec_row["source_name"],
-                    "cause": cause_text,
-                    "observation": obs_text,
-                    "risk_observation": obs_text,
-                },
-            }
+
+            rec_id_str = str(rec_row["id"])
+            is_rec_already_authorized = any(
+                cp["risk_source"] == "environmental"
+                and (
+                    (isinstance(cp["details"], dict) and cp["details"].get("record_id") == rec_id_str)
+                    or cp["reason"] == cause_text
+                )
+                for cp in resolved_cps
+            )
+
+            if not is_rec_already_authorized:
+                return {
+                    "risk_source": "environmental",
+                    "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
+                    "risk_level": "high",
+                    "risk_level_label": "Riesgo Alto",
+                    "reason": cause_text,
+                    "details": {
+                        "record_id": rec_id_str,
+                        "component": rec_row["environmental_component"],
+                        "proximity_to_water_meters": float(rec_row["proximity_to_water_meters"]) if rec_row["proximity_to_water_meters"] else None,
+                        "is_in_protected_or_risk_area": rec_row["is_in_protected_or_risk_area"],
+                        "source_name": rec_row["source_name"],
+                        "cause": cause_text,
+                        "observation": obs_text,
+                        "risk_observation": obs_text,
+                    },
+                }
 
         return None
 
@@ -2344,7 +2384,7 @@ class PlatformService:
                     "resolution_motive": prev["resolution_motive"],
                     "resolution_conditions": prev["resolution_conditions"],
                     "resolved_at": prev["resolved_at"],
-                    "project_status": "evaluated",
+                    "project_status": project["status"],
                     "duplicated": True,
                     "message": "Evaluación ya reanudada previamente con esta clave de idempotencia.",
                 }
@@ -2408,21 +2448,110 @@ class PlatformService:
                 ),
             )
 
-            # 4. CA-HU3.4-01: Conservar resultados anteriores, continuar flujo y actualizar estado del proyecto a evaluated
-            conn.execute(
-                "UPDATE projects SET status = 'evaluated', updated_at = %s WHERE id = %s",
-                (now, project_id),
-            )
-
-            if evaluation_id:
-                conn.execute(
+            # 4. CA-HU3.4-01: Conservar resultados anteriores y continuar procesamiento de la etapa pendiente
+            target_eval_id = evaluation_id
+            if not target_eval_id:
+                ev_find = conn.execute(
                     """
-                    UPDATE evaluations
-                    SET status = 'completed', error_message = NULL, updated_at = %s
-                    WHERE id = %s AND status = 'pending_review'
+                    SELECT id FROM evaluations
+                    WHERE project_version_id = %s
+                    ORDER BY requested_at DESC LIMIT 1
                     """,
-                    (now, evaluation_id),
+                    (version_id,),
+                ).fetchone()
+                if ev_find:
+                    target_eval_id = ev_find["id"]
+
+            if target_eval_id:
+                # Comprobar si economic_result_projections ya existe
+                proj_exists = conn.execute(
+                    "SELECT 1 FROM economic_result_projections WHERE evaluation_id = %s",
+                    (target_eval_id,),
+                ).fetchone()
+
+                if not proj_exists:
+                    # Procesar la etapa pendiente exactamente una vez
+                    ev_data = conn.execute(
+                        """
+                        SELECT e.id AS evaluation_id, e.criteria_version_id,
+                               pv.estimated_budget_pen, pv.beneficiaries_count,
+                               cv.excellent_cost_pen, cv.unacceptable_cost_pen
+                        FROM evaluations e
+                        JOIN project_versions pv ON pv.id = e.project_version_id
+                        LEFT JOIN criteria_versions cv ON cv.id = e.criteria_version_id
+                        WHERE e.id = %s
+                        """,
+                        (target_eval_id,),
+                    ).fetchone()
+
+                    if ev_data:
+                        excellent = ev_data.get("excellent_cost_pen")
+                        unacceptable = ev_data.get("unacceptable_cost_pen")
+                        if excellent is None or unacceptable is None:
+                            act_cv = conn.execute(
+                                "SELECT id, excellent_cost_pen, unacceptable_cost_pen FROM criteria_versions WHERE status = 'active' LIMIT 1"
+                            ).fetchone()
+                            if act_cv:
+                                excellent = act_cv["excellent_cost_pen"]
+                                unacceptable = act_cv["unacceptable_cost_pen"]
+                                conn.execute(
+                                    "UPDATE evaluations SET criteria_version_id = %s WHERE id = %s",
+                                    (act_cv["id"], target_eval_id),
+                                )
+
+                        budget = Decimal(str(ev_data["estimated_budget_pen"]))
+                        beneficiaries = int(ev_data["beneficiaries_count"])
+                        exc_dec = Decimal(str(excellent))
+                        unacc_dec = Decimal(str(unacceptable))
+
+                        cost, score = EconomicProcessor.calculate(budget, beneficiaries, exc_dec, unacc_dec)
+                        assessment_id = uuid4()
+                        explanation = (
+                            f"Costo por beneficiario = S/ {budget} / {beneficiaries} = S/ {cost}. "
+                            f"Umbrales: excelente S/ {exc_dec}, inaceptable S/ {unacc_dec}; score {score}/100. "
+                            "Procesado tras reanudación autorizada de checkpoint."
+                        )
+                        conn.execute(
+                            """
+                            INSERT INTO economic_result_projections
+                            (evaluation_id, economic_assessment_id, cost_per_beneficiary_pen, score_0_100,
+                             status, explanation, algorithm_version, received_at)
+                            VALUES (%s, %s, %s, %s, 'completed', %s, 'economic-cost-per-beneficiary-v1', %s)
+                            ON CONFLICT (evaluation_id) DO UPDATE SET
+                                cost_per_beneficiary_pen = EXCLUDED.cost_per_beneficiary_pen,
+                                score_0_100 = EXCLUDED.score_0_100,
+                                status = 'completed',
+                                explanation = EXCLUDED.explanation,
+                                received_at = EXCLUDED.received_at
+                            """,
+                            (target_eval_id, assessment_id, cost, score, explanation, now),
+                        )
+
+                # Declarar completed únicamente cuando exista su resultado en economic_result_projections
+                has_proj = conn.execute(
+                    "SELECT 1 FROM economic_result_projections WHERE evaluation_id = %s",
+                    (target_eval_id,),
+                ).fetchone()
+
+                if has_proj:
+                    conn.execute(
+                        """
+                        UPDATE evaluations
+                        SET status = 'completed', finished_at = %s, error_message = NULL
+                        WHERE id = %s
+                        """,
+                        (now, target_eval_id),
+                    )
+
+            if target_eval_id and not has_proj:
+                raise ConfiguracionPMV1Error(
+                    "No se pudo completar la etapa económica pendiente; el expediente continúa en revisión."
                 )
+            next_project_status = "evaluated" if target_eval_id else "ready"
+            conn.execute(
+                "UPDATE projects SET status = %s, updated_at = %s WHERE id = %s",
+                (next_project_status, now, project_id),
+            )
 
             # 5. Persistir auditoría de la decisión
             conn.execute(
@@ -2456,7 +2585,7 @@ class PlatformService:
             "resolution_motive": cleaned_justification,
             "resolution_conditions": cleaned_conditions,
             "resolved_at": now,
-            "project_status": "evaluated",
+            "project_status": next_project_status,
             "duplicated": False,
             "message": "Evaluación reanudada exitosamente desde el punto de control conservando resultados previos.",
         }
@@ -2788,10 +2917,16 @@ class PlatformService:
                 assessment["has_legal_alert"] = False
                 assessment["is_resolved"] = True
                 assessment["resolution_justification"] = resolution_row["justification"]
-                assessment["status"] = "verified" if assessment["unverifiable_citations_count"] == 0 else "requires_review"
+
+                # HU2.3 Corrección: No marcar como verified sin cambio comprobado en los hallazgos
+                all_findings_comply = bool(finding_rows and all(r.get("complies") for r in finding_rows))
+                assessment["status"] = (
+                    "verified" if (all_findings_comply and assessment["unverifiable_citations_count"] == 0)
+                    else "requires_review"
+                )
                 assessment["status_label"] = (
                     "Alerta Legal Levantada / Citas Verificadas" if assessment["status"] == "verified"
-                    else "Alerta Legal Levantada / Requiere revisión de citas"
+                    else "Alerta Legal Levantada / Requiere revisión de cumplimiento o citas"
                 )
                 assessment["summary"] += (
                     f" [ALERTA LEVANTADA: {resolution_row['resolution_action']} por Asesor Jurídico. "
@@ -3001,6 +3136,14 @@ class PlatformService:
 
         cleaned_evidence = evidence_reference.strip() if evidence_reference and evidence_reference.strip() else None
 
+        # HU2.3 Corrección: subsanado_en_expediente exige obligatoriamente referencia probatoria
+        if normalized_action == "subsanado_en_expediente":
+            if not cleaned_evidence or len(cleaned_evidence) < 5:
+                raise ConfiguracionPMV1Error(
+                    "La decisión 'subsanado_en_expediente' exige obligatoriamente una referencia documental "
+                    "o probatoria ('evidence_reference') con al menos 5 caracteres que sustente la subsanación del expediente."
+                )
+
         # Exigir usuario con rol autorizado
         self._verify_legal_resolution_actor(actor_id)
 
@@ -3078,12 +3221,9 @@ class PlatformService:
             # 4. Conservar hallazgos históricos intactos: NO se muta project_legal_findings a complies=TRUE.
 
             # 5. Limitar actualización de estado exclusivamente a la versión correcta:
-            new_status = (
-                "verified"
-                if current_assessment.get("unverifiable_citations_count", 0) == 0
-                and normalized_action == "subsanado_en_expediente"
-                else "requires_review"
-            )
+            # HU2.3 Corrección: Una justificación escrita no acredita la subsanación sin una nueva evaluación
+            # de los datos corregidos. Levantar la alerta deja el caso en 'requires_review' sin declararlo 'verified'.
+            new_status = "requires_review"
 
             conn.execute(
                 """
@@ -3810,14 +3950,20 @@ class PlatformService:
                     legal_has_blocker = True
                     legal_blocker_msg = f"Alerta Legal activa: {motive} [{norm}]."
                     blocking_reasons.append(f"Dimension juridica con Alerta Legal activa sin resolver (HU2.3): {motive}")
-                elif unverifiable > 0 or legal_row.get("requires_human_review"):
+                elif unverifiable > 0 or legal_row.get("requires_human_review") or legal_row.get("status") == "requires_review":
                     legal_status = "warning"
                     legal_label = "Requiere revision humana"
-                    legal_conclusion = legal_row.get("summary") or "Revision juridica con citas no comprobables."
-                    legal_justification = f"Se detectaron {unverifiable} cita(s) no verificable(s) (HU2.2); requiere cotejo manual por el Asesor Juridico."
-                    legal_has_blocker = False
-                    legal_blocker_msg = None
-                    legal_warning = "Contiene citas no comprobables contra normativa oficial."
+                    legal_conclusion = legal_row.get("summary") or "Revision juridica con citas no comprobables o dictamen pendiente."
+                    legal_justification = (
+                        f"Se detectaron {unverifiable} cita(s) no verificable(s) (HU2.2); requiere cotejo manual por el Asesor Juridico."
+                        if unverifiable > 0
+                        else "Evaluacion juridica en estado 'requires_review' pendiente de subsanacion o dictamen formal."
+                    )
+                    legal_has_blocker = True
+                    legal_blocker_msg = "Dimension juridica requiere revision humana formal (HU2.2/HU1.12)."
+                    legal_warning = "Contiene citas no comprobables contra normativa oficial o dictamen pendiente."
+                    missing_dimensions.append("Juridica (Requiere revision humana)")
+                    blocking_reasons.append("Dimension juridica en estado 'requires_review' por citas normativas no verificables o dictamen legal pendiente (HU2.2/HU1.12).")
                 else:
                     legal_status = "completed"
                     legal_label = "Citas normativas verificadas"
@@ -4103,6 +4249,15 @@ class PlatformService:
                         "El expediente no puede avanzar a aprobación definitiva ni a priorización hasta que la alerta sea resuelta o levantada por Asesoría Jurídica."
                     )
 
+            # HU1.12 / HU2.2: Bloqueo si la dimensión jurídica está en requires_review (citas no verificables o dictamen pendiente)
+            if legal_row and legal_row["status"] == "requires_review":
+                if cleaned_decision == "approved":
+                    raise ConfiguracionPMV1Error(
+                        "Aprobación final bloqueada: la dimensión jurídica se encuentra en estado 'requires_review' "
+                        "debido a citas normativas no verificables o dictamen legal pendiente (HU2.2/HU1.12). "
+                        "Conforme a CA-HU1.12-03, una evaluación incompleta o en revisión no puede habilitar la aprobación definitiva."
+                    )
+
         if project["status"] not in ("evaluated", "approved", "rejected", "observed"):
             raise ConfiguracionPMV1Error(
                 "El proyecto debe haber completado la evaluacion tecnica antes de la aprobacion humana formal"
@@ -4218,6 +4373,11 @@ class PlatformService:
         legal_alert_motive = legal_row.get("legal_alert_motive") if has_legal_alert else None
         legal_alert_norm = legal_row.get("legal_alert_norm") if has_legal_alert else None
 
+        # HU1.12 / HU2.2: Una dimensión jurídica en 'requires_review' bloquea la aprobación final
+        legal_requires_review = bool(
+            legal_row and legal_row["status"] == "requires_review" and not has_legal_alert
+        )
+
         is_paused = (checkpoint is not None) or (project["status"] == "pending_review")
         is_evaluated = project["status"] in ("evaluated", "approved", "rejected", "observed") and not is_paused
 
@@ -4226,8 +4386,10 @@ class PlatformService:
             blocking_reasons.append(checkpoint["reason"] if checkpoint else "Expediente detenido en punto de control por riesgo alto")
         if has_legal_alert:
             blocking_reasons.append(f"Alerta Legal activa (HU2.3): {legal_alert_motive} [{legal_alert_norm}]")
+        if legal_requires_review:
+            blocking_reasons.append("Dimensión jurídica en estado 'requires_review' por citas no verificables o dictamen pendiente (HU2.2/HU1.12)")
 
-        allows_final_approval = not is_paused and not has_legal_alert
+        allows_final_approval = not is_paused and not has_legal_alert and not legal_requires_review
         requires_human_approval = project["status"] == "evaluated" and latest is None and allows_final_approval
 
         return {

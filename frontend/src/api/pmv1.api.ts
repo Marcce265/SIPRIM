@@ -103,8 +103,17 @@ export function requestEvaluation(
   })
 }
 
-export function getEvaluation(evaluationId: string): Promise<EvaluationResponse> {
-  return apiFetch<EvaluationResponse>(`/api/v1/evaluations/${evaluationId}`, { auth: true })
+export async function getEvaluation(evaluationId: string): Promise<EvaluationResponse> {
+  const response = await apiFetch<EvaluationResponse>(`/api/v1/evaluations/${evaluationId}`, { auth: true })
+  if (!response.result) return response
+  return {
+    ...response,
+    result: {
+      ...response.result,
+      cost_per_beneficiary_pen: Number(response.result.cost_per_beneficiary_pen),
+      score_0_100: Number(response.result.score_0_100),
+    },
+  }
 }
 
 export function legalPrecheck(projectId: string): Promise<LegalPrecheckResponse> {

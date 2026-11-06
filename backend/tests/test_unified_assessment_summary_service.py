@@ -6,7 +6,7 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 from backend.application.services.pmv1_services import PlatformService
-from backend.domain.exceptions.pmv1_exceptions import RecursoPMV1NoEncontradoError
+from backend.domain.exceptions.pmv1_exceptions import RecursoPMV1NoEncontradoError, ConfiguracionPMV1Error
 from backend.infrastructure.config.settings import get_settings
 
 PLANNER_ID = UUID("10000000-0000-4000-a000-000000000002")
@@ -593,3 +593,127 @@ def test_hu1_12_api_endpoint(service, db_conn):
         assert "missing_dimensions" in data
         assert "global_score" in data
 
+
+
+def test_hu1_12_legal_dimension_in_requires_review_blocks_final_approval_and_marks_incomplete(service, db_conn):
+    """
+    HU1.12 CORRECCIÓN: Una dimensión jurídica en 'requires_review' (por citas no verificables
+    o dictamen legal pendiente) NO puede contar como evaluación final plenamente resuelta
+    ni habilitar la aprobación definitiva.
+    - is_complete debe ser False.
+    - allows_final_approval debe ser False en el resumen y en la compuerta humana.
+    - blocking_reasons debe identificar explícitamente el pendiente legal.
+    - submit_human_approval debe rechazar la decisión 'approved'.
+    """
+    code = f"PRY-REQREV-{uuid4().hex[:6]}"
+    proj_id, v1_id = _create_base_project(db_conn, code)
+
+    # 1. Económica completa
+    eval_id = uuid4()
+    db_conn.execute(
+        """
+        INSERT INTO evaluations (id, project_version_id, criteria_version_id, requested_by_user_id, idempotency_key, status)
+        VALUES (%s, %s, %s, %s, %s, 'completed')
+        """,
+        (eval_id, v1_id, ACTIVE_CRITERIA_ID, PLANNER_ID, str(uuid4())),
+    )
+    db_conn.execute(
+        """
+        INSERT INTO economic_result_projections (evaluation_id, economic_assessment_id, cost_per_beneficiary_pen, score_0_100, status, explanation, algorithm_version)
+        VALUES (%s, %s, 180.00, 85.00, 'completed', 'Costo óptimo por habitante', 'v1.0')
+        """,
+        (eval_id, uuid4()),
+    )
+
+    # 2. Social completa
+    db_conn.execute(
+        """
+        INSERT INTO social_accessibility_assessments (
+            id, project_id, project_version_id, requested_by_user_id, idempotency_key,
+            status, summary, results_json, equity_json, social_score, score_explanation
+        ) VALUES (
+            %s, %s, %s, %s, %s,
+            'completed', 'Cobertura favorable', '[]'::jsonb, '{}'::jsonb, 90.00, 'Acceso óptimo'
+        )
+        """,
+        (uuid4(), proj_id, v1_id, PLANNER_ID, str(uuid4())),
+    )
+
+    # 3. Ambiental completa
+    db_conn.execute(
+        """
+        INSERT INTO environmental_assessments (
+            id, project_id, project_version_id, assessed_by_user_id, idempotency_key,
+            status, risk_level, risk_observation, requires_human_review, favorable,
+            summary, declared_vs_evidence_json, impacts_json, mitigations_json, environmental_score
+        ) VALUES (
+            %s, %s, %s, %s, %s,
+            'sufficient', 'low', 'Sin riesgo ambiental', FALSE, TRUE,
+            'Bajo impacto', '{}'::jsonb, '[]'::jsonb, '[]'::jsonb, 85.00
+        )
+        """,
+        (uuid4(), proj_id, v1_id, PLANNER_ID, str(uuid4())),
+    )
+
+    # 4. Técnica completa
+    db_conn.execute(
+        """
+        INSERT INTO technical_feasibility_assessments (
+            id, project_id, project_version_id, requested_by_user_id, idempotency_key,
+            status, overall_result, overall_result_label, is_viable, is_preliminary_opinion,
+            disclaimer, summary, criteria_summary, findings_json, technical_score,
+            score_explanation, dimension_conclusion, dimension_justification
+        ) VALUES (
+            %s, %s, %s, %s, %s,
+            'completed', 'cumple', 'Viable (Cumple)', TRUE, FALSE,
+            'Dictamen técnico preliminar', 'Diseño conforme', '{}'::jsonb, '[]'::jsonb, 80.00,
+            'Puntuación técnica 80.0/100', 'Conclusión técnica favorable', 'Justificación técnica completa'
+        )
+        """,
+        (uuid4(), proj_id, v1_id, PLANNER_ID, str(uuid4())),
+    )
+
+    # 5. Jurídica PENDIENTE en 'requires_review' con citas no verificables (HU2.2)
+    db_conn.execute(
+        """
+        INSERT INTO legal_assessments (
+            id, project_id, project_code, project_version_id, status, summary, findings_json,
+            total_findings, verifiable_citations_count, unverifiable_citations_count,
+            requires_human_review, has_legal_alert, is_resolved, evaluated_at
+        ) VALUES (
+            %s, %s, %s, %s, 'requires_review',
+            'Dictamen legal con citas no verificables pendientes de cotejo manual',
+            '[]'::jsonb, 2, 1, 1, TRUE, FALSE, FALSE, now()
+        )
+        """,
+        (uuid4(), proj_id, code, v1_id),
+    )
+
+    # Marcar proyecto como evaluated preliminarmente
+    db_conn.execute("UPDATE projects SET status = 'evaluated' WHERE id = %s", (proj_id,))
+
+    # 1. Consultar resumen unificado (HU1.12)
+    res = service.get_unified_assessment_summary(project_id=proj_id)
+
+    # Verificaciones estrictas
+    assert res["is_complete"] is False, "Una dimensión jurídica en requires_review no puede considerarse completa"
+    assert res["allows_final_approval"] is False, "Una dimensión jurídica en requires_review no puede habilitar aprobación"
+    assert res["status"] == "blocked"
+    assert any("Juridica" in d for d in res["missing_dimensions"]), "Debe reportar la dimensión jurídica pendiente"
+    assert any("requires_review" in r or "juridica" in r.lower() for r in res["blocking_reasons"])
+
+    # 2. Consultar compuerta humana (HU1.12 / HU2.2)
+    human_gate = service.get_human_approval(proj_id)
+    assert human_gate["allows_final_approval"] is False, "La compuerta humana debe reportar allows_final_approval=False"
+
+    # 3. Intentar aprobación formal: debe ser rechazada por la compuerta backend
+    with pytest.raises(ConfiguracionPMV1Error) as exc_info:
+        service.submit_human_approval(
+            project_id=proj_id,
+            actor_id=PLANNER_ID,
+            decision="approved",
+            justification="Se aprueba indebidamente ignorando citas no verificables.",
+            conditions=None,
+            idempotency_key=f"appr-fail-reqrev-{uuid4()}",
+        )
+    assert "requires_review" in str(exc_info.value)

@@ -101,7 +101,7 @@ def test_hu3_4_ca01_valid_resume_continues_and_preserves_results(service):
         )
 
         assert res["status"] == "resolved"
-        assert res["project_status"] == "evaluated"
+        assert res["project_status"] == "ready"
         assert res["resolved_by_user_id"] == PLANNER_ID
         assert res["resolution_motive"] == "Se aprueba continuar tras verificación de muro de gaviones y expediente de contención fluvial."
         assert res["resolution_conditions"] == "Verificar periódicamente el nivel de socavación en ribera."
@@ -133,7 +133,7 @@ def test_hu3_4_ca01_valid_resume_continues_and_preserves_results(service):
 
         # 4. Estado del proyecto recuperado es 'evaluated' y checkpoint resuelto
         p_after = service.get_project(proj_id)
-        assert p_after["status"] == "evaluated"
+        assert p_after["status"] == "ready"
 
         cp_after = service.get_project_checkpoint(proj_id)
         assert cp_after is not None
@@ -426,9 +426,9 @@ def test_hu3_4_resuming_does_not_equal_final_human_approval(service):
         approval_state = service.get_human_approval(proj_id)
         assert approval_state["current_approval"] is None
         assert approval_state["current_approval"] is None
-        # El proyecto pasó a evaluated, no a approved
+        # Sin evaluación económica asociada, el proyecto queda listo para continuar, no aprobado.
         p = service.get_project(proj_id)
-        assert p["status"] == "evaluated"
+        assert p["status"] == "ready"
         assert p["status"] != "approved"
 
     finally:
@@ -532,5 +532,168 @@ def test_hu3_4_already_resolved_checkpoint_rejected_for_new_request(service):
     finally:
         with psycopg.connect(db_url) as conn, conn.transaction():
             conn.execute("DELETE FROM evaluation_checkpoints WHERE project_id = %s", (proj_id,))
+            conn.execute("DELETE FROM project_versions WHERE project_id = %s", (proj_id,))
+            conn.execute("DELETE FROM projects WHERE id = %s", (proj_id,))
+
+
+def test_hu3_4_resume_executes_pending_economic_stage_and_creates_projection(service):
+    """
+    HU3.4 CORRECCIÓN: La reanudación desde un checkpoint en pausa continúa el procesamiento real:
+    - Inicia con evaluación pausada en 'pending_review' SIN proyección económica en economic_result_projections.
+    - Tras llamar a resume_project_checkpoint, se ejecuta la etapa económica pendiente exactamente una vez.
+    - Se crea la fila en economic_result_projections con costo y puntuación válidos.
+    - La evaluación pasa a 'completed' y el proyecto a 'evaluated'.
+    - El riesgo autorizado ya no re-crea la pausa, pero un nuevo riesgo sí lo hace.
+    """
+    settings = get_settings()
+    db_url = settings.platform_db_url.replace("postgresql+psycopg://", "postgresql://", 1)
+
+    proj_id = uuid4()
+    v1_id = uuid4()
+    eval_id = uuid4()
+    env_id = uuid4()
+    code = f"PRY-EXEC-{uuid4().hex[:6]}"
+
+    try:
+        with psycopg.connect(db_url) as conn, conn.transaction():
+            criteria_row = conn.execute(
+                "SELECT id, excellent_cost_pen, unacceptable_cost_pen FROM criteria_versions WHERE status='active' LIMIT 1"
+            ).fetchone()
+            crit_id = criteria_row[0]
+
+            conn.execute(
+                """
+                INSERT INTO projects (id, code, created_by_user_id, status)
+                VALUES (%s, %s, %s, 'pending_review')
+                """,
+                (proj_id, code, PLANNER_ID),
+            )
+            conn.execute(
+                """
+                INSERT INTO project_versions
+                (id, project_id, version_number, title, description, location_description, proposed_land_use,
+                 territorial_data_origin, estimated_budget_pen, beneficiaries_count, created_by_user_id)
+                VALUES (%s, %s, 1, 'Proyecto Pausado para Ejecución Real', 'Desc', 'Río Mantaro', 'Parque', 'public', 300000, 1000, %s)
+                """,
+                (v1_id, proj_id, PLANNER_ID),
+            )
+            # Evaluación ambiental con riesgo alto
+            conn.execute(
+                """
+                INSERT INTO environmental_assessments
+                (id, project_id, project_version_id, assessed_by_user_id, idempotency_key, status, risk_level,
+                 risk_observation, requires_human_review, favorable, summary, impacts_json, mitigations_json, declared_vs_evidence_json, evaluated_at)
+                VALUES (%s, %s, %s, %s, 'env-key-exec', 'evaluated', 'high',
+                        'Proximidad crítica a cuerpo de agua (10m)', TRUE, FALSE, 'Resumen', '[]', '[]', '{"proximity_to_water_meters": 10}', now())
+                """,
+                (env_id, proj_id, v1_id, PLANNER_ID),
+            )
+            # Checkpoint en pending_review vinculado a la evaluación
+            conn.execute(
+                """
+                INSERT INTO evaluations (id, project_version_id, criteria_version_id, requested_by_user_id, status, idempotency_key, requested_at)
+                VALUES (%s, %s, %s, %s, 'pending_review', %s, now())
+                """,
+                (eval_id, v1_id, crit_id, PLANNER_ID, str(uuid4())),
+            )
+            conn.execute(
+                """
+                INSERT INTO evaluation_checkpoints
+                (id, project_id, project_version_id, evaluation_id, checkpoint_type, status, reason, risk_source, risk_level, details)
+                VALUES (%s, %s, %s, %s, 'high_risk_pause', 'pending_review',
+                        'Causa técnica de pausa: Riesgo ambiental alto por Proximidad crítica a cuerpo de agua (10.0 m < 50 m reglamentarios).',
+                        'environmental', 'high',
+                        %s)
+                """,
+                (
+                    uuid4(),
+                    proj_id,
+                    v1_id,
+                    eval_id,
+                    f'{{"cause": "Proximidad a agua", "observation": "Verificar muro", "environmental_assessment_id": "{env_id}"}}',
+                ),
+            )
+            # Evaluación detenida en pending_review
+
+        # 1. Comprobar que ANTES de reanudar NO existe proyección económica
+        with psycopg.connect(db_url) as conn:
+            cnt_before = conn.execute(
+                "SELECT count(*) FROM economic_result_projections WHERE evaluation_id = %s",
+                (eval_id,),
+            ).fetchone()[0]
+            assert cnt_before == 0, "No debe existir proyección económica antes de reanudar"
+
+        eval_before = service.get_evaluation(eval_id)
+        assert eval_before["status"] == "pending_review"
+        assert eval_before["result"] is None
+
+        # 2. Reanudar el punto de control formalmente
+        resume_res = service.resume_project_checkpoint(
+            project_id=proj_id,
+            actor_id=PLANNER_ID,
+            justification="Se aprueba continuar tras verificación de estudios de socavación y defensas ribereñas.",
+            conditions="Inspección semestral de defensas ribereñas.",
+            idempotency_key=f"resume-real-{uuid4()}",
+        )
+        assert resume_res["status"] == "resolved"
+        assert resume_res["project_status"] == "evaluated"
+
+        # 3. Comprobar que TRAS reanudar, la proyección económica existe y la evaluación está completada
+        with psycopg.connect(db_url) as conn:
+            proj_row = conn.execute(
+                """
+                SELECT evaluation_id, cost_per_beneficiary_pen, score_0_100, status, explanation
+                FROM economic_result_projections
+                WHERE evaluation_id = %s
+                """,
+                (eval_id,),
+            ).fetchone()
+            assert proj_row is not None, "La proyección económica debe haberse creado tras la reanudación"
+            assert Decimal(str(proj_row[1])) == Decimal("300.00")  # 300,000 / 1000 = 300.00
+            assert proj_row[3] == "completed"
+
+            ev_row = conn.execute(
+                "SELECT status, finished_at FROM evaluations WHERE id = %s",
+                (eval_id,),
+            ).fetchone()
+            assert ev_row[0] == "completed"
+            assert ev_row[1] is not None
+
+        # 4. get_evaluation ahora devuelve result con los valores calculados
+        eval_after = service.get_evaluation(eval_id)
+        assert eval_after["status"] == "completed"
+        assert eval_after["status_label"] == "Completada"
+        assert eval_after["result"] is not None
+        assert eval_after["result"]["cost_per_beneficiary_pen"] == Decimal("300.00")
+
+        # 5. Comprobar que el mismo riesgo autorizado ya NO vuelve a crear una pausa
+        with psycopg.connect(db_url) as conn:
+            same_risk = RiskCheckpointEngine.detect_high_risk_condition(conn, v1_id)
+            assert same_risk is None, "El mismo riesgo ya resuelto no debe re-crear una pausa"
+
+            # Pero si surge una NUEVA evaluación ambiental con riesgo alto no autorizado en esa versión:
+            new_env_id = uuid4()
+            conn.execute(
+                """
+                INSERT INTO environmental_assessments
+                (id, project_id, project_version_id, assessed_by_user_id, idempotency_key, status, risk_level,
+                 risk_observation, requires_human_review, favorable, summary, impacts_json, mitigations_json, declared_vs_evidence_json, evaluated_at)
+                VALUES (%s, %s, %s, %s, 'env-key-new-risk', 'evaluated', 'high',
+                        'Nuevo riesgo no autorizado: Emplazamiento en zona de falla geológica', TRUE, FALSE,
+                        'Nuevo riesgo geológico no contemplado', '[]', '[]', '{"is_in_protected_or_risk_area": true}', now())
+                """,
+                (new_env_id, proj_id, v1_id, PLANNER_ID),
+            )
+            new_risk = RiskCheckpointEngine.detect_high_risk_condition(conn, v1_id)
+            assert new_risk is not None, "Un nuevo riesgo no autorizado sí debe detectarse y pausar"
+            assert new_risk["risk_level"] == "high"
+
+    finally:
+        with psycopg.connect(db_url) as conn, conn.transaction():
+            conn.execute("DELETE FROM evaluation_checkpoints WHERE project_id = %s", (proj_id,))
+            conn.execute("DELETE FROM economic_result_projections WHERE evaluation_id = %s", (eval_id,))
+            conn.execute("DELETE FROM evaluations WHERE project_version_id = %s", (v1_id,))
+            conn.execute("DELETE FROM environmental_assessments WHERE project_id = %s", (proj_id,))
+            conn.execute("DELETE FROM project_environmental_records WHERE project_id = %s", (proj_id,))
             conn.execute("DELETE FROM project_versions WHERE project_id = %s", (proj_id,))
             conn.execute("DELETE FROM projects WHERE id = %s", (proj_id,))
