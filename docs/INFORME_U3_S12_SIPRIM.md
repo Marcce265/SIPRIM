@@ -281,28 +281,218 @@ Para verificar la capacidad del software de operar sobre entornos de alta exigen
 - **Frontend Vite Build:** Salida exitosa en 347 ms, generando bundle de producción (`index-CSZKVVVV.css` 51.09 kB, `index-CGbHjBZA.js` 399.05 kB).
 - **Frontend Linter (Oxlint):** 0 errores encontrados en 63 archivos analizados con 116 reglas.
 
-### 7.4 Registro de Evidencias Gráficas del PMV1 y PMV2 (Indicador 5)
-Todas las evidencias corresponden a capturas reales generadas sobre el software en funcionamiento:
-1. `pmv1-hu1.4-accesibilidad-completa.png`: Pantalla de consulta con cobertura total de accesibilidad a servicios urbanos.
-2. `pmv1-hu1.4-informacion-insuficiente.png`: Advertencia visual de información insuficiente en radio de equipamiento.
-3. `pmv1-hu1.10-detalle-juridico.png`: Conformidad de contratación pública conforme a la Ley 32069.
-4. `pmv1-hu2.1-consulta-normativa.png`: Búsqueda asistida en catálogo normativo oficial.
-5. `pmv1-hu2.1-sin-sustento.png`: Detección de incompatibilidad legal por falta de base normativa verificable.
-6. `pmv2-hu1.5-equidad-genero-edad.png`: Distribución y ponderación de impacto demográfico por género y grupos vulnerables.
-7. `pmv2-hu1.6-resultado-ambiental.png`: Evaluación de impacto ecológico y mitigación de huella ambiental.
-8. `pmv2-hu1.6-riesgo-alto-observacion.png`: Generación automática de observación técnica por riesgo ambiental alto.
-9. `pmv2-hu1.7-conservacion-con-puntaje.png`: Bonificación en puntaje por conservación efectiva de áreas verdes.
-10. `pmv2-hu1.8-viabilidad-tecnica.png`: Dictamen de viabilidad de ingeniería civil y estructura presupuestal.
-11. `pmv2-hu1.9-estimacion-pert.png`: Gráfico y cálculo de ruta crítica probabilística con duraciones PERT.
-12. `pmv2-hu1.12-resumen-unificado.png`: Panel integrado con ponderación multidimensional de las cinco dimensiones de inversión.
-13. `pmv2-hu2.2-cita-exacta.png`: Desglose de cita textual legal vinculada al artículo específico del PDM Huancayo.
-14. `pmv2-hu2.3-alerta-legal.png`: Bloqueo de expedientes por incompatibilidad urbanística detectada en zonificación.
-15. `pmv2-hu3.1-pendiente-revision.png`: Estado de expediente en pausa obligatoria por activación de compuerta de riesgo.
-16. `pmv2-hu3.2-aviso-gerente.png`: Notificación formal de derivación a revisión humana para el Gerente de Planeamiento.
-17. `pmv2-hu3.4-checkpoint-pausa.png`: Creación de snapshot inmutable y punto de restauración (*checkpoint*).
-18. `pmv2-hu3.4-checkpoint-reanudado.png`: Reanudación del expediente tras aprobación explícita de funcionario responsable.
-19. `pmv2-ml-prediccion-casos.png`: Pantalla de inferencia con visualización interactiva del Caso 1 (Riesgo de Sobrecosto) y Caso 2 (Viabilidad de Plazo) con semáforos, barras de probabilidad y alertas técnicas.
-20. `pmv2-ml-metricas-procedimientos.png`: Panel comparativo de métricas de precisión de los modelos ML y métricas de ejecución del procedimiento almacenado `sp_registrar_evaluacion_masiva`.
+### 7.4 Registro de Evidencias Gráficas del PMV1 y PMV2 con Datos Reales (Indicador 5)
+
+A continuación se presentan las 30 evidencias gráficas capturadas directamente sobre el software en ejecución, demostrando el funcionamiento de cada una de las historias de usuario de los PMV1 y PMV2, los módulos de Machine Learning y los procedimientos almacenados:
+
+#### Captura 1: Acceso y Autenticación Institucional (Seguridad y Roles RBAC)
+![Acceso al sistema y autenticación institucional](images/captura-01-login-institucional.png)
+
+*Descripción:* Pantalla de inicio de sesión con control de acceso por roles municipales (Planificador, Asesor Jurídico, Administrador) y hashing de contraseñas mediante Argon2id en `auth_db`.
+
+---
+
+#### Captura 2: Carga y Validación de Expedientes (PMV1 - HU1.1 y HU1.2)
+![Carga de expediente y validación](images/captura-02-registro-expediente.png)
+
+*Descripción:* Formulario digital con asignación automática de código único EXP-... y validación atómica que previene el ingreso de fichas con campos obligatorios vacíos (HTTP 409/422).
+
+---
+
+#### Captura 3: Consulta y Listado de Cartera de Inversiones (PMV1)
+![Consulta de cartera de proyectos](images/captura-03-consulta-cartera.png)
+
+*Descripción:* Módulo de visualización de expedientes con filtrado por estado de preevaluación y estado de avance multidimensional.
+
+---
+
+#### Captura 4: Integración IA con Gemini (PMV1 - HU1.8)
+![Integración con Gemini](images/captura-04-integracion-ia-gemini.png)
+
+*Descripción:* Evaluación preliminar generativa mediante LangGraph y Google GenAI, entregando dictamen orientativo con advertencia de control humano obligatorio.
+
+---
+
+#### Captura 5: Búsqueda y Catálogo Normativo Oficial (PMV1 - HU2.1)
+![Catálogo normativo oficial](images/captura-05-catalogo-normativo.png)
+
+*Descripción:* Búsqueda automatizada en el catálogo de 24 fragmentos de leyes peruanas (LOM 27972, Invierte.pe, Ley 32069 y PDM Huancayo).
+
+---
+
+#### Captura 6: Predicción con Machine Learning - Casos 1 y 2 (PMV2 - HU_ML1 y HU_ML2)
+![Inferencia con Machine Learning](images/pmv2-ml-prediccion-casos.png)
+
+*Descripción:* Pantalla operativa de predicción que muestra el Caso 1 (Riesgo de Sobrecosto: probabilidad 78.5%, +18.5% estimado con RandomForest) y el Caso 2 (Viabilidad de Plazo y Retraso: Riesgo Moderado, +45 días con GradientBoosting).
+
+---
+
+#### Captura 7: Métricas de Machine Learning y Procedimientos Almacenados (Indicadores 9, 10 y 11)
+![Métricas ML y Carga Masiva](images/pmv2-ml-metricas-procedimientos.png)
+
+*Descripción:* Panel de métricas de precisión de los modelos (Accuracy 91.73%, Precision 87.88%, F1-Score 0.8821, ROC-AUC 0.9690) y resultados de la demostración masiva con el procedimiento almacenado `sp_registrar_evaluacion_masiva` procesando 750 transacciones en 12.36 ms (23,331 TPS).
+
+---
+
+#### Captura 8: HU1.4 - Evaluación de Accesibilidad Territorial Completa
+![HU1.4 Accesibilidad Completa](images/pmv1-hu1.4-accesibilidad-completa.png)
+
+*Descripción:* Verificación de cobertura a equipamientos de salud, educación y transporte con puntaje de accesibilidad favorable.
+
+---
+
+#### Captura 9: HU1.4 - Alerta por Información Insuficiente en Accesibilidad
+![HU1.4 Información Insuficiente](images/pmv1-hu1.4-informacion-insuficiente.png)
+
+*Descripción:* Identificación de datos incompletos en radio de influencia, bloqueando la asignación de puntaje pleno.
+
+---
+
+#### Captura 10: HU1.10 - Detalle Jurídico de Contratación Pública (Ley 32069)
+![HU1.10 Contratación Pública](images/pmv1-hu1.10-detalle-juridico.png)
+
+*Descripción:* Verificación de cumplimiento de requisitos de contratación estatal y prevención de observaciones legales.
+
+---
+
+#### Captura 11: HU2.1 - Consulta Normativa Asistida
+![HU2.1 Consulta Normativa](images/pmv1-hu2.1-consulta-normativa.png)
+
+*Descripción:* Búsqueda y cotejo de artículos específicos para sustentar técnica y jurídicamente la viabilidad de la inversión.
+
+---
+
+#### Captura 12: HU2.1 - Incompatibilidad Legal por Carencia de Sustento
+![HU2.1 Sin Sustento](images/pmv1-hu2.1-sin-sustento.png)
+
+*Descripción:* Detección de incompatibilidad normativa cuando una propuesta vulnera disposiciones urbanas del PDM.
+
+---
+
+#### Captura 13: HU1.5 - Evaluación de Equidad de Género y Grupos Vulnerables
+![HU1.5 Equidad](images/pmv2-hu1.5-equidad-genero-edad.png)
+
+*Descripción:* Evaluación demográfica ponderando el impacto en mujeres, niños y adultos mayores del distrito.
+
+---
+
+#### Captura 14: HU1.5 - Bloqueo por Datos Demográficos Insuficientes
+![HU1.5 Datos Insuficientes](images/pmv2-hu1.5-datos-insuficientes.png)
+
+*Descripción:* Rechazo de la evaluación social cuando el expediente no incluye censos o proyecciones validadas de beneficiarios.
+
+---
+
+#### Captura 15: HU1.6 - Resultado Favorable de Evaluación Ambiental
+![HU1.6 Evaluación Ambiental](images/pmv2-hu1.6-resultado-ambiental.png)
+
+*Descripción:* Dictamen ambiental con medidas de mitigación y evaluación de pasivos ambientales en el área de influencia directa.
+
+---
+
+#### Captura 16: HU1.6 - Observación Automática por Riesgo Ambiental Alto
+![HU1.6 Riesgo Alto](images/pmv2-hu1.6-riesgo-alto-observacion.png)
+
+*Descripción:* Generación de observación crítica cuando la obra colinda con zonas de riesgo geotécnico o cauces de río.
+
+---
+
+#### Captura 17: HU1.6 - Carencia de Anexo de Impacto Ambiental
+![HU1.6 Información Insuficiente](images/pmv2-hu1.6-informacion-insuficiente.png)
+
+*Descripción:* Notificación de expediente observado por falta de declaración de impacto ambiental (DIA).
+
+---
+
+#### Captura 18: HU1.7 - Bonificación por Conservación de Áreas Verdes
+![HU1.7 Conservación Áreas Verdes](images/pmv2-hu1.7-conservacion-con-puntaje.png)
+
+*Descripción:* Asignación de puntaje positivo cuando el proyecto incrementa el m² de área verde por habitante.
+
+---
+
+#### Captura 19: HU1.7 - Penalización por Afectación de Cobertura Vegetal
+![HU1.7 Afectación Áreas Verdes](images/pmv2-hu1.7-afectacion-efecto-puntaje.png)
+
+*Descripción:* Descuento de puntuación al detectarse retiro de árboles sin plan de reposición forestal urbana.
+
+---
+
+#### Captura 20: HU1.7 - Datos Insuficientes de Superficie Ecológica
+![HU1.7 Datos Insuficientes](images/pmv2-hu1.7-datos-insuficientes.png)
+
+*Descripción:* Requerimiento de levantamiento topográfico y metrado de cobertura vegetal previa.
+
+---
+
+#### Captura 21: HU1.8 - Preevaluación de Viabilidad Técnica de Ingeniería
+![HU1.8 Viabilidad Técnica](images/pmv2-hu1.8-viabilidad-tecnica.png)
+
+*Descripción:* Análisis estructural, partidas presupuestales y consistencia de especificaciones técnicas.
+
+---
+
+#### Captura 22: HU1.9 - Estimación Probabilística de Plazos con PERT
+![HU1.9 Estimación PERT](images/pmv2-hu1.9-estimacion-pert.png)
+
+*Descripción:* Cálculo de varianza y ruta crítica Beta-PERT para determinar la probabilidad de culminación en plazo.
+
+---
+
+#### Captura 23: HU1.12 - Resumen Ejecutivo Unificado Multidimensional
+![HU1.12 Resumen Unificado](images/pmv2-hu1.12-resumen-unificado.png)
+
+*Descripción:* Panel integral que consolida las dimensiones económica, social, ambiental, técnica y legal en un único puntaje explicable.
+
+---
+
+#### Captura 24: HU2.2 - Cotejo de Cita Normativa Exacta
+![HU2.2 Cita Exacta](images/pmv2-hu2.2-cita-exacta.png)
+
+*Descripción:* Vinculación explícita con el artículo, inciso y texto exacto de la ordenanza o norma nacional aplicable.
+
+---
+
+#### Captura 25: HU2.2 - Alerta ante Cita Legal no Verificable
+![HU2.2 Cita no Verificable](images/pmv2-hu2.2-cita-no-verificable.png)
+
+*Descripción:* Detección de normas derogadas o desactualizadas, exigiendo revisión del Asesor Jurídico.
+
+---
+
+#### Captura 26: HU2.3 - Alerta Legal por Incompatibilidad Urbana y Bloqueo
+![HU2.3 Alerta Legal](images/pmv2-hu2.3-alerta-legal.png)
+
+*Descripción:* Bloqueo estricto del botón de aprobación cuando el uso propuesto contradice la zonificación metropolitana.
+
+---
+
+#### Captura 27: HU3.1 - Suspensión por Riesgo Alto en Compuerta HITL
+![HU3.1 Pendiente de Revisión](images/pmv2-hu3.1-pendiente-revision.png)
+
+*Descripción:* Pausa automática del procesamiento cuando cualquier dimensión supera el umbral crítico de riesgo.
+
+---
+
+#### Captura 28: HU3.2 - Notificación Estructurada de Causas al Gerente
+![HU3.2 Aviso al Gerente](images/pmv2-hu3.2-aviso-gerente.png)
+
+*Descripción:* Reporte detallado para el Gerente de Planeamiento indicando exactamente qué variables motivaron la suspensión.
+
+---
+
+#### Captura 29: HU3.4 - Creación de Checkpoint Persistente
+![HU3.4 Checkpoint Pausa](images/pmv2-hu3.4-checkpoint-pausa.png)
+
+*Descripción:* Instantánea inmutable del estado del proyecto almacenada en base de datos para garantizar no repudio.
+
+---
+
+#### Captura 30: HU3.4 - Reanudación Autorizada con Trazabilidad
+![HU3.4 Checkpoint Reanudado](images/pmv2-hu3.4-checkpoint-reanudado.png)
+
+*Descripción:* Reanudación formal del expediente una vez que el funcionario competente subsana u homologa la observación.
+
 
 ### 7.5 Discusión de Resultados y Comparación con Estudios Previos (Indicador 6)
 
