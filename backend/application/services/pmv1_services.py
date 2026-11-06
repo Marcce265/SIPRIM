@@ -987,6 +987,315 @@ class RiskCheckpointEngine:
             "updated_at": row["updated_at"],
         }
 
+
+class TechnicalFeasibilityEngine:
+    """Motor de evaluación de viabilidad técnica de proyectos (HU1.8 - PMV2 Sprint 2).
+
+    Criterios de Aceptación:
+    - CA-HU1.8-01: Verificación técnica sustentada. Identifica cada criterio verificado,
+      su estado y el sustento disponible, presentándolo como OPINIÓN PRELIMINAR automatizada,
+      sin atribuirle valor de certificación profesional (ni sustituye la firma de ingenieros
+      colegiados Ley 28858 / RNE).
+    - CA-HU1.8-02: Incumplimiento u observación técnica. Si un criterio no se cumple según
+      los datos aportados, señala cuál está observado, el motivo técnico y qué debe corregir
+      o revisar el planificador.
+    - CA-HU1.8-03: Imposibilidad de emitir conclusión. Si faltan datos indispensables para
+      comprobar un criterio, indica 'Información insuficiente' y NO declara viable al proyecto.
+      El puntaje técnico resultante es estrictamente None (cero falsos positivos).
+    """
+
+    PRELIMINARY_OPINION_DISCLAIMER: ClassVar[str] = (
+        "ADVERTENCIA DE CONTROL Y ALCANCE LEGAL: Esta evaluación técnica constituye una opinión preliminar automatizada "
+        "basada en los parámetros y documentos registrados en la plataforma. No tiene carácter de certificación profesional, "
+        "no constituye liquidación ni conformidad de obra, y no sustituye la responsabilidad funcional ni la firma colegiada "
+        "de los ingenieros especialistas responsables (Ley N.° 28858 y Reglamento Nacional de Edificaciones - RNE)."
+    )
+
+    CANONICAL_CRITERIA: ClassVar[tuple[dict[str, str], ...]] = (
+        {
+            "code": "mecanica_suelos",
+            "name": "Capacidad portante y mecánica de suelos",
+            "normative_reference": 'RNE Norma Técnica E.050 "Suelos y Cimentaciones" (D.S. N.° 011-2006-VIVIENDA)',
+            "normative_version": "2006 (vigente)",
+            "applied_rule": "Capacidad portante admisible q_adm >= 1.00 kg/cm² para cimentación superficial según RNE E.050",
+        },
+        {
+            "code": "servicios_basicos",
+            "name": "Factibilidad de servicios básicos de agua y saneamiento",
+            "normative_reference": "RNE Norma Técnica OS.010 y Directiva General Invierte.pe (D.L. 1252)",
+            "normative_version": "2019 (vigente)",
+            "applied_rule": "Distancia a red matriz <= 100 m con factibilidad técnica o punto de empalme certificado según RNE OS.010 / Invierte.pe",
+        },
+        {
+            "code": "topografia_taludes",
+            "name": "Pendiente topográfica y estabilidad física de terreno",
+            "normative_reference": 'RNE Norma Técnica CE.020 "Estabilización de Suelos y Taludes" y Manual CENEPRED',
+            "normative_version": "2012 (vigente)",
+            "applied_rule": "Pendiente natural <= 20.0% y ausencia de fallas activas de talud según RNE CE.020 / CENEPRED",
+        },
+        {
+            "code": "dimensionamiento_predio",
+            "name": "Dimensionamiento y compatibilidad de lote normativo",
+            "normative_reference": "Plan de Desarrollo Metropolitano Huancayo 2017-2037 (O.M. N.° 636-MPH) y RNE A.010",
+            "normative_version": "2017 (vigente)",
+            "applied_rule": "Superficie neta de lote >= 300 m² (o ancho de faja >= 8.0 m) compatible con uso institucional/equipamiento según PDM Huancayo",
+        },
+    )
+
+    @classmethod
+    def evaluate_criterion(cls, meta: dict[str, str], row: dict[str, Any] | None) -> dict[str, Any]:
+        code = meta["code"]
+        name = meta["name"]
+        norm_ref = meta["normative_reference"]
+        norm_ver = meta["normative_version"]
+        applied_rule = meta["applied_rule"]
+
+        if (
+            not row
+            or not row.get("has_sufficient_data")
+            or (row.get("parameter_value_numeric") is None and not row.get("parameter_value_text"))
+        ):
+            if code == "mecanica_suelos":
+                explanation = "Falta estudio de mecánica de suelos (EMS) o ensayo SPT con capacidad portante admisible verificable."
+                guidance = "Adjuntar Informe Técnico de Mecánica de Suelos con fines de cimentación conforme a la Norma E.050 del RNE, suscrito por ingeniero civil/geotécnico colegiado."
+            elif code == "servicios_basicos":
+                explanation = "No se dispone de certificado de factibilidad de servicios de agua y saneamiento emitido por la EPS prestadora (SEDAM Huancayo)."
+                guidance = "Gestionar y anexar el Certificado de Factibilidad de Servicios de Agua Potable y Alcantarillado emitido por SEDAM Huancayo o la entidad prestadora correspondiente."
+            elif code == "topografia_taludes":
+                explanation = "Falta levantamiento topográfico perimétrico con curvas de nivel o evaluación de estabilidad de taludes."
+                guidance = "Adjuntar plano topográfico perimétrico y altimétrico firmado por ingeniero civil o topógrafo colegiado, con curvas de nivel y cálculo de pendiente media."
+            elif code == "dimensionamiento_predio":
+                explanation = "Falta partida registral, plano de independización o certificado de parámetros urbanísticos que acredite dimensionamiento y zonificación."
+                guidance = "Presentar Partida Registral SUNARP saneada o Certificado de Parámetros Urbanísticos y Edificatorios emitido por la Municipalidad Distrital de El Tambo."
+            else:
+                explanation = f"Faltan datos técnicos o sustento documental indispensable para el criterio {name}."
+                guidance = "Registrar la información técnica requerida y adjuntar el documento sustentatorio de respaldo."
+
+            return {
+                "criterion_code": code,
+                "criterion_name": name,
+                "normative_reference": norm_ref,
+                "normative_version": norm_ver,
+                "has_sufficient_data": False,
+                "parameter_name": row.get("parameter_name") if row else None,
+                "parameter_value_numeric": None,
+                "parameter_unit": row.get("parameter_unit") if row else None,
+                "parameter_value_text": None,
+                "applied_rule": applied_rule,
+                "supporting_document": None,
+                "source_origin": row.get("source_origin") if row else "simulated",
+                "is_simulated": row.get("is_simulated", True) if row else True,
+                "status": "informacion_insuficiente",
+                "status_label": "Información insuficiente",
+                "explanation": explanation,
+                "correction_guidance": guidance,
+            }
+
+        val_num = float(row["parameter_value_numeric"]) if row.get("parameter_value_numeric") is not None else None
+        val_txt = row.get("parameter_value_text")
+        unit = row.get("parameter_unit") or ""
+        doc = row.get("supporting_document")
+        origin = row.get("source_origin") or "simulated"
+        is_sim = row.get("is_simulated", True)
+        param_name = row.get("parameter_name")
+
+        if code == "mecanica_suelos":
+            if val_num is not None and val_num >= 1.00:
+                status = "cumple"
+                status_label = "Cumple"
+                explanation = f"Capacidad portante admisible de {val_num:.2f} {unit} cumple con el mínimo reglamentario de 1.00 kg/cm² para cimentación superficial según RNE E.050."
+                guidance = None
+            else:
+                status = "observado"
+                status_label = "Observado"
+                val_str = f"{val_num:.2f} {unit}" if val_num is not None else "no especificado"
+                explanation = f"Capacidad portante admisible de {val_str} es inferior al umbral mínimo de seguridad de 1.00 kg/cm² exigido por RNE E.050 para cimentación directa convencional."
+                guidance = "Plantear alternativas geotécnicas de cimentación profunda (pilotes/caissons), mejoramiento de suelo (reemplazo o estabilización) o relocalización del emplazamiento estructural."
+
+        elif code == "servicios_basicos":
+            txt_lower = (val_txt or "").lower()
+            is_conditioned = "no factible" in txt_lower or "condiciona" in txt_lower or "ampliación" in txt_lower
+            if val_num is not None and val_num <= 100.0 and not is_conditioned:
+                status = "cumple"
+                status_label = "Cumple"
+                explanation = f"Distancia a red matriz de {val_num:.2f} {unit} dentro del límite máximo de 100 m con punto de conexión factible conforme a RNE OS.010 e Invierte.pe."
+                guidance = None
+            else:
+                status = "observado"
+                status_label = "Observado"
+                if val_num is not None and val_num > 100.0:
+                    explanation = f"Distancia a red matriz ({val_num:.2f} {unit}) excede los 100 m reglamentarios. "
+                else:
+                    explanation = ""
+                if is_conditioned:
+                    explanation += f"La entidad prestadora (SEDAM Huancayo) reporta restricciones técnicas o condicionamientos: {val_txt}."
+                else:
+                    explanation += "Requiere extensión de red secundaria y obras de empalme no contempladas."
+                guidance = "Incorporar al presupuesto y alcance del proyecto el componente de ampliación de colector público o planta de tratamiento/trampa de retención previo empalme."
+
+        elif code == "topografia_taludes":
+            if val_num is not None and val_num <= 20.0:
+                status = "cumple"
+                status_label = "Cumple"
+                explanation = f"Pendiente media de {val_num:.2f} {unit} es menor o igual al 20.0% máximo admisible para terreno estable según RNE CE.020 y CENEPRED."
+                guidance = None
+            else:
+                status = "observado"
+                status_label = "Observado"
+                val_str = f"{val_num:.2f} {unit}" if val_num is not None else "no especificado"
+                explanation = f"Pendiente media del terreno de {val_str} excede el 20.0% normativo, presentando riesgo de inestabilidad física o desprendimiento según CE.020."
+                guidance = "Incluir estudio de estabilidad de taludes y diseño de obras de sostenimiento físico (muros de contención, banquetas o terrazas de estabilización)."
+
+        elif code == "dimensionamiento_predio":
+            is_width = "metro" in unit.lower() or "m" == unit.strip()
+            threshold = 8.0 if is_width else 300.0
+            if val_num is not None and val_num >= threshold:
+                status = "cumple"
+                status_label = "Cumple"
+                explanation = f"Dimensión disponible de {val_num:.2f} {unit} cumple holgadamente con los requerimientos normativos para equipamiento institucional (mínimo {threshold:.1f} {unit})."
+                guidance = None
+            else:
+                status = "observado"
+                status_label = "Observado"
+                val_str = f"{val_num:.2f} {unit}" if val_num is not None else "no especificado"
+                explanation = f"Dimensión de {val_str} no alcanza el área o sección normativa requerida ({threshold:.1f} {unit}) según el PDM Huancayo y RNE A.010."
+                guidance = "Evaluar redimensionamiento de las áreas de servidumbre, acumulación de lotes o ajuste del anteproyecto arquitectónico al área legal útil."
+
+        else:
+            status = "cumple"
+            status_label = "Cumple"
+            explanation = "Parámetro evaluado conforme."
+            guidance = None
+
+        return {
+            "criterion_code": code,
+            "criterion_name": name,
+            "normative_reference": norm_ref,
+            "normative_version": norm_ver,
+            "has_sufficient_data": True,
+            "parameter_name": param_name,
+            "parameter_value_numeric": val_num,
+            "parameter_unit": unit,
+            "parameter_value_text": val_txt,
+            "applied_rule": applied_rule,
+            "supporting_document": doc,
+            "source_origin": origin,
+            "is_simulated": is_sim,
+            "status": status,
+            "status_label": status_label,
+            "explanation": explanation,
+            "correction_guidance": guidance,
+        }
+
+    @classmethod
+    def evaluate(
+        cls,
+        project_id: UUID,
+        project_code: str,
+        project_version_id: UUID,
+        version_number: int,
+        parameter_rows: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        rows_by_code = {r["criterion_code"]: r for r in parameter_rows}
+        evaluated_criteria: list[dict[str, Any]] = []
+
+        for meta in cls.CANONICAL_CRITERIA:
+            row = rows_by_code.get(meta["code"])
+            item = cls.evaluate_criterion(meta, row)
+            evaluated_criteria.append(item)
+
+        total = len(evaluated_criteria)
+        cumple_count = sum(1 for c in evaluated_criteria if c["status"] == "cumple")
+        observado_count = sum(1 for c in evaluated_criteria if c["status"] == "observado")
+        insuficiente_count = sum(1 for c in evaluated_criteria if c["status"] == "informacion_insuficiente")
+
+        criteria_summary = {
+            "total": total,
+            "cumple": cumple_count,
+            "observado": observado_count,
+            "informacion_insuficiente": insuficiente_count,
+        }
+
+        if insuficiente_count > 0:
+            overall_result = "informacion_insuficiente"
+            overall_result_label = "Información insuficiente"
+            is_viable = False
+            technical_score = None
+            score_explanation = (
+                "Puntaje técnico no determinado: existen criterios técnicos con información insuficiente "
+                "que impiden una cuantificación objetiva (CA-HU1.8-03)."
+            )
+            summary = (
+                f"Evaluación técnica preliminar inconclusa: {insuficiente_count} de {total} criterios carecen "
+                "de información técnica indispensable o sustento verificable. No se declara la viabilidad técnica del proyecto."
+            )
+            dimension_conclusion = "No viable preliminarmente por falta de información técnica indispensable."
+            dimension_justification = (
+                f"El expediente presenta {insuficiente_count} criterio(s) con información técnica faltante o insuficiente. "
+                "Conforme al principio de precaución técnica y CA-HU1.8-03, no es posible emitir una calificación de viabilidad "
+                "hasta subsanar los parámetros técnicos requeridos."
+            )
+        elif observado_count > 0:
+            overall_result = "observado"
+            overall_result_label = "Observado"
+            is_viable = False
+            technical_score = round(100.0 * cumple_count / total, 2)
+            score_explanation = (
+                f"Puntaje técnico de {technical_score:.1f}/100 basado en el cumplimiento de {cumple_count} de {total} "
+                "criterios evaluados. Existen observaciones técnicas críticas que deben subsanarse."
+            )
+            summary = (
+                f"Evaluación técnica preliminar con observaciones: {observado_count} de {total} criterios presentan "
+                "incompatibilidades o incumplimientos normativos que deben ser subsanados por el planificador."
+            )
+            dimension_conclusion = "No viable preliminarmente por observaciones técnicas críticas no subsanadas."
+            dimension_justification = (
+                f"Se identificaron {observado_count} observación(es) técnica(s) relativas a los parámetros evaluados. "
+                "El proyecto no califica como viable hasta que el planificador incorpore las medidas correctivas recomendadas."
+            )
+        else:
+            overall_result = "cumple"
+            overall_result_label = "Viable preliminarmente"
+            is_viable = True
+            technical_score = 100.0
+            score_explanation = (
+                f"Puntaje técnico de 100.0/100: todos los criterios técnicos reglamentarios ({total}/{total}) "
+                "cuentan con sustento y cumplen los umbrales aplicables."
+            )
+            summary = (
+                "Evaluación técnica preliminar favorable: todos los criterios técnicos analizados cumplen "
+                "satisfactoriamente con la normativa vigente y cuentan con sustento documental verificado."
+            )
+            dimension_conclusion = "Viable preliminarmente conforme a los parámetros técnicos evaluados."
+            dimension_justification = (
+                "Todos los parámetros de mecánica de suelos, servicios básicos, topografía y dimensionamiento "
+                "cumplen con los umbrales del RNE y la normativa municipal aplicable."
+            )
+
+        now = datetime.now(timezone.utc)
+
+        return {
+            "project_id": project_id,
+            "project_code": project_code,
+            "project_version_id": project_version_id,
+            "version_number": version_number,
+            "status": "completed",
+            "overall_result": overall_result,
+            "overall_result_label": overall_result_label,
+            "is_viable": is_viable,
+            "is_preliminary_opinion": True,
+            "disclaimer": cls.PRELIMINARY_OPINION_DISCLAIMER,
+            "summary": summary,
+            "criteria_summary": criteria_summary,
+            "criteria": evaluated_criteria,
+            "technical_score": technical_score,
+            "score_explanation": score_explanation,
+            "dimension_conclusion": dimension_conclusion,
+            "dimension_justification": dimension_justification,
+            "evaluated_at": now,
+        }
+
+
 class PlatformService:
     def __init__(
         self,
@@ -1249,6 +1558,7 @@ class PlatformService:
 
             res["checkpoint"] = checkpoint
             res["pert_estimate"] = pert_estimate
+            res["technical_assessment"] = self._get_technical_assessment_with_conn(conn, row["project_version_id"])
             return res
 
 
@@ -1281,6 +1591,252 @@ class PlatformService:
             if project_version_id is not None:
                 self._verify_version_belongs_to_project(conn, project_id, target_version_id)
             return self._get_pert_estimate_with_conn(conn, target_version_id)
+
+    def _get_technical_assessment_with_conn(
+        self, conn: psycopg.Connection[Any], project_version_id: UUID
+    ) -> dict[str, Any] | None:
+        row = conn.execute(
+            """
+            SELECT ta.id, ta.project_id, p.code AS project_code, ta.project_version_id, pv.version_number,
+                   ta.status, ta.overall_result, ta.overall_result_label, ta.is_viable,
+                   ta.is_preliminary_opinion, ta.disclaimer, ta.summary,
+                   ta.criteria_summary, ta.findings_json, ta.technical_score,
+                   ta.score_explanation, ta.dimension_conclusion, ta.dimension_justification,
+                   ta.evaluated_at
+            FROM technical_feasibility_assessments ta
+            JOIN projects p ON p.id = ta.project_id
+            JOIN project_versions pv ON pv.id = ta.project_version_id
+            WHERE ta.project_version_id = %s
+            """,
+            (project_version_id,),
+        ).fetchone()
+        if not row:
+            return None
+        return {
+            "assessment_id": row["id"],
+            "project_id": row["project_id"],
+            "project_code": row["project_code"],
+            "project_version_id": row["project_version_id"],
+            "version_number": row["version_number"],
+            "status": row["status"],
+            "overall_result": row["overall_result"],
+            "overall_result_label": row["overall_result_label"],
+            "is_viable": row["is_viable"],
+            "is_preliminary_opinion": row["is_preliminary_opinion"],
+            "disclaimer": row["disclaimer"],
+            "summary": row["summary"],
+            "criteria_summary": row["criteria_summary"],
+            "criteria": row["findings_json"],
+            "technical_score": float(row["technical_score"]) if row["technical_score"] is not None else None,
+            "score_explanation": row["score_explanation"],
+            "dimension_conclusion": row["dimension_conclusion"],
+            "dimension_justification": row["dimension_justification"],
+            "evaluated_at": row["evaluated_at"],
+            "duplicated": False,
+        }
+
+    def evaluate_technical_feasibility(
+        self,
+        project_id: UUID,
+        actor_id: UUID,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        """Ejecuta y persiste la preevaluación de viabilidad técnica del expediente para su versión vigente (HU1.8)."""
+        project = self.get_project(project_id)
+        project_version_id = project["project_version_id"]
+        version_number = project["version_number"]
+        cleaned_key = (idempotency_key or "").strip() or None
+
+        if not _is_db_available(self.db_url):
+            if not self.enable_demo_fallback:
+                raise ServicioNoDisponibleError(
+                    "Servicio de viabilidad técnica no disponible: la base de datos no responde."
+                )
+
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            # 1. Comprobar Idempotency-Key
+            if cleaned_key:
+                prev = conn.execute(
+                    """
+                    SELECT ta.id, ta.project_id, p.code AS project_code, ta.project_version_id,
+                           pv.version_number, ta.status, ta.overall_result, ta.overall_result_label,
+                           ta.is_viable, ta.is_preliminary_opinion, ta.disclaimer, ta.summary,
+                           ta.criteria_summary, ta.findings_json, ta.technical_score,
+                           ta.score_explanation, ta.dimension_conclusion, ta.dimension_justification,
+                           ta.evaluated_at, ta.idempotency_key
+                    FROM technical_feasibility_assessments ta
+                    JOIN projects p ON p.id = ta.project_id
+                    JOIN project_versions pv ON pv.id = ta.project_version_id
+                    WHERE ta.idempotency_key = %s
+                    """,
+                    (cleaned_key,),
+                ).fetchone()
+                if prev:
+                    if prev["project_id"] != project_id:
+                        raise ConfiguracionPMV1Error("Idempotency-Key ya fue utilizada para otro expediente")
+                    return {
+                        "assessment_id": prev["id"],
+                        "project_id": prev["project_id"],
+                        "project_code": prev["project_code"],
+                        "project_version_id": prev["project_version_id"],
+                        "version_number": prev["version_number"],
+                        "status": prev["status"],
+                        "overall_result": prev["overall_result"],
+                        "overall_result_label": prev["overall_result_label"],
+                        "is_viable": prev["is_viable"],
+                        "is_preliminary_opinion": prev["is_preliminary_opinion"],
+                        "disclaimer": prev["disclaimer"],
+                        "summary": prev["summary"],
+                        "criteria_summary": prev["criteria_summary"],
+                        "criteria": prev["findings_json"],
+                        "technical_score": float(prev["technical_score"]) if prev["technical_score"] is not None else None,
+                        "score_explanation": prev["score_explanation"],
+                        "dimension_conclusion": prev["dimension_conclusion"],
+                        "dimension_justification": prev["dimension_justification"],
+                        "evaluated_at": prev["evaluated_at"],
+                        "duplicated": True,
+                    }
+
+            # 2. Leer parámetros técnicos registrados para esta versión
+            param_rows = conn.execute(
+                """
+                SELECT id, project_id, project_version_id, criterion_code, criterion_name,
+                       normative_reference, normative_version, has_sufficient_data,
+                       parameter_name, parameter_value_numeric, parameter_unit, parameter_value_text,
+                       applied_rule, supporting_document, source_origin, is_simulated
+                FROM project_technical_parameters
+                WHERE project_version_id = %s
+                ORDER BY criterion_code ASC
+                """,
+                (project_version_id,),
+            ).fetchall()
+
+            # 3. Evaluar con el motor técnico
+            assessment = TechnicalFeasibilityEngine.evaluate(
+                project_id=project_id,
+                project_code=project["code"],
+                project_version_id=project_version_id,
+                version_number=version_number,
+                parameter_rows=[dict(r) for r in param_rows],
+            )
+
+            assessment_id = uuid4()
+            effective_key = cleaned_key or f"tech-assessment-{assessment_id}"
+            now = assessment["evaluated_at"]
+
+            # 4. Insertar o actualizar la evaluación para esta versión
+            saved_row = conn.execute(
+                """
+                INSERT INTO technical_feasibility_assessments
+                (id, project_id, project_version_id, requested_by_user_id, idempotency_key,
+                 status, overall_result, overall_result_label, is_viable, is_preliminary_opinion,
+                 disclaimer, summary, criteria_summary, findings_json, technical_score,
+                 score_explanation, dimension_conclusion, dimension_justification, evaluated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (project_version_id) DO UPDATE SET
+                    idempotency_key = EXCLUDED.idempotency_key,
+                    requested_by_user_id = EXCLUDED.requested_by_user_id,
+                    status = EXCLUDED.status,
+                    overall_result = EXCLUDED.overall_result,
+                    overall_result_label = EXCLUDED.overall_result_label,
+                    is_viable = EXCLUDED.is_viable,
+                    is_preliminary_opinion = EXCLUDED.is_preliminary_opinion,
+                    disclaimer = EXCLUDED.disclaimer,
+                    summary = EXCLUDED.summary,
+                    criteria_summary = EXCLUDED.criteria_summary,
+                    findings_json = EXCLUDED.findings_json,
+                    technical_score = EXCLUDED.technical_score,
+                    score_explanation = EXCLUDED.score_explanation,
+                    dimension_conclusion = EXCLUDED.dimension_conclusion,
+                    dimension_justification = EXCLUDED.dimension_justification,
+                    evaluated_at = EXCLUDED.evaluated_at
+                RETURNING id
+                """,
+                (
+                    assessment_id,
+                    project_id,
+                    project_version_id,
+                    actor_id,
+                    effective_key,
+                    assessment["status"],
+                    assessment["overall_result"],
+                    assessment["overall_result_label"],
+                    assessment["is_viable"],
+                    assessment["is_preliminary_opinion"],
+                    assessment["disclaimer"],
+                    assessment["summary"],
+                    Jsonb(assessment["criteria_summary"]),
+                    Jsonb(assessment["criteria"]),
+                    Decimal(str(assessment["technical_score"])) if assessment["technical_score"] is not None else None,
+                    assessment["score_explanation"],
+                    assessment["dimension_conclusion"],
+                    assessment["dimension_justification"],
+                    now,
+                ),
+            ).fetchone()
+            actual_assessment_id = saved_row["id"] if saved_row else assessment_id
+
+            # 5. Registrar evento de auditoría
+            conn.execute(
+                """
+                INSERT INTO audit_events
+                (actor_user_id, action, entity_type, entity_id, details)
+                VALUES (%s, 'TECHNICAL_ASSESSMENT_COMPLETED', 'technical_assessment', %s, %s)
+                """,
+                (
+                    actor_id,
+                    actual_assessment_id,
+                    Jsonb(
+                        {
+                            "project_id": str(project_id),
+                            "project_code": project["code"],
+                            "project_version_id": str(project_version_id),
+                            "overall_result": assessment["overall_result"],
+                            "is_viable": assessment["is_viable"],
+                            "technical_score": assessment["technical_score"],
+                            "criteria_summary": assessment["criteria_summary"],
+                        }
+                    ),
+                ),
+            )
+
+        return {
+            "assessment_id": actual_assessment_id,
+            **assessment,
+            "duplicated": False,
+        }
+
+    def get_technical_feasibility(
+        self, project_id: UUID, version_id: UUID | None = None
+    ) -> dict[str, Any] | None:
+        """Obtiene la evaluación técnica de la versión vigente (o la especificada) de forma estrictamente de lectura."""
+        if not _is_db_available(self.db_url):
+            if not self.enable_demo_fallback:
+                raise ServicioNoDisponibleError(
+                    "Servicio de viabilidad técnica no disponible: la base de datos no responde."
+                )
+
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            target_version_id = version_id
+            if target_version_id is None:
+                pv = conn.execute(
+                    "SELECT id FROM project_versions WHERE project_id = %s ORDER BY version_number DESC LIMIT 1",
+                    (project_id,),
+                ).fetchone()
+                if not pv:
+                    raise RecursoPMV1NoEncontradoError("Expediente no encontrado")
+                target_version_id = pv["id"]
+            else:
+                pv = conn.execute(
+                    "SELECT 1 FROM project_versions WHERE id = %s AND project_id = %s",
+                    (target_version_id, project_id),
+                ).fetchone()
+                if not pv:
+                    raise VersionNoPertenecienteError(
+                        "La versión especificada no pertenece al expediente indicado"
+                    )
+
+            return self._get_technical_assessment_with_conn(conn, target_version_id)
 
     def _verify_version_belongs_to_project(
         self, conn: psycopg.Connection[Any], project_id: UUID, version_id: UUID

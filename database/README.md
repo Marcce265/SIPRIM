@@ -201,3 +201,16 @@ Las migraciones DDL (`03_migration_hu1.4.sql` y `03_migration_hu1.6.sql`) contie
     *“AVISO OBLIGATORIO · ESTIMACIÓN REFERENCIAL, NO PLAZO GARANTIZADO: La duración calculada bajo metodología PERT representa una aproximación probabilística sujeta a variabilidad e incertidumbre durante la ejecución de la obra. No constituye compromiso contractual ni plazo garantizado de entrega.”*
     junto con la advertencia de que no reemplaza la programación detallada de obra ni el cronograma vinculante de ejecución.
   - **`CA-HU1.9-02` (Validación de completitud, finitud, no negatividad y orden):** Si algún dato falta, es no finito, negativo o viola el orden $0 \le a \le m \le b$, el sistema indica con precisión cuál de los tres valores debe corregirse y el motivo exacto, rechazando la estimación y limpiando cualquier resultado previo para no presentar como válido un cálculo caduco frente a nuevos datos inválidos.
+
+
+### HU1.8: Viabilidad Técnica del Proyecto
+`platform_db` incorpora la migración `07_migration_hu1.8.sql`:
+- `project_technical_parameters`: Parámetros técnicos estructurados asociados a la versión del expediente (`project_id`, `project_version_id`), incluyendo criterios de ingeniería (mecánica de suelos, servicios básicos, topografía/taludes, dimensionamiento de predio), normas aplicables (RNE E.050, OS.010, CE.020, A.010 / PDM Huancayo), documentos de sustento y trazabilidad de origen (`declared`, `simulated`, `public`).
+  - Restricción de integridad:
+    - `uq_tech_param_version_criterion`: Garantiza unicidad por versión y criterio técnico.
+    - `chk_tech_param_sufficiency`: Asegura consistencia entre la bandera de suficiencia de datos y los valores o sustentos consignados.
+- `technical_feasibility_assessments`: Evaluaciones técnicas consolidadas por versión del expediente (`project_version_id`), con dictamen preliminar (`overall_result`), advertencia de opinión preliminar, desglose estructurado de hallazgos (`findings_json`), puntaje explicable (`technical_score`), y conclusión/justificación preparadas para la dimensión técnica de HU1.12.
+- Criterios de aceptación cumplidos:
+  - **`CA-HU1.8-01` (Verificación técnica sustentada):** Identifica cada criterio verificado, su estado y el sustento disponible, presentándolo expresamente como **opinión preliminar** y no como certificación profesional.
+  - **`CA-HU1.8-02` (Incumplimiento u observación técnica):** Si uno o más criterios no se cumplen según los datos aportados, señala el criterio observado, el motivo técnico y qué debe corregir o revisar el planificador.
+  - **`CA-HU1.8-03` (Imposibilidad de emitir conclusión):** Si faltan datos indispensables para comprobar un criterio técnico, marca el criterio como **“Información insuficiente”**, asigna puntaje nulo y no declara viable al proyecto bajo ninguna circunstancia.

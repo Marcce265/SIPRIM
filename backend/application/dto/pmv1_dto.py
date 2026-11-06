@@ -124,6 +124,7 @@ class PMV1ProjectResponse(BaseModel):
     beneficiaries_count: int
     checkpoint: CheckpointResponse | None = None
     pert_estimate: PertEstimateResponse | None = None
+    technical_assessment: TechnicalFeasibilityResponse | None = None
 
 
 class PMV1ValidationResponse(BaseModel):
@@ -485,3 +486,59 @@ class LegalAssessmentResponse(BaseModel):
     is_simulated_corpus: bool = True
     duplicated: bool = False
 
+
+
+class TechnicalCriterionItem(BaseModel):
+    """Criterio técnico evaluado dentro de la preevaluación de viabilidad técnica (HU1.8)."""
+
+    criterion_code: str
+    criterion_name: str
+    normative_reference: str
+    normative_version: str
+    has_sufficient_data: bool
+    parameter_name: str | None = None
+    parameter_value_numeric: float | None = None
+    parameter_unit: str | None = None
+    parameter_value_text: str | None = None
+    applied_rule: str
+    supporting_document: str | None = None
+    source_origin: str
+    is_simulated: bool
+    status: str  # 'cumple', 'observado', 'informacion_insuficiente'
+    status_label: str  # 'Cumple', 'Observado', 'Información insuficiente'
+    explanation: str
+    correction_guidance: str | None = None
+
+
+class TechnicalCriteriaSummary(BaseModel):
+    """Resumen cuantitativo de criterios evaluados en la preevaluación técnica (HU1.8)."""
+
+    total: int
+    cumple: int
+    observado: int
+    informacion_insuficiente: int
+
+
+class TechnicalFeasibilityResponse(BaseModel):
+    """Preevaluación multidimensional de viabilidad técnica del proyecto (HU1.8)."""
+
+    assessment_id: UUID
+    project_id: UUID
+    project_code: str
+    project_version_id: UUID
+    version_number: int
+    status: str = "completed"
+    overall_result: str  # 'cumple', 'observado', 'informacion_insuficiente'
+    overall_result_label: str
+    is_viable: bool
+    is_preliminary_opinion: bool = True
+    disclaimer: str
+    summary: str
+    criteria_summary: TechnicalCriteriaSummary
+    criteria: list[TechnicalCriterionItem]
+    technical_score: float | None = None
+    score_explanation: str | None = None
+    dimension_conclusion: str
+    dimension_justification: str
+    evaluated_at: datetime
+    duplicated: bool = False

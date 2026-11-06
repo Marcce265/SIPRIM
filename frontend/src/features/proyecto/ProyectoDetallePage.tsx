@@ -11,6 +11,8 @@ import {
   getEnvironmentalAssessment,
   getEvaluation,
   getHumanApproval,
+  evaluateTechnicalFeasibility,
+  getTechnicalFeasibility,
   getPertEstimate,
   getProject,
   getProjectCheckpoint,
@@ -27,6 +29,7 @@ import type {
   HumanApprovalStatusResponse,
   PertEstimateResponse,
   PMV1ProjectResponse,
+  TechnicalFeasibilityResponse,
   EnvironmentalAssessmentResponse,
   PMV1ValidationResponse,
   SocialAccessibilityResponse,
@@ -64,6 +67,10 @@ export function ProyectoDetallePage() {
   const [pertTimeUnit, setPertTimeUnit] = useState<string>('meses')
   const [pertError, setPertError] = useState<{ field?: string; reason?: string; message: string } | null>(null)
   const [pertSuccess, setPertSuccess] = useState<string | null>(null)
+  const [technicalAssessment, setTechnicalAssessment] = useState<TechnicalFeasibilityResponse | null>(null)
+  const [technicalLoading, setTechnicalLoading] = useState<boolean>(false)
+  const [technicalError, setTechnicalError] = useState<string | null>(null)
+  const [technicalSuccess, setTechnicalSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(flash ?? null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -83,6 +90,9 @@ export function ProyectoDetallePage() {
         setPertInputM(data.pert_estimate.most_likely_duration.toString())
         setPertInputB(data.pert_estimate.pessimistic_duration.toString())
         setPertTimeUnit(data.pert_estimate.time_unit)
+      }
+      if (data.technical_assessment) {
+        setTechnicalAssessment(data.technical_assessment)
       }
       rememberProject(mapPmV1ToProyecto(data))
     } catch (err) {
@@ -129,6 +139,34 @@ export function ProyectoDetallePage() {
       /* opcional hasta evaluación o consulta */
     }
   }, [projectId])
+
+
+  const loadTechnicalAssessment = useCallback(async () => {
+    if (!projectId) return
+    try {
+      const data = await getTechnicalFeasibility(projectId)
+      setTechnicalAssessment(data)
+    } catch {
+      /* opcional */
+    }
+  }, [projectId])
+
+  const handleEvaluateTechnical = async () => {
+    if (!projectId) return
+    setTechnicalLoading(true)
+    setTechnicalError(null)
+    setTechnicalSuccess(null)
+    try {
+      const res = await evaluateTechnicalFeasibility(projectId)
+      setTechnicalAssessment(res)
+      setTechnicalSuccess('Preevaluación de viabilidad técnica ejecutada y registrada correctamente.')
+      await loadProject()
+    } catch (err) {
+      setTechnicalError(err instanceof Error ? err.message : 'Error al ejecutar la preevaluación técnica.')
+    } finally {
+      setTechnicalLoading(false)
+    }
+  }
 
   const loadPertEstimate = useCallback(async () => {
     if (!projectId) return
@@ -300,8 +338,9 @@ export function ProyectoDetallePage() {
     void loadCheckpoint()
     void loadSocialAssessment()
     void loadEnvironmentalAssessment()
+    void loadTechnicalAssessment()
     void loadPertEstimate()
-  }, [loadProject, loadApproval, loadCheckpoint, loadSocialAssessment, loadEnvironmentalAssessment, loadPertEstimate])
+  }, [loadProject, loadApproval, loadCheckpoint, loadSocialAssessment, loadEnvironmentalAssessment, loadTechnicalAssessment, loadPertEstimate])
 
   const runValidate = async () => {
     if (!projectId) return
@@ -1361,6 +1400,229 @@ export function ProyectoDetallePage() {
             )}
           </section>
 
+
+          
+          {/* PMV 2 · HU1.8: Viabilidad técnica del proyecto (Preevaluación multidimensional) */}
+          <section
+            className="flow-panel technical-flow-panel"
+            aria-label="Preevaluación de viabilidad técnica (HU1.8)"
+            data-testid="technical-assessment-section"
+            id="seccion-viabilidad-tecnica"
+          >
+            <div className="flow-panel-heading">
+              <div>
+                <span className="story-label">PMV 2 · HU1.8</span>
+                <h2>Viabilidad técnica del proyecto (Preevaluación multidimensional)</h2>
+              </div>
+              <span className="review-badge">Planificación Técnica · RNE</span>
+            </div>
+
+            <p className="flow-hint">
+              Preevaluación automatizada de parámetros técnicos (mecánica de suelos, servicios básicos, topografía/taludes y dimensionamiento) conforme al RNE, Directiva Invierte.pe y normativa local.
+            </p>
+
+            <div className="technical-disclaimer-box" role="alert" data-testid="technical-disclaimer">
+              <div className="disclaimer-title">
+                <span>⚖️</span>
+                <strong>Opinión preliminar automatizada · No constituye certificación profesional</strong>
+              </div>
+              <p>
+                {technicalAssessment?.disclaimer ||
+                  'ADVERTENCIA DE CONTROL Y ALCANCE LEGAL: Esta evaluación técnica constituye una opinión preliminar automatizada basada en los parámetros y documentos registrados en la plataforma. No tiene carácter de certificación profesional, no constituye liquidación ni conformidad de obra, y no sustituye la responsabilidad funcional ni la firma colegiada de los ingenieros especialistas responsables (Ley N.° 28858 y Reglamento Nacional de Edificaciones - RNE).'}
+              </p>
+            </div>
+
+            {hasRole('PLANNER') && (
+              <div className="technical-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleEvaluateTechnical}
+                  disabled={technicalLoading}
+                  data-testid="evaluate-technical-feasibility-btn"
+                >
+                  {technicalLoading
+                    ? 'Evaluando parámetros técnicos...'
+                    : technicalAssessment
+                      ? 'Reevaluar viabilidad técnica'
+                      : 'Ejecutar preevaluación técnica'}
+                </button>
+              </div>
+            )}
+
+            {technicalError && (
+              <div className="pert-error-banner" role="alert">
+                <div className="pert-error-header">
+                  <span>⚠️</span>
+                  <span>Error en preevaluación técnica</span>
+                </div>
+                <div className="pert-error-detail">{technicalError}</div>
+              </div>
+            )}
+
+            {technicalSuccess && (
+              <div className="pert-success-banner" role="status">
+                <div className="pert-success-header">
+                  <span>✅</span>
+                  <span>{technicalSuccess}</span>
+                </div>
+              </div>
+            )}
+
+            {technicalAssessment && (
+              <div className="technical-results-card" data-testid="technical-results-card">
+                <div className="technical-result-header">
+                  <div>
+                    <span className="technical-kicker">Resultado de la preevaluación técnica</span>
+                    <h3 className="technical-headline">{technicalAssessment.summary}</h3>
+                  </div>
+                  <div className="technical-status-pill-group">
+                    <span
+                      className={`badge badge-${technicalAssessment.overall_result}`}
+                      data-testid="technical-overall-badge"
+                    >
+                      {technicalAssessment.overall_result_label}
+                    </span>
+                    <span
+                      className={`badge ${technicalAssessment.is_viable ? 'badge-viable' : 'badge-no-viable'}`}
+                      data-testid="technical-viability-badge"
+                    >
+                      {technicalAssessment.is_viable ? 'Viable (Opinión preliminar)' : 'No viable preliminarmente'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="technical-metrics-grid">
+                  <div className="technical-metric-card">
+                    <span className="metric-label">Puntaje técnico</span>
+                    <span className="metric-value" data-testid="technical-score-value">
+                      {technicalAssessment.technical_score !== null && technicalAssessment.technical_score !== undefined
+                        ? `${technicalAssessment.technical_score.toFixed(1)} / 100`
+                        : 'No determinado'}
+                    </span>
+                    <span className="metric-hint">
+                      {technicalAssessment.score_explanation || 'Puntaje sujeto a disponibilidad de datos suficientes'}
+                    </span>
+                  </div>
+
+                  <div className="technical-metric-card">
+                    <span className="metric-label">Criterios cumplidos</span>
+                    <span className="metric-value text-success">
+                      {technicalAssessment.criteria_summary.cumple} / {technicalAssessment.criteria_summary.total}
+                    </span>
+                    <span className="metric-hint">Conforme a norma aplicable</span>
+                  </div>
+
+                  <div className="technical-metric-card">
+                    <span className="metric-label">Criterios observados</span>
+                    <span className="metric-value text-warning">
+                      {technicalAssessment.criteria_summary.observado}
+                    </span>
+                    <span className="metric-hint">Requieren subsanación técnica</span>
+                  </div>
+
+                  <div className="technical-metric-card">
+                    <span className="metric-label">Información insuficiente</span>
+                    <span className="metric-value text-danger">
+                      {technicalAssessment.criteria_summary.informacion_insuficiente}
+                    </span>
+                    <span className="metric-hint">Datos faltantes indispensables</span>
+                  </div>
+                </div>
+
+                <div className="technical-criteria-list" data-testid="technical-criteria-list">
+                  <h4>Desglose por criterio técnico reglamentario</h4>
+                  <div className="criteria-cards-grid">
+                    {technicalAssessment.criteria.map((c) => (
+                      <div
+                        key={c.criterion_code}
+                        className={`criterion-card criterion-status-${c.status}`}
+                        data-testid={`criterion-card-${c.criterion_code}`}
+                      >
+                        <div className="criterion-card-header">
+                          <div>
+                            <span className="criterion-code">{c.criterion_code}</span>
+                            <h5>{c.criterion_name}</h5>
+                          </div>
+                          <span className={`badge badge-${c.status}`}>
+                            {c.status_label}
+                          </span>
+                        </div>
+
+                        <div className="criterion-body">
+                          <div className="criterion-row">
+                            <span className="row-label">Base normativa:</span>
+                            <span className="row-value">{c.normative_reference} ({c.normative_version})</span>
+                          </div>
+
+                          <div className="criterion-row">
+                            <span className="row-label">Regla aplicada:</span>
+                            <span className="row-value">{c.applied_rule}</span>
+                          </div>
+
+                          <div className="criterion-row">
+                            <span className="row-label">Parámetro medido:</span>
+                            <span className="row-value font-mono">
+                              {c.parameter_name
+                                ? `${c.parameter_name}: ${
+                                    c.parameter_value_numeric !== null && c.parameter_value_numeric !== undefined
+                                      ? `${c.parameter_value_numeric} ${c.parameter_unit || ''}`
+                                      : c.parameter_value_text || 'Registrado'
+                                  }`
+                                : 'No registrado en expediente'}
+                            </span>
+                          </div>
+
+                          <div className="criterion-row">
+                            <span className="row-label">Sustento documental:</span>
+                            <span className="row-value">
+                              {c.supporting_document || 'Sin documento sustentatorio aportado'}
+                            </span>
+                          </div>
+
+                          <div className="criterion-row">
+                            <span className="row-label">Origen de datos:</span>
+                            <span className="row-value">
+                              {c.is_simulated
+                                ? 'Datos simulados de demostración (demo)'
+                                : `Verificable (${c.source_origin})`}
+                            </span>
+                          </div>
+
+                          <div className="criterion-explanation">
+                            <strong>Diagnóstico técnico: </strong>
+                            <span>{c.explanation}</span>
+                          </div>
+
+                          {c.correction_guidance && (
+                            <div
+                              className="correction-guidance-box"
+                              data-testid={`guidance-${c.criterion_code}`}
+                            >
+                              <strong>Acción requerida para el planificador: </strong>
+                              <span>{c.correction_guidance}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="dimension-integration-box">
+                  <div className="dimension-header">
+                    <strong>Integración multidimensional (HU1.12):</strong>
+                    <span>{technicalAssessment.dimension_conclusion}</span>
+                  </div>
+                  <p className="dimension-justification">
+                    {technicalAssessment.dimension_justification}
+                  </p>
+                </div>
+
+                <TechnicalDetails data={technicalAssessment} />
+              </div>
+            )}
+          </section>
 
           {/* PMV 2 · HU1.9: Estimación de duración de obra e incertidumbre (PERT) */}
           <section className="flow-panel pert-flow-panel" aria-label="Estimación PERT e incertidumbre de plazos">

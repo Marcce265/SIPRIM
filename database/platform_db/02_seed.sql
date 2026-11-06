@@ -550,3 +550,171 @@ INSERT INTO project_pert_estimates (
     NOW()
 ) ON CONFLICT (project_version_id) DO NOTHING;
 
+
+
+-- ============================================================================
+-- PMV 2 - Sprint 2 - HU1.8: Datos semilla de Viabilidad Técnica (Demostración)
+-- Parámetros técnicos estructurados para evaluación preliminar de ingeniería.
+-- ============================================================================
+
+INSERT INTO project_technical_parameters (
+    id, project_id, project_version_id, criterion_code, criterion_name,
+    normative_reference, normative_version, has_sufficient_data,
+    parameter_name, parameter_value_numeric, parameter_unit, parameter_value_text,
+    applied_rule, supporting_document, source_origin, is_simulated, created_at, updated_at
+) VALUES
+    -- PRY-A (Versión 1): Cumple con todos los criterios técnicos sustentados
+    ('e1000000-0000-4000-a000-000000000001',
+     'a0000000-0000-4000-a000-00000000000a', 'b0000000-0000-4000-a000-00000000000a',
+     'mecanica_suelos', 'Capacidad portante y mecánica de suelos',
+     'RNE Norma Técnica E.050 "Suelos y Cimentaciones" (D.S. N.° 011-2006-VIVIENDA)', '2006 (vigente)', TRUE,
+     'Capacidad portante admisible q_adm', 1.45, 'kg/cm²', NULL,
+     'Capacidad portante admisible q_adm >= 1.00 kg/cm² para cimentación superficial según RNE E.050',
+     'Informe Técnico N.° 048-2026-EMS/MDT - Estudio de Mecánica de Suelos con fines de cimentación, Laboratorio Geotécnico UNCP',
+     'simulated', TRUE, NOW(), NOW()),
+
+    ('e1000000-0000-4000-a000-000000000002',
+     'a0000000-0000-4000-a000-00000000000a', 'b0000000-0000-4000-a000-00000000000a',
+     'servicios_basicos', 'Factibilidad de servicios básicos de agua y saneamiento',
+     'RNE Norma Técnica OS.010 y Directiva General Invierte.pe (D.L. 1252)', '2019 (vigente)', TRUE,
+     'Distancia a red matriz de agua y alcantarillado', 12.00, 'metros', 'Punto de empalme certificado con factibilidad aprobada por SEDAM Huancayo',
+     'Distancia a red matriz <= 100 m con factibilidad técnica o punto de empalme certificado según RNE OS.010 / Invierte.pe',
+     'Oficio N.° 312-2026-SEDAM-GG - Certificado de Factibilidad de Servicios de Agua Potable y Alcantarillado',
+     'simulated', TRUE, NOW(), NOW()),
+
+    ('e1000000-0000-4000-a000-000000000003',
+     'a0000000-0000-4000-a000-00000000000a', 'b0000000-0000-4000-a000-00000000000a',
+     'topografia_taludes', 'Pendiente topográfica y estabilidad física de terreno',
+     'RNE Norma Técnica CE.020 "Estabilización de Suelos y Taludes" y Manual CENEPRED', '2012 (vigente)', TRUE,
+     'Pendiente media del terreno', 4.50, '%', NULL,
+     'Pendiente natural <= 20.0% y ausencia de fallas activas de talud según RNE CE.020 / CENEPRED',
+     'Informe Topográfico N.° 022-2026-TOP - Levantamiento con estación total y curvas de nivel cada 0.50 m',
+     'simulated', TRUE, NOW(), NOW()),
+
+    ('e1000000-0000-4000-a000-000000000004',
+     'a0000000-0000-4000-a000-00000000000a', 'b0000000-0000-4000-a000-00000000000a',
+     'dimensionamiento_predio', 'Dimensionamiento y compatibilidad de lote normativo',
+     'Plan de Desarrollo Metropolitano Huancayo 2017-2037 (O.M. N.° 636-MPH) y RNE A.010', '2017 (vigente)', TRUE,
+     'Superficie neta de predio', 1250.00, 'm²', NULL,
+     'Superficie neta de lote >= 300 m² (o ancho de faja >= 8.0 m) compatible con uso institucional/equipamiento según PDM Huancayo',
+     'Ficha Registral SUNARP N.° 11029384 - Partida Electrónica de propiedad municipal saneada',
+     'simulated', TRUE, NOW(), NOW()),
+
+    -- PRY-B (Versión 1): Información insuficiente en mecánica de suelos y servicios básicos
+    ('e1000000-0000-4000-b000-000000000001',
+     'a0000000-0000-4000-a000-00000000000b', 'b0000000-0000-4000-a000-00000000000b',
+     'mecanica_suelos', 'Capacidad portante y mecánica de suelos',
+     'RNE Norma Técnica E.050 "Suelos y Cimentaciones" (D.S. N.° 011-2006-VIVIENDA)', '2006 (vigente)', FALSE,
+     NULL, NULL, NULL, NULL,
+     'Capacidad portante admisible q_adm >= 1.00 kg/cm² para cimentación superficial según RNE E.050',
+     NULL, 'simulated', TRUE, NOW(), NOW()),
+
+    ('e1000000-0000-4000-b000-000000000002',
+     'a0000000-0000-4000-a000-00000000000b', 'b0000000-0000-4000-a000-00000000000b',
+     'servicios_basicos', 'Factibilidad de servicios básicos de agua y saneamiento',
+     'RNE Norma Técnica OS.010 y Directiva General Invierte.pe (D.L. 1252)', '2019 (vigente)', FALSE,
+     NULL, NULL, NULL, NULL,
+     'Distancia a red matriz <= 100 m con factibilidad técnica o punto de empalme certificado según RNE OS.010 / Invierte.pe',
+     NULL, 'simulated', TRUE, NOW(), NOW()),
+
+    ('e1000000-0000-4000-b000-000000000003',
+     'a0000000-0000-4000-a000-00000000000b', 'b0000000-0000-4000-a000-00000000000b',
+     'topografia_taludes', 'Pendiente topográfica y estabilidad física de terreno',
+     'RNE Norma Técnica CE.020 "Estabilización de Suelos y Taludes" y Manual CENEPRED', '2012 (vigente)', TRUE,
+     'Pendiente media de vía', 6.00, '%', NULL,
+     'Pendiente natural <= 20.0% y ausencia de fallas activas de talud según RNE CE.020 / CENEPRED',
+     'Plano Topográfico Perimétrico PL-01 - Levantamiento preliminar con dron',
+     'simulated', TRUE, NOW(), NOW()),
+
+    ('e1000000-0000-4000-b000-000000000004',
+     'a0000000-0000-4000-a000-00000000000b', 'b0000000-0000-4000-a000-00000000000b',
+     'dimensionamiento_predio', 'Dimensionamiento y compatibilidad de lote normativo',
+     'Plan de Desarrollo Metropolitano Huancayo 2017-2037 (O.M. N.° 636-MPH) y RNE A.010', '2017 (vigente)', TRUE,
+     'Ancho de faja de vía', 10.20, 'metros', NULL,
+     'Superficie neta de lote >= 300 m² (o ancho de faja >= 8.0 m) compatible con uso institucional/equipamiento según PDM Huancayo',
+     'Certificado de Alineamiento y Vías N.° 071-2026-MDT/GDU',
+     'simulated', TRUE, NOW(), NOW()),
+
+    -- PRY-C (Versión 1): Observado en mecánica de suelos y servicios básicos
+    ('e1000000-0000-4000-c000-000000000001',
+     'a0000000-0000-4000-a000-00000000000c', 'b0000000-0000-4000-a000-00000000000c',
+     'mecanica_suelos', 'Capacidad portante y mecánica de suelos',
+     'RNE Norma Técnica E.050 "Suelos y Cimentaciones" (D.S. N.° 011-2006-VIVIENDA)', '2006 (vigente)', TRUE,
+     'Capacidad portante admisible q_adm', 0.65, 'kg/cm²', NULL,
+     'Capacidad portante admisible q_adm >= 1.00 kg/cm² para cimentación superficial según RNE E.050',
+     'Informe Geotécnico N.° 014-2026-GEO - Sondeo SPT en terreno de maestranza con suelo colapsable y relleno no controlado',
+     'simulated', TRUE, NOW(), NOW()),
+
+    ('e1000000-0000-4000-c000-000000000002',
+     'a0000000-0000-4000-a000-00000000000c', 'b0000000-0000-4000-a000-00000000000c',
+     'servicios_basicos', 'Factibilidad de servicios básicos de agua y saneamiento',
+     'RNE Norma Técnica OS.010 y Directiva General Invierte.pe (D.L. 1252)', '2019 (vigente)', TRUE,
+     'Distancia a red matriz de alcantarillado', 145.00, 'metros', 'Conexión no factible sin extensión de colector; SEDAM Huancayo condiciona a trampa de hidrocarburos',
+     'Distancia a red matriz <= 100 m con factibilidad técnica o punto de empalme certificado según RNE OS.010 / Invierte.pe',
+     'Oficio N.° 089-2026-SEDAM-GO - Informe de no factibilidad inmediata por distancia y pendiente de descarga',
+     'simulated', TRUE, NOW(), NOW()),
+
+    ('e1000000-0000-4000-c000-000000000003',
+     'a0000000-0000-4000-a000-00000000000c', 'b0000000-0000-4000-a000-00000000000c',
+     'topografia_taludes', 'Pendiente topográfica y estabilidad física de terreno',
+     'RNE Norma Técnica CE.020 "Estabilización de Suelos y Taludes" y Manual CENEPRED', '2012 (vigente)', TRUE,
+     'Pendiente media del terreno', 12.00, '%', NULL,
+     'Pendiente natural <= 20.0% y ausencia de fallas activas de talud según RNE CE.020 / CENEPRED',
+     'Informe Topográfico y Geológico N.° 031-2026 - Pendiente moderada con terraza aluvial estable',
+     'simulated', TRUE, NOW(), NOW()),
+
+    ('e1000000-0000-4000-c000-000000000004',
+     'a0000000-0000-4000-a000-00000000000c', 'b0000000-0000-4000-a000-00000000000c',
+     'dimensionamiento_predio', 'Dimensionamiento y compatibilidad de lote normativo',
+     'Plan de Desarrollo Metropolitano Huancayo 2017-2037 (O.M. N.° 636-MPH) y RNE A.010', '2017 (vigente)', TRUE,
+     'Superficie neta de predio', 2400.00, 'm²', NULL,
+     'Superficie neta de lote >= 300 m² (o ancho de faja >= 8.0 m) compatible con uso institucional/equipamiento según PDM Huancayo',
+     'Partida Registral SUNARP N.° 09482110 - Predio rústico en proceso de afectación en uso',
+     'simulated', TRUE, NOW(), NOW()),
+
+    -- PRY-D (Versión 1): Información insuficiente total
+    ('e1000000-0000-4000-d000-000000000001',
+     'a0000000-0000-4000-a000-00000000000d', 'b0000000-0000-4000-a000-00000000000d',
+     'mecanica_suelos', 'Capacidad portante y mecánica de suelos',
+     'RNE Norma Técnica E.050 "Suelos y Cimentaciones" (D.S. N.° 011-2006-VIVIENDA)', '2006 (vigente)', FALSE,
+     NULL, NULL, NULL, NULL,
+     'Capacidad portante admisible q_adm >= 1.00 kg/cm² para cimentación superficial según RNE E.050',
+     NULL, 'simulated', TRUE, NOW(), NOW()),
+
+    ('e1000000-0000-4000-d000-000000000002',
+     'a0000000-0000-4000-a000-00000000000d', 'b0000000-0000-4000-a000-00000000000d',
+     'servicios_basicos', 'Factibilidad de servicios básicos de agua y saneamiento',
+     'RNE Norma Técnica OS.010 y Directiva General Invierte.pe (D.L. 1252)', '2019 (vigente)', FALSE,
+     NULL, NULL, NULL, NULL,
+     'Distancia a red matriz <= 100 m con factibilidad técnica o punto de empalme certificado según RNE OS.010 / Invierte.pe',
+     NULL, 'simulated', TRUE, NOW(), NOW()),
+
+    ('e1000000-0000-4000-d000-000000000003',
+     'a0000000-0000-4000-a000-00000000000d', 'b0000000-0000-4000-a000-00000000000d',
+     'topografia_taludes', 'Pendiente topográfica y estabilidad física de terreno',
+     'RNE Norma Técnica CE.020 "Estabilización de Suelos y Taludes" y Manual CENEPRED', '2012 (vigente)', FALSE,
+     NULL, NULL, NULL, NULL,
+     'Pendiente natural <= 20.0% y ausencia de fallas activas de talud según RNE CE.020 / CENEPRED',
+     NULL, 'simulated', TRUE, NOW(), NOW()),
+
+    ('e1000000-0000-4000-d000-000000000004',
+     'a0000000-0000-4000-a000-00000000000d', 'b0000000-0000-4000-a000-00000000000d',
+     'dimensionamiento_predio', 'Dimensionamiento y compatibilidad de lote normativo',
+     'Plan de Desarrollo Metropolitano Huancayo 2017-2037 (O.M. N.° 636-MPH) y RNE A.010', '2017 (vigente)', FALSE,
+     NULL, NULL, NULL, NULL,
+     'Superficie neta de lote >= 300 m² (o ancho de faja >= 8.0 m) compatible con uso institucional/equipamiento según PDM Huancayo',
+     NULL, 'simulated', TRUE, NOW(), NOW())
+ON CONFLICT (project_version_id, criterion_code) DO UPDATE SET
+    criterion_name = EXCLUDED.criterion_name,
+    normative_reference = EXCLUDED.normative_reference,
+    normative_version = EXCLUDED.normative_version,
+    has_sufficient_data = EXCLUDED.has_sufficient_data,
+    parameter_name = EXCLUDED.parameter_name,
+    parameter_value_numeric = EXCLUDED.parameter_value_numeric,
+    parameter_unit = EXCLUDED.parameter_unit,
+    parameter_value_text = EXCLUDED.parameter_value_text,
+    applied_rule = EXCLUDED.applied_rule,
+    supporting_document = EXCLUDED.supporting_document,
+    source_origin = EXCLUDED.source_origin,
+    is_simulated = EXCLUDED.is_simulated,
+    updated_at = NOW();

@@ -54,6 +54,7 @@ export interface PMV1ProjectResponse {
   beneficiaries_count: number
   checkpoint?: CheckpointResponse | null
   pert_estimate?: PertEstimateResponse | null
+  technical_assessment?: TechnicalFeasibilityResponse | null
 }
 
 export interface PMV1ValidationResponse {
@@ -344,5 +345,55 @@ export interface PertEstimateResponse {
   explanation: string
   created_at: string
   updated_at: string
+}
+
+export interface TechnicalCriterionItem {
+  criterion_code: string
+  criterion_name: string
+  normative_reference: string
+  normative_version: string
+  has_sufficient_data: boolean
+  parameter_name?: string | null
+  parameter_value_numeric?: number | null
+  parameter_unit?: string | null
+  parameter_value_text?: string | null
+  applied_rule: string
+  supporting_document?: string | null
+  source_origin: string
+  is_simulated: boolean
+  status: 'cumple' | 'observado' | 'informacion_insuficiente' | string
+  status_label: string
+  explanation: string
+  correction_guidance?: string | null
+}
+
+export interface TechnicalCriteriaSummary {
+  total: number
+  cumple: number
+  observado: number
+  informacion_insuficiente: number
+}
+
+export interface TechnicalFeasibilityResponse {
+  assessment_id: string
+  project_id: string
+  project_code: string
+  project_version_id: string
+  version_number: number
+  status: string
+  overall_result: 'cumple' | 'observado' | 'informacion_insuficiente' | string
+  overall_result_label: string
+  is_viable: boolean
+  is_preliminary_opinion: boolean
+  disclaimer: string
+  summary: string
+  criteria_summary: TechnicalCriteriaSummary
+  criteria: TechnicalCriterionItem[]
+  technical_score?: number | null
+  score_explanation?: string | null
+  dimension_conclusion: string
+  dimension_justification: string
+  evaluated_at: string
+  duplicated?: boolean
 }
 

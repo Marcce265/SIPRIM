@@ -1802,3 +1802,271 @@ textarea.form-field-input {
   margin-bottom: 0.5rem;
 }
 
+
+/* =========================================================
+   PMV 2 · HU1.8: Viabilidad técnica del proyecto (Estilos)
+   ========================================================= */
+.pmv1-flow .technical-flow-panel {
+  border-left: 4px solid #0284c7;
+}
+
+.pmv1-flow .technical-disclaimer-box {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #64748b;
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+  color: #334155;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.pmv1-flow .technical-disclaimer-box .disclaimer-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.35rem;
+  font-size: 0.875rem;
+}
+
+.pmv1-flow .technical-actions {
+  margin-bottom: 1.25rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.pmv1-flow .technical-results-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-top: 1rem;
+}
+
+.pmv1-flow .technical-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 1.25rem;
+}
+
+.pmv1-flow .technical-kicker {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.pmv1-flow .technical-headline {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.pmv1-flow .technical-status-pill-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pmv1-flow .badge-cumple,
+.pmv1-flow .badge-viable {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+}
+
+.pmv1-flow .badge-observado {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+}
+
+.pmv1-flow .badge-informacion_insuficiente,
+.pmv1-flow .badge-no-viable {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+}
+
+.pmv1-flow .technical-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.pmv1-flow .technical-metric-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.pmv1-flow .technical-metric-card .metric-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.pmv1-flow .technical-metric-card .metric-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.pmv1-flow .technical-metric-card .metric-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+.pmv1-flow .criteria-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.pmv1-flow .criterion-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.pmv1-flow .criterion-status-cumple {
+  border-left: 4px solid #16a34a;
+}
+
+.pmv1-flow .criterion-status-observado {
+  border-left: 4px solid #d97706;
+}
+
+.pmv1-flow .criterion-status-informacion_insuficiente {
+  border-left: 4px solid #dc2626;
+}
+
+.pmv1-flow .criterion-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.pmv1-flow .criterion-code {
+  font-size: 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #64748b;
+  display: block;
+}
+
+.pmv1-flow .criterion-card-header h5 {
+  margin: 0.15rem 0 0 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.pmv1-flow .criterion-body {
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pmv1-flow .criterion-row {
+  display: flex;
+  gap: 0.5rem;
+  line-height: 1.4;
+}
+
+.pmv1-flow .criterion-row .row-label {
+  font-weight: 600;
+  color: #475569;
+  min-width: 140px;
+}
+
+.pmv1-flow .criterion-row .row-value {
+  color: #0f172a;
+  flex: 1;
+}
+
+.pmv1-flow .criterion-explanation {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.35rem;
+  color: #334155;
+}
+
+.pmv1-flow .correction-guidance-box {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-left: 4px solid #f59e0b;
+  border-radius: 4px;
+  padding: 0.6rem 0.85rem;
+  margin-top: 0.35rem;
+  color: #92400e;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.pmv1-flow .dimension-integration-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  margin-top: 1.5rem;
+}
+
+.pmv1-flow .dimension-header {
+  font-size: 0.875rem;
+  color: #1e40af;
+  margin-bottom: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.pmv1-flow .dimension-justification {
+  margin: 0;
+  font-size: 0.825rem;
+  color: #1e3a8a;
+  line-height: 1.4;
+}
+

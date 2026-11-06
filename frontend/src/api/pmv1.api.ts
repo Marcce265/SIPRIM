@@ -8,6 +8,7 @@ import type {
   NormativeSearchResponse,
   PertEstimateCreate,
   PertEstimateResponse,
+  TechnicalFeasibilityResponse,
   PMV1ProjectCreate,
   PMV1ProjectResponse,
   PMV1ValidationResponse,
@@ -203,3 +204,31 @@ export function registerPertEstimate(
     body: JSON.stringify(payload),
   })
 }
+
+export function getTechnicalFeasibility(
+  projectId: string,
+  versionId?: string,
+): Promise<TechnicalFeasibilityResponse | null> {
+  const query = versionId ? `?version_id=${encodeURIComponent(versionId)}` : ''
+  return apiFetch<TechnicalFeasibilityResponse | null>(
+    `/api/v1/projects/${projectId}/technical-assessment${query}`,
+    {
+      auth: true,
+    },
+  )
+}
+
+export function evaluateTechnicalFeasibility(
+  projectId: string,
+  idempotencyKey?: string,
+): Promise<TechnicalFeasibilityResponse> {
+  return apiFetch<TechnicalFeasibilityResponse>(
+    `/api/v1/projects/${projectId}/technical-assessment`,
+    {
+      method: 'POST',
+      auth: true,
+      idempotencyKey,
+    },
+  )
+}
+

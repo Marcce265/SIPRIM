@@ -1,7 +1,7 @@
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Path, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, status
 
 from backend.application.dto.evaluacion_ia_dto import DictamenIAResponse
 from backend.application.dto.pmv1_dto import (
@@ -26,6 +26,7 @@ from backend.application.dto.pmv1_dto import (
     PMV1ValidationResponse,
     EnvironmentalAssessmentResponse,
     SocialAccessibilityResponse,
+    TechnicalFeasibilityResponse,
     ZoningPrecheckResponse,
 )
 from backend.application.services.pmv1_services import AuthService, PlatformService
@@ -418,4 +419,36 @@ def get_pert_estimate(
     service: Annotated[PlatformService, Depends(get_platform_service)],
 ) -> dict[str, Any] | None:
     return service.get_pert_estimate(project_id=project_id)
+
+@router.post(
+    "/projects/{project_id}/technical-assessment",
+    response_model=TechnicalFeasibilityResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Ejecuta y registra la preevaluación de viabilidad técnica del expediente (HU1.8)",
+)
+def evaluate_technical_feasibility(
+    project_id: Annotated[UUID, Path()],
+    user: Annotated[dict[str, Any], Depends(require_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+) -> dict[str, Any]:
+    return service.evaluate_technical_feasibility(
+        project_id=project_id,
+        actor_id=UUID(user["sub"]),
+        idempotency_key=idempotency_key,
+    )
+
+
+@router.get(
+    "/projects/{project_id}/technical-assessment",
+    response_model=TechnicalFeasibilityResponse | None,
+    summary="Consulta la preevaluación de viabilidad técnica del expediente (HU1.8)",
+)
+def get_technical_feasibility(
+    project_id: Annotated[UUID, Path()],
+    _: Annotated[dict[str, Any], Depends(require_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+    version_id: Annotated[UUID | None, Query()] = None,
+) -> dict[str, Any] | None:
+    return service.get_technical_feasibility(project_id=project_id, version_id=version_id)
 
