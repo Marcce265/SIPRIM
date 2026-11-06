@@ -1058,6 +1058,77 @@ class PlatformService:
                 )
         return self.get_project(project_id)
 
+    def create_project_version(
+        self,
+        project_id: UUID,
+        title: str,
+        description: str,
+        location_description: str,
+        proposed_land_use: str,
+        estimated_budget_pen: Decimal,
+        beneficiaries_count: int,
+        actor_id: UUID,
+        territorial_data_origin: str = "declared",
+    ) -> dict[str, Any]:
+        """Crea una nueva versión de un proyecto (ej. v2 replanteada/mitigada) y actualiza el estado almacenado a 'ready' (operación de escritura)."""
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
+            p_row = conn.execute(
+                "SELECT id FROM projects WHERE id = %s",
+                (project_id,),
+            ).fetchone()
+            if not p_row:
+                raise RecursoPMV1NoEncontradoError("Proyecto no encontrado")
+
+            max_v = conn.execute(
+                "SELECT COALESCE(MAX(version_number), 0) AS max_v FROM project_versions WHERE project_id = %s",
+                (project_id,),
+            ).fetchone()["max_v"]
+            next_version = max_v + 1
+            version_id = uuid4()
+            now = datetime.now(timezone.utc)
+
+            conn.execute(
+                """
+                INSERT INTO project_versions
+                (id, project_id, version_number, title, description,
+                 location_description, proposed_land_use, territorial_data_origin,
+                 estimated_budget_pen, beneficiaries_count, created_by_user_id, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    version_id,
+                    project_id,
+                    next_version,
+                    title,
+                    description,
+                    location_description,
+                    proposed_land_use,
+                    territorial_data_origin,
+                    estimated_budget_pen,
+                    beneficiaries_count,
+                    actor_id,
+                    now,
+                ),
+            )
+            # En la operación de escritura correspondiente, se actualiza el estado del proyecto a 'ready' para la versión nueva
+            conn.execute(
+                "UPDATE projects SET status = 'ready', updated_at = %s WHERE id = %s",
+                (now, project_id),
+            )
+            conn.execute(
+                """
+                INSERT INTO audit_events
+                (actor_user_id, action, entity_type, entity_id, details)
+                VALUES (%s, 'PROJECT_VERSION_CREATED', 'project_version', %s, %s)
+                """,
+                (
+                    actor_id,
+                    version_id,
+                    Jsonb({"project_id": str(project_id), "version_number": next_version}),
+                ),
+            )
+        return self.get_project(project_id)
+
     def get_project(self, project_id: UUID) -> dict[str, Any]:
         with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
             row = conn.execute(
@@ -1078,35 +1149,103 @@ class PlatformService:
             pert_estimate = self._get_pert_estimate_with_conn(conn, row["project_version_id"])
             res = dict(row)
 
-            # HU3.2: Determinar el estado efectivo para la versión vigente del expediente.
-            # Si el registro global 'projects.status' quedó en 'pending_review' por un punto de control
-            # de una versión histórica (v1), pero la versión vigente (v2+) no tiene punto de control activo:
+            # HU3.2 (Estrictamente de lectura): Determinar el estado efectivo para la versión vigente del expediente.
+            # No ejecuta sentencias UPDATE en projects ni muta evaluaciones, checkpoints, auditoría ni fechas.
             if checkpoint is not None:
+                # Caso 2: La versión vigente posee un punto de control activo de riesgo alto.
                 res["status"] = "pending_review"
             elif res["status"] == "pending_review":
-                # La versión vigente NO tiene punto de control activo.
-                # Determinar su estado efectivo a partir de sus propias evaluaciones:
-                eval_row = conn.execute(
-                    """
-                    SELECT status FROM evaluations
-                    WHERE project_version_id = %s
-                    ORDER BY requested_at DESC LIMIT 1
-                    """,
-                    (row["project_version_id"],),
-                ).fetchone()
-                if eval_row and eval_row["status"] == "completed":
-                    effective_status = "evaluated"
-                elif eval_row and eval_row["status"] in ("queued", "processing"):
-                    effective_status = "evaluating"
-                else:
-                    effective_status = "ready"
+                # projects.status en base de datos figura en 'pending_review',
+                # pero la versión vigente NO tiene punto de control activo registrado.
+                is_subsequent = row["version_number"] > 1
+                has_prior_checkpoint = False
+                if is_subsequent:
+                    has_prior_checkpoint = bool(
+                        conn.execute(
+                            """
+                            SELECT 1 FROM evaluation_checkpoints ec
+                            JOIN project_versions pv ON pv.id = ec.project_version_id
+                            WHERE pv.project_id = %s
+                              AND pv.version_number < %s
+                              AND ec.status = 'pending_review'
+                            LIMIT 1
+                            """,
+                            (project_id, row["version_number"]),
+                        ).fetchone()
+                    )
 
-                res["status"] = effective_status
-                # Sincronizar el estado del proyecto en la base de datos para la versión vigente
-                conn.execute(
-                    "UPDATE projects SET status = %s, updated_at = now() WHERE id = %s",
-                    (effective_status, project_id),
+                # Verificar si la versión vigente tiene una evaluación en 'pending_review'
+                current_eval_paused = bool(
+                    conn.execute(
+                        """
+                        SELECT 1 FROM evaluations
+                        WHERE project_version_id = %s AND status = 'pending_review'
+                        LIMIT 1
+                        """,
+                        (row["project_version_id"],),
+                    ).fetchone()
                 )
+
+                if is_subsequent and has_prior_checkpoint and not current_eval_paused:
+                    # Caso 1: Versión 1 pausada y Versión 2 (o superior) mitigada/replanteada.
+                    # El estado efectivo de la versión vigente se deriva de sus propias evaluaciones sin mutar la BD:
+                    eval_row = conn.execute(
+                        """
+                        SELECT status FROM evaluations
+                        WHERE project_version_id = %s
+                        ORDER BY requested_at DESC LIMIT 1
+                        """,
+                        (row["project_version_id"],),
+                    ).fetchone()
+                    if eval_row and eval_row["status"] == "completed":
+                        effective_status = "evaluated"
+                    elif eval_row and eval_row["status"] in ("queued", "processing"):
+                        effective_status = "evaluating"
+                    else:
+                        effective_status = "ready"
+
+                    res["status"] = effective_status
+                    checkpoint = None
+                else:
+                    # Caso 3: Inconsistencia de datos.
+                    # El expediente figura en 'pending_review' (o evaluación pausada) sin registro de checkpoint
+                    # activo para la versión vigente, y no corresponde a una versión posterior con pausa histórica.
+                    # REGLA: No convertir automáticamente a 'ready' ni habilitar una aprobación sin revisión.
+                    # Mantener estrictamente 'pending_review' e informar la inconsistencia de forma controlada.
+                    res["status"] = "pending_review"
+                    created_at_dt = row.get("updated_at") or row.get("created_at") or datetime.now(timezone.utc)
+                    checkpoint = {
+                        "checkpoint_id": None,
+                        "project_id": project_id,
+                        "project_version_id": row["project_version_id"],
+                        "evaluation_id": None,
+                        "checkpoint_type": "inconsistent_data_review",
+                        "status": "pending_review",
+                        "status_label": "Pendiente de revisión",
+                        "reason": (
+                            "Inconsistencia de control: El expediente figura en estado 'Pendiente de revisión' "
+                            "sin registro de punto de control activo para la versión vigente. "
+                            "Requiere aclaración técnica y auditoría antes de continuar."
+                        ),
+                        "cause": "Inconsistencia de control: Estado 'Pendiente de revisión' sin punto de control registrado",
+                        "observation": (
+                            "Observación pendiente de aclaración: Se requiere auditoría y comprobación técnica del expediente "
+                            "para subsanar el registro antes de permitir cualquier aprobación o procesamiento."
+                        ),
+                        "risk_source": "inconsistent_state",
+                        "risk_source_label": "Auditoría de consistencia de datos",
+                        "risk_level": "high",
+                        "risk_level_label": "Riesgo Alto",
+                        "requires_human_review": True,
+                        "allows_final_approval": False,
+                        "details": {
+                            "inconsistent": True,
+                            "inconsistency_type": "pending_review_missing_checkpoint",
+                            "message": "Expediente en estado 'pending_review' sin checkpoint activo.",
+                        },
+                        "created_at": created_at_dt,
+                        "updated_at": created_at_dt,
+                    }
 
             res["checkpoint"] = checkpoint
             res["pert_estimate"] = pert_estimate
@@ -1276,10 +1415,9 @@ class PlatformService:
         return dict(row)
 
     def get_project_checkpoint(self, project_id: UUID) -> dict[str, Any] | None:
-        """Obtiene el punto de control persistente activo para la versión del proyecto (HU3.1)."""
+        """Obtiene el punto de control persistente activo para la versión del proyecto (HU3.1 / HU3.2)."""
         project = self.get_project(project_id)
-        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
-            return RiskCheckpointEngine.get_active_checkpoint(conn, project["project_version_id"])
+        return project.get("checkpoint")
 
     def get_project_by_code(self, code: str) -> dict[str, Any]:
         normalized = code.strip()
@@ -1995,6 +2133,12 @@ class PlatformService:
             raise ConfiguracionPMV1Error("El dictamen 'observed' requiere especificar condiciones u observaciones")
 
         project = self.get_project(project_id)
+        if project["status"] == "pending_review" or project.get("checkpoint") is not None:
+            raise ConfiguracionPMV1Error(
+                "El expediente se encuentra en estado 'Pendiente de revisión' en su versión vigente. "
+                "Conforme a HU3.1, no se puede emitir una aprobación final mientras la revisión humana esté pendiente."
+            )
+
         with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
             if RiskCheckpointEngine.has_pending_checkpoint(conn, project["project_version_id"]):
                 raise ConfiguracionPMV1Error(
@@ -2083,8 +2227,10 @@ class PlatformService:
     def get_human_approval(self, project_id: UUID) -> dict[str, Any]:
         """Obtiene el estado de la compuerta humana y el ultimo dictamen del proyecto."""
         project = self.get_project(project_id)
+        checkpoint = project.get("checkpoint")
         with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
-            checkpoint = RiskCheckpointEngine.get_active_checkpoint(conn, project["project_version_id"])
+            if not checkpoint:
+                checkpoint = RiskCheckpointEngine.get_active_checkpoint(conn, project["project_version_id"])
             latest = conn.execute(
                 """
                 SELECT id AS approval_id, project_id, project_version_id, decision,
@@ -2097,7 +2243,7 @@ class PlatformService:
                 (project_id, project["project_version_id"]),
             ).fetchone()
 
-        is_paused = checkpoint is not None
+        is_paused = (checkpoint is not None) or (project["status"] == "pending_review")
         is_evaluated = project["status"] in ("evaluated", "approved", "rejected", "observed") and not is_paused
         requires_human_approval = project["status"] == "evaluated" and latest is None and not is_paused
 

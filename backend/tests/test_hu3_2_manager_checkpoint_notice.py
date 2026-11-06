@@ -468,3 +468,328 @@ def test_checkpoint_incomplete_data_handling():
         assert "Información incompleta" in cp["reason"]
         assert cp["requires_human_review"] is True
         assert cp["allows_final_approval"] is False
+
+
+
+def test_case_1_v1_paused_and_v2_mitigated_queries_are_strictly_read_only(api_client: TestClient):
+    """Caso 1: Versión 1 pausada y Versión 2 mitigada.
+    Múltiples consultas GET devuelven el estado efectivo de v2 sin aviso de pausa y
+    dejan projects.status, updated_at y el checkpoint histórico de v1 estrictamente sin cambios."""
+    db_url = get_test_db_url()
+    headers_mgr = {"Authorization": "Bearer token-gerente-admin"}
+    project_id = uuid4()
+    v1_id = uuid4()
+    v2_id = uuid4()
+    code = f"PRY-RO1-{uuid4().hex[:4].upper()}"
+
+    with psycopg.connect(db_url, row_factory=dict_row) as conn:
+        conn.execute(
+            """INSERT INTO projects (id, code, status, created_by_user_id, created_at, updated_at)
+            VALUES (%s, %s, 'pending_review', %s, '2026-11-01 10:00:00+00', '2026-11-01 10:00:00+00')""",
+            (project_id, code, ADMIN_USER_ID),
+        )
+        conn.execute(
+            """INSERT INTO project_versions (id, project_id, version_number, title,
+            description, location_description, proposed_land_use, estimated_budget_pen,
+            beneficiaries_count, created_by_user_id, created_at)
+            VALUES (%s, %s, 1, 'Puente V1 Riesgoso', 'Trazo original en faja marginal',
+                    'Cauce Shullcas', 'equipamiento', 150000.0, 500, %s, '2026-11-01 10:00:00+00')""",
+            (v1_id, project_id, ADMIN_USER_ID),
+        )
+        v1_cp_id = uuid4()
+        conn.execute(
+            """INSERT INTO evaluation_checkpoints
+            (id, project_id, project_version_id, checkpoint_type, status,
+             reason, risk_source, risk_level, details, created_at, updated_at)
+            VALUES (%s, %s, %s, 'high_risk_pause', 'pending_review',
+                    'Causa técnica v1: Proximidad de 20m a cauce', 'environmental', 'high',
+                    '{"cause": "Causa técnica v1: Proximidad de 20m a cauce", "observation": "Verificar faja marginal"}'::jsonb,
+                    '2026-11-01 10:05:00+00', '2026-11-01 10:05:00+00')""",
+            (v1_cp_id, project_id, v1_id),
+        )
+        conn.execute(
+            """INSERT INTO project_versions (id, project_id, version_number, title,
+            description, location_description, proposed_land_use, estimated_budget_pen,
+            beneficiaries_count, created_by_user_id, created_at)
+            VALUES (%s, %s, 2, 'Puente V2 Mitigado', 'Trazo retirado a 80m de la ribera',
+                    'Zona alta El Tambo', 'equipamiento', 160000.0, 550, %s, '2026-11-02 12:00:00+00')""",
+            (v2_id, project_id, ADMIN_USER_ID),
+        )
+
+        # Snapshot inicial en base de datos
+        p_before = conn.execute("SELECT status, updated_at FROM projects WHERE id = %s", (project_id,)).fetchone()
+        cp_before = conn.execute("SELECT status, updated_at FROM evaluation_checkpoints WHERE id = %s", (v1_cp_id,)).fetchone()
+        eval_count_before = conn.execute("SELECT COUNT(*) AS total FROM evaluations").fetchone()["total"]
+        checkpoint_count_before = conn.execute("SELECT COUNT(*) AS total FROM evaluation_checkpoints").fetchone()["total"]
+        audit_count_before = conn.execute("SELECT COUNT(*) AS total FROM audit_events").fetchone()["total"]
+
+    service = PlatformService(db_url=db_url, dispatcher=None, enable_demo_fallback=False)
+
+    # Ejecutar múltiples consultas de lectura vía servicio y API
+    for _ in range(3):
+        # 1. Consulta directa al servicio
+        proj = service.get_project(project_id)
+        assert proj["version_number"] == 2
+        assert proj["project_version_id"] == v2_id
+        assert proj["status"] == "ready"  # Estado efectivo calculado en memoria
+        assert proj["checkpoint"] is None  # Sin aviso de pausa para v2
+
+        # 2. Consulta al endpoint de checkpoint
+        cp_val = service.get_project_checkpoint(project_id)
+        assert cp_val is None
+
+        # 3. Consulta vía API GET /projects/{id}
+        resp = api_client.get(f"/api/v1/projects/{project_id}", headers=headers_mgr)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["version_number"] == 2
+        assert data["status"] == "ready"
+        assert data["checkpoint"] is None
+
+        # 4. Consulta vía API GET /projects/{id}/checkpoint
+        cp_resp = api_client.get(f"/api/v1/projects/{project_id}/checkpoint", headers=headers_mgr)
+        assert cp_resp.status_code == 200
+        assert cp_resp.json() is None
+
+        # 5. Consulta vía API GET /projects/{id}/approval
+        appr_resp = api_client.get(f"/api/v1/projects/{project_id}/approval", headers={"Authorization": "Bearer token-planner"})
+        assert appr_resp.status_code == 200
+        assert appr_resp.json()["is_paused"] is False
+
+    # Verificar que la base de datos permaneció 100% INTACTA
+    with psycopg.connect(db_url, row_factory=dict_row) as conn:
+        p_after = conn.execute("SELECT status, updated_at FROM projects WHERE id = %s", (project_id,)).fetchone()
+        cp_after = conn.execute("SELECT status, updated_at FROM evaluation_checkpoints WHERE id = %s", (v1_cp_id,)).fetchone()
+        eval_count_after = conn.execute("SELECT COUNT(*) AS total FROM evaluations").fetchone()["total"]
+        checkpoint_count_after = conn.execute("SELECT COUNT(*) AS total FROM evaluation_checkpoints").fetchone()["total"]
+        audit_count_after = conn.execute("SELECT COUNT(*) AS total FROM audit_events").fetchone()["total"]
+
+    # projects.status en base de datos NO fue sobreescrito por el GET
+    assert p_after["status"] == p_before["status"] == "pending_review"
+    assert p_after["updated_at"] == p_before["updated_at"]
+
+    # Checkpoint histórico de v1 permanece idéntico
+    assert cp_after["status"] == cp_before["status"] == "pending_review"
+    assert cp_after["updated_at"] == cp_before["updated_at"]
+
+    # Cero inserciones secundarias
+    assert eval_count_after == eval_count_before
+    assert checkpoint_count_after == checkpoint_count_before
+    assert audit_count_after == audit_count_before
+
+
+def test_case_2_current_version_really_paused_queries_are_strictly_read_only(api_client: TestClient):
+    """Caso 2: Versión vigente realmente pausada.
+    Múltiples consultas GET conservan el aviso y el estado 'pending_review' sin mutar la BD."""
+    db_url = get_test_db_url()
+    headers_mgr = {"Authorization": "Bearer token-gerente-admin"}
+    project_id = uuid4()
+    v1_id = uuid4()
+    code = f"PRY-RO2-{uuid4().hex[:4].upper()}"
+
+    with psycopg.connect(db_url, row_factory=dict_row) as conn:
+        conn.execute(
+            """INSERT INTO projects (id, code, status, created_by_user_id, created_at, updated_at)
+            VALUES (%s, %s, 'pending_review', %s, '2026-11-03 08:00:00+00', '2026-11-03 08:00:00+00')""",
+            (project_id, code, ADMIN_USER_ID),
+        )
+        conn.execute(
+            """INSERT INTO project_versions (id, project_id, version_number, title,
+            description, location_description, proposed_land_use, estimated_budget_pen,
+            beneficiaries_count, created_by_user_id, created_at)
+            VALUES (%s, %s, 1, 'Hospital de Campaña V1', 'Emplazamiento en zona de alto riesgo',
+                    'Quebrada Shullcas', 'salud', 220000.0, 900, %s, '2026-11-03 08:00:00+00')""",
+            (v1_id, project_id, ADMIN_USER_ID),
+        )
+        cp_id = uuid4()
+        causa = "Causa técnica de pausa: Inundabilidad alta detectada por CENEPRED"
+        observacion = "Comprobación técnica requerida: Inspección presencial y certificación de drenaje"
+        conn.execute(
+            """INSERT INTO evaluation_checkpoints
+            (id, project_id, project_version_id, checkpoint_type, status,
+             reason, risk_source, risk_level, details, created_at, updated_at)
+            VALUES (%s, %s, %s, 'high_risk_pause', 'pending_review',
+                    %s, 'environmental', 'high',
+                    %s::jsonb, '2026-11-03 08:15:00+00', '2026-11-03 08:15:00+00')""",
+            (
+                cp_id, project_id, v1_id, causa,
+                f'{{"cause": "{causa}", "observation": "{observacion}"}}',
+            ),
+        )
+
+        p_before = conn.execute("SELECT status, updated_at FROM projects WHERE id = %s", (project_id,)).fetchone()
+        cp_before = conn.execute("SELECT * FROM evaluation_checkpoints WHERE id = %s", (cp_id,)).fetchone()
+
+    service = PlatformService(db_url=db_url, dispatcher=None, enable_demo_fallback=False)
+
+    for _ in range(3):
+        proj = service.get_project(project_id)
+        assert proj["status"] == "pending_review"
+        assert proj["checkpoint"] is not None
+        assert proj["checkpoint"]["cause"] == causa
+        assert proj["checkpoint"]["observation"] == observacion
+
+        resp = api_client.get(f"/api/v1/projects/{project_id}", headers=headers_mgr)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "pending_review"
+        assert data["checkpoint"]["cause"] == causa
+
+        cp_resp = api_client.get(f"/api/v1/projects/{project_id}/checkpoint", headers=headers_mgr)
+        assert cp_resp.status_code == 200
+        assert cp_resp.json()["cause"] == causa
+
+    with psycopg.connect(db_url, row_factory=dict_row) as conn:
+        p_after = conn.execute("SELECT status, updated_at FROM projects WHERE id = %s", (project_id,)).fetchone()
+        cp_after = conn.execute("SELECT * FROM evaluation_checkpoints WHERE id = %s", (cp_id,)).fetchone()
+
+    assert p_after["status"] == p_before["status"] == "pending_review"
+    assert p_after["updated_at"] == p_before["updated_at"]
+    assert cp_after["updated_at"] == cp_before["updated_at"]
+
+
+def test_case_3_inconsistent_pending_review_without_checkpoint_is_controlled_and_blocks_approval(api_client: TestClient):
+    """Caso 3: Estado pending_review sin checkpoint de la versión vigente por datos inconsistentes.
+    El sistema NO convierte automáticamente el proyecto a 'ready' ni habilita aprobación sin revisión;
+    informa la inconsistencia de forma controlada y la compuerta de aprobación lo bloquea."""
+    db_url = get_test_db_url()
+    headers_mgr = {"Authorization": "Bearer token-gerente-admin"}
+    project_id = uuid4()
+    v1_id = uuid4()
+    code = f"PRY-INC3-{uuid4().hex[:4].upper()}"
+
+    with psycopg.connect(db_url, row_factory=dict_row) as conn:
+        # Proyecto en pending_review pero CERO checkpoints en evaluation_checkpoints
+        conn.execute(
+            """INSERT INTO projects (id, code, status, created_by_user_id, created_at, updated_at)
+            VALUES (%s, %s, 'pending_review', %s, '2026-11-04 09:00:00+00', '2026-11-04 09:00:00+00')""",
+            (project_id, code, ADMIN_USER_ID),
+        )
+        conn.execute(
+            """INSERT INTO project_versions (id, project_id, version_number, title,
+            description, location_description, proposed_land_use, estimated_budget_pen,
+            beneficiaries_count, created_by_user_id, created_at)
+            VALUES (%s, %s, 1, 'Proyecto Huérfano de Checkpoint', 'Expediente con estado inconsistente',
+                    'Sector Centro', 'comercial', 130000.0, 300, %s, '2026-11-04 09:00:00+00')""",
+            (v1_id, project_id, ADMIN_USER_ID),
+        )
+
+        p_before = conn.execute("SELECT status, updated_at FROM projects WHERE id = %s", (project_id,)).fetchone()
+
+    service = PlatformService(db_url=db_url, dispatcher=None, enable_demo_fallback=False)
+
+    # 1. Consultar el proyecto por servicio: NO debe convertirse a 'ready'
+    proj = service.get_project(project_id)
+    assert proj["status"] == "pending_review"  # Se conserva estrictamente pending_review
+    assert proj["checkpoint"] is not None  # Retorna el objeto de control de inconsistencia
+    assert "Inconsistencia de control" in proj["checkpoint"]["reason"]
+    assert proj["checkpoint"]["requires_human_review"] is True
+    assert proj["checkpoint"]["allows_final_approval"] is False
+
+    # 2. Consultar vía API GET /projects/{id}
+    api_resp = api_client.get(f"/api/v1/projects/{project_id}", headers=headers_mgr)
+    assert api_resp.status_code == 200
+    api_data = api_resp.json()
+    assert api_data["status"] == "pending_review"
+    assert "Inconsistencia de control" in api_data["checkpoint"]["reason"]
+
+    # 3. Consultar vía API GET /projects/{id}/checkpoint
+    cp_resp = api_client.get(f"/api/v1/projects/{project_id}/checkpoint", headers=headers_mgr)
+    assert cp_resp.status_code == 200
+    cp_data = cp_resp.json()
+    assert cp_data["status"] == "pending_review"
+    assert "Inconsistencia de control" in cp_data["reason"]
+
+    # 4. Consultar la compuerta de aprobación: debe estar pausada y NO habilitada
+    appr_status = service.get_human_approval(project_id)
+    assert appr_status["is_paused"] is True
+    assert appr_status["is_evaluated"] is False
+    assert appr_status["requires_human_approval"] is False
+
+    appr_resp = api_client.get(f"/api/v1/projects/{project_id}/approval", headers={"Authorization": "Bearer token-planner"})
+    assert appr_resp.status_code == 200
+    assert appr_resp.json()["is_paused"] is True
+    assert appr_resp.json()["requires_human_approval"] is False
+
+    # 5. Intento de emitir aprobación formal por servicio: debe ser RECHAZADO
+    with pytest.raises(ConfiguracionPMV1Error, match="Pendiente de revisión"):
+        service.submit_human_approval(
+            project_id=project_id,
+            actor_id=ADMIN_USER_ID,
+            decision="approved",
+            justification="Intento ilegal de aprobar expediente en inconsistencia",
+            conditions=None,
+            idempotency_key=f"illegal-inc-{uuid4()}",
+        )
+
+    # 6. Intento de emitir aprobación por API: debe devolver 409 Conflict
+    api_appr_resp = api_client.post(
+        f"/api/v1/projects/{project_id}/approval",
+        json={
+            "decision": "approved",
+            "justification": "Intento de saltarse la revisión de expediente inconsistente",
+            "conditions": None,
+        },
+        headers={**headers_mgr, "Idempotency-Key": f"api-illegal-inc-{uuid4()}"},
+    )
+    assert api_appr_resp.status_code == 409
+    assert "Pendiente de revisión" in api_appr_resp.json()["detail"]
+
+    # 7. La base de datos permaneció 100% de solo lectura
+    with psycopg.connect(db_url, row_factory=dict_row) as conn:
+        p_after = conn.execute("SELECT status, updated_at FROM projects WHERE id = %s", (project_id,)).fetchone()
+        assert p_after["status"] == p_before["status"] == "pending_review"
+        assert p_after["updated_at"] == p_before["updated_at"]
+
+
+def test_create_project_version_write_operation_updates_stored_status():
+    """Verifica que la creación de una nueva versión (v2) como operación de escritura
+    actualiza el estado almacenado en projects a 'ready' de forma explícita."""
+    db_url = get_test_db_url()
+    project_id = uuid4()
+    v1_id = uuid4()
+    code = f"PRY-WR1-{uuid4().hex[:4].upper()}"
+
+    with psycopg.connect(db_url, row_factory=dict_row) as conn:
+        conn.execute(
+            """INSERT INTO projects (id, code, status, created_by_user_id)
+            VALUES (%s, %s, 'pending_review', %s)""",
+            (project_id, code, ADMIN_USER_ID),
+        )
+        conn.execute(
+            """INSERT INTO project_versions (id, project_id, version_number, title,
+            description, location_description, proposed_land_use, estimated_budget_pen,
+            beneficiaries_count, created_by_user_id)
+            VALUES (%s, %s, 1, 'Obra v1', 'Versión inicial pausada',
+                    'Ribera', 'salud', 100000.0, 400, %s)""",
+            (v1_id, project_id, ADMIN_USER_ID),
+        )
+        conn.execute(
+            """INSERT INTO evaluation_checkpoints
+            (id, project_id, project_version_id, checkpoint_type, status,
+             reason, risk_source, risk_level, details, created_at, updated_at)
+            VALUES (%s, %s, %s, 'high_risk_pause', 'pending_review',
+                    'Pausa v1', 'environmental', 'high', '{}'::jsonb, now(), now())""",
+            (uuid4(), project_id, v1_id),
+        )
+
+    service = PlatformService(db_url=db_url, dispatcher=None, enable_demo_fallback=False)
+
+    # Operación de escritura explícita: crear versión 2
+    v2_proj = service.create_project_version(
+        project_id=project_id,
+        title="Obra v2 Mitigada",
+        description="Versión con mitigaciones",
+        location_description="Zona segura",
+        proposed_land_use="salud",
+        estimated_budget_pen=110000.0,
+        beneficiaries_count=450,
+        actor_id=ADMIN_USER_ID,
+    )
+    assert v2_proj["version_number"] == 2
+    assert v2_proj["status"] == "ready"
+
+    # En la base de datos física, la tabla projects fue actualizada a 'ready' por la operación de escritura
+    with psycopg.connect(db_url, row_factory=dict_row) as conn:
+        p_row = conn.execute("SELECT status FROM projects WHERE id = %s", (project_id,)).fetchone()
+        assert p_row["status"] == "ready"

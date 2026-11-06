@@ -57,7 +57,7 @@ class PMV1ProjectCreate(BaseModel):
 class CheckpointResponse(BaseModel):
     """Punto de control persistente del flujo de evaluación ante riesgos altos (HU3.1 / HU3.2)."""
 
-    checkpoint_id: UUID
+    checkpoint_id: UUID | None = None
     project_id: UUID
     project_version_id: UUID
     evaluation_id: UUID | None = None
@@ -74,8 +74,8 @@ class CheckpointResponse(BaseModel):
     requires_human_review: bool = True
     allows_final_approval: bool = False
     details: dict[str, Any] = Field(default_factory=dict)
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 class PertEstimateCreate(BaseModel):
     """Solicitud de registro o cálculo de estimación PERT (HU1.9)."""

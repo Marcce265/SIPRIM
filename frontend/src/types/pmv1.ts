@@ -8,7 +8,7 @@ export interface LoginResponse {
 }
 
 export interface CheckpointResponse {
-  checkpoint_id: string
+  checkpoint_id?: string | null
   project_id: string
   project_version_id: string
   evaluation_id?: string | null
@@ -25,8 +25,8 @@ export interface CheckpointResponse {
   requires_human_review: boolean
   allows_final_approval: boolean
   details?: Record<string, unknown> | null
-  created_at: string
-  updated_at: string
+  created_at?: string | null
+  updated_at?: string | null
 }
 
 export interface PMV1ProjectCreate {
