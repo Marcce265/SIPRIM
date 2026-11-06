@@ -361,7 +361,7 @@ export interface TechnicalCriterionItem {
   supporting_document?: string | null
   source_origin: string
   is_simulated: boolean
-  status: 'cumple' | 'observado' | 'informacion_insuficiente' | string
+  status: 'cumple' | 'observado' | 'informacion_insuficiente' | 'simulado_no_verificado' | string
   status_label: string
   explanation: string
   correction_guidance?: string | null
@@ -372,6 +372,7 @@ export interface TechnicalCriteriaSummary {
   cumple: number
   observado: number
   informacion_insuficiente: number
+  simulado_no_verificado?: number
 }
 
 export interface TechnicalFeasibilityResponse {
@@ -381,7 +382,7 @@ export interface TechnicalFeasibilityResponse {
   project_version_id: string
   version_number: number
   status: string
-  overall_result: 'cumple' | 'observado' | 'informacion_insuficiente' | string
+  overall_result: 'cumple' | 'observado' | 'informacion_insuficiente' | 'pendiente_revision' | string
   overall_result_label: string
   is_viable: boolean
   is_preliminary_opinion: boolean

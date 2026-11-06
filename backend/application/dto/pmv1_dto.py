@@ -517,6 +517,7 @@ class TechnicalCriteriaSummary(BaseModel):
     cumple: int
     observado: int
     informacion_insuficiente: int
+    simulado_no_verificado: int = 0
 
 
 class TechnicalFeasibilityResponse(BaseModel):

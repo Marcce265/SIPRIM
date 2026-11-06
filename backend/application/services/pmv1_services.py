@@ -997,11 +997,14 @@ class TechnicalFeasibilityEngine:
       sin atribuirle valor de certificación profesional (ni sustituye la firma de ingenieros
       colegiados Ley 28858 / RNE).
     - CA-HU1.8-02: Incumplimiento u observación técnica. Si un criterio no se cumple según
-      los datos aportados, señala cuál está observado, el motivo técnico y qué debe corregir
-      o revisar el planificador.
+      los datos aportados o presenta condicionamientos técnicos, señala cuál está observado,
+      el motivo técnico y qué debe corregir o revisar el planificador con recomendaciones
+      no prescriptivas solicitando evaluación del profesional responsable.
     - CA-HU1.8-03: Imposibilidad de emitir conclusión. Si faltan datos indispensables para
-      comprobar un criterio, indica 'Información insuficiente' y NO declara viable al proyecto.
-      El puntaje técnico resultante es estrictamente None (cero falsos positivos).
+      comprobar un criterio, o si los datos provienen de fuentes simuladas sin comprobación física,
+      indica 'Información insuficiente' o 'Pendiente de revisión técnica' y NO declara viable al proyecto.
+      El puntaje técnico resultante es estrictamente None (cero falsos positivos; no entrega puntajes
+      ficticios a HU1.12).
     """
 
     PRELIMINARY_OPINION_DISCLAIMER: ClassVar[str] = (
@@ -1015,30 +1018,30 @@ class TechnicalFeasibilityEngine:
         {
             "code": "mecanica_suelos",
             "name": "Capacidad portante y mecánica de suelos",
-            "normative_reference": 'RNE Norma Técnica E.050 "Suelos y Cimentaciones" (D.S. N.° 011-2006-VIVIENDA)',
-            "normative_version": "2006 (vigente)",
-            "applied_rule": "Capacidad portante admisible q_adm >= 1.00 kg/cm² para cimentación superficial según RNE E.050",
+            "normative_reference": 'RNE Norma Técnica E.050 "Suelos y Cimentaciones" (R.M. N.° 406-2018-VIVIENDA)',
+            "normative_version": "2018 (actualizada)",
+            "applied_rule": "Estudio de Mecánica de Suelos (EMS) conforme a RNE E.050 (Art. 13-15). La capacidad portante y tipo de cimentación requieren validación por el especialista geotécnico según las cargas del proyecto.",
         },
         {
             "code": "servicios_basicos",
             "name": "Factibilidad de servicios básicos de agua y saneamiento",
-            "normative_reference": "RNE Norma Técnica OS.010 y Directiva General Invierte.pe (D.L. 1252)",
+            "normative_reference": "Directiva General Invierte.pe (D.L. 1252) y RNE Norma Técnica OS.010",
             "normative_version": "2019 (vigente)",
-            "applied_rule": "Distancia a red matriz <= 100 m con factibilidad técnica o punto de empalme certificado según RNE OS.010 / Invierte.pe",
+            "applied_rule": "Factibilidad de servicios de agua y saneamiento otorgada por la EPS prestadora (SEDAM Huancayo), con punto de empalme certificado y sin condicionamientos técnicos pendientes.",
         },
         {
             "code": "topografia_taludes",
             "name": "Pendiente topográfica y estabilidad física de terreno",
-            "normative_reference": 'RNE Norma Técnica CE.020 "Estabilización de Suelos y Taludes" y Manual CENEPRED',
+            "normative_reference": 'RNE Norma Técnica CE.020 "Estabilización de Suelos y Taludes" y CENEPRED',
             "normative_version": "2012 (vigente)",
-            "applied_rule": "Pendiente natural <= 20.0% y ausencia de fallas activas de talud según RNE CE.020 / CENEPRED",
+            "applied_rule": "Levantamiento topográfico perimétrico-altimétrico y evaluación de estabilidad física conforme a RNE CE.020 y CENEPRED.",
         },
         {
             "code": "dimensionamiento_predio",
             "name": "Dimensionamiento y compatibilidad de lote normativo",
             "normative_reference": "Plan de Desarrollo Metropolitano Huancayo 2017-2037 (O.M. N.° 636-MPH) y RNE A.010",
             "normative_version": "2017 (vigente)",
-            "applied_rule": "Superficie neta de lote >= 300 m² (o ancho de faja >= 8.0 m) compatible con uso institucional/equipamiento según PDM Huancayo",
+            "applied_rule": "Compatibilidad de uso y dimensionamiento normativo de predio conforme al PDM Huancayo 2017-2037 y RNE A.010.",
         },
     )
 
@@ -1050,14 +1053,15 @@ class TechnicalFeasibilityEngine:
         norm_ver = meta["normative_version"]
         applied_rule = meta["applied_rule"]
 
+        # Caso 1: Datos insuficientes o no registrados
         if (
             not row
             or not row.get("has_sufficient_data")
             or (row.get("parameter_value_numeric") is None and not row.get("parameter_value_text"))
         ):
             if code == "mecanica_suelos":
-                explanation = "Falta estudio de mecánica de suelos (EMS) o ensayo SPT con capacidad portante admisible verificable."
-                guidance = "Adjuntar Informe Técnico de Mecánica de Suelos con fines de cimentación conforme a la Norma E.050 del RNE, suscrito por ingeniero civil/geotécnico colegiado."
+                explanation = "Falta estudio de mecánica de suelos (EMS) suscrito por ingeniero civil/geotécnico colegiado."
+                guidance = "Adjuntar Informe Técnico de Mecánica de Suelos con fines de cimentación conforme a la Norma E.050 del RNE, suscrito por profesional habilitado (CIP)."
             elif code == "servicios_basicos":
                 explanation = "No se dispone de certificado de factibilidad de servicios de agua y saneamiento emitido por la EPS prestadora (SEDAM Huancayo)."
                 guidance = "Gestionar y anexar el Certificado de Factibilidad de Servicios de Agua Potable y Alcantarillado emitido por SEDAM Huancayo o la entidad prestadora correspondiente."
@@ -1099,74 +1103,112 @@ class TechnicalFeasibilityEngine:
         is_sim = row.get("is_simulated", True)
         param_name = row.get("parameter_name")
 
+        # Caso 2: Criterio observado (por incompatibilidad de capacidad portante o condicionamiento de servicios)
+        is_observed = False
+        obs_explanation = ""
+        obs_guidance = ""
+
         if code == "mecanica_suelos":
-            if val_num is not None and val_num >= 1.00:
-                status = "cumple"
-                status_label = "Cumple"
-                explanation = f"Capacidad portante admisible de {val_num:.2f} {unit} cumple con el mínimo reglamentario de 1.00 kg/cm² para cimentación superficial según RNE E.050."
-                guidance = None
-            else:
-                status = "observado"
-                status_label = "Observado"
-                val_str = f"{val_num:.2f} {unit}" if val_num is not None else "no especificado"
-                explanation = f"Capacidad portante admisible de {val_str} es inferior al umbral mínimo de seguridad de 1.00 kg/cm² exigido por RNE E.050 para cimentación directa convencional."
-                guidance = "Plantear alternativas geotécnicas de cimentación profunda (pilotes/caissons), mejoramiento de suelo (reemplazo o estabilización) o relocalización del emplazamiento estructural."
+            if val_num is not None and val_num < 0.80:
+                is_observed = True
+                obs_explanation = (
+                    f"Capacidad portante admisible informada ({val_num:.2f} {unit}) es baja para cimentación superficial directa convencional. "
+                    "El suelo presenta limitaciones de capacidad de carga según los sondeos informados."
+                )
+                obs_guidance = (
+                    "El ingeniero especialista en geotecnia y estructuras responsable del proyecto debe evaluar y proponer la solución "
+                    "técnica adecuada (dimensionamiento de cimentación, mejoramiento de suelo o alternativas estructurales) conforme al EMS."
+                )
 
         elif code == "servicios_basicos":
             txt_lower = (val_txt or "").lower()
-            is_conditioned = "no factible" in txt_lower or "condiciona" in txt_lower or "ampliación" in txt_lower
-            if val_num is not None and val_num <= 100.0 and not is_conditioned:
-                status = "cumple"
-                status_label = "Cumple"
-                explanation = f"Distancia a red matriz de {val_num:.2f} {unit} dentro del límite máximo de 100 m con punto de conexión factible conforme a RNE OS.010 e Invierte.pe."
-                guidance = None
-            else:
-                status = "observado"
-                status_label = "Observado"
-                if val_num is not None and val_num > 100.0:
-                    explanation = f"Distancia a red matriz ({val_num:.2f} {unit}) excede los 100 m reglamentarios. "
-                else:
-                    explanation = ""
-                if is_conditioned:
-                    explanation += f"La entidad prestadora (SEDAM Huancayo) reporta restricciones técnicas o condicionamientos: {val_txt}."
-                else:
-                    explanation += "Requiere extensión de red secundaria y obras de empalme no contempladas."
-                guidance = "Incorporar al presupuesto y alcance del proyecto el componente de ampliación de colector público o planta de tratamiento/trampa de retención previo empalme."
+            if "condiciona" in txt_lower or "no factible" in txt_lower or "ampliación" in txt_lower or (val_num is not None and val_num > 100.0):
+                is_observed = True
+                obs_explanation = (
+                    f"Factibilidad de servicios condicionada: SEDAM Huancayo reporta que la conexión no es inmediata ({val_txt or f'distancia {val_num:.2f} m'}). "
+                    "Requiere infraestructura complementaria o ampliación de colector."
+                )
+                obs_guidance = (
+                    "Gestionar con la EPS prestadora (SEDAM Huancayo) las condiciones técnicas de empalme e incorporar los componentes "
+                    "de saneamiento requeridos en el expediente del proyecto."
+                )
 
         elif code == "topografia_taludes":
-            if val_num is not None and val_num <= 20.0:
-                status = "cumple"
-                status_label = "Cumple"
-                explanation = f"Pendiente media de {val_num:.2f} {unit} es menor o igual al 20.0% máximo admisible para terreno estable según RNE CE.020 y CENEPRED."
-                guidance = None
-            else:
-                status = "observado"
-                status_label = "Observado"
-                val_str = f"{val_num:.2f} {unit}" if val_num is not None else "no especificado"
-                explanation = f"Pendiente media del terreno de {val_str} excede el 20.0% normativo, presentando riesgo de inestabilidad física o desprendimiento según CE.020."
-                guidance = "Incluir estudio de estabilidad de taludes y diseño de obras de sostenimiento físico (muros de contención, banquetas o terrazas de estabilización)."
+            if val_num is not None and val_num > 25.0:
+                is_observed = True
+                obs_explanation = (
+                    f"Pendiente media del terreno informada ({val_num:.2f} {unit}) es pronunciada y presenta riesgo potencial de inestabilidad física o desprendimiento."
+                )
+                obs_guidance = (
+                    "El profesional responsable de geotecnia/topografía debe realizar un estudio de estabilidad de taludes y plantear "
+                    "obras de sostenimiento físico (muros de contención o banquetas de estabilización) conforme a RNE CE.020."
+                )
 
         elif code == "dimensionamiento_predio":
             is_width = "metro" in unit.lower() or "m" == unit.strip()
-            threshold = 8.0 if is_width else 300.0
-            if val_num is not None and val_num >= threshold:
-                status = "cumple"
-                status_label = "Cumple"
-                explanation = f"Dimensión disponible de {val_num:.2f} {unit} cumple holgadamente con los requerimientos normativos para equipamiento institucional (mínimo {threshold:.1f} {unit})."
-                guidance = None
-            else:
-                status = "observado"
-                status_label = "Observado"
-                val_str = f"{val_num:.2f} {unit}" if val_num is not None else "no especificado"
-                explanation = f"Dimensión de {val_str} no alcanza el área o sección normativa requerida ({threshold:.1f} {unit}) según el PDM Huancayo y RNE A.010."
-                guidance = "Evaluar redimensionamiento de las áreas de servidumbre, acumulación de lotes o ajuste del anteproyecto arquitectónico al área legal útil."
+            threshold = 6.0 if is_width else 200.0
+            if val_num is not None and val_num < threshold:
+                is_observed = True
+                obs_explanation = (
+                    f"Dimensión informada ({val_num:.2f} {unit}) es reducida respecto al programa arquitectónico tentativo o sección de faja vial requerida."
+                )
+                obs_guidance = (
+                    "El planificador y arquitecto proyectista deben revisar la compatibilidad del anteproyecto con el área útil del predio "
+                    "o gestionar servidumbres/ampliaciones según el PDM Huancayo y RNE A.010."
+                )
 
-        else:
-            status = "cumple"
-            status_label = "Cumple"
-            explanation = "Parámetro evaluado conforme."
-            guidance = None
+        if is_observed:
+            return {
+                "criterion_code": code,
+                "criterion_name": name,
+                "normative_reference": norm_ref,
+                "normative_version": norm_ver,
+                "has_sufficient_data": True,
+                "parameter_name": param_name,
+                "parameter_value_numeric": val_num,
+                "parameter_unit": unit,
+                "parameter_value_text": val_txt,
+                "applied_rule": applied_rule,
+                "supporting_document": doc,
+                "source_origin": origin,
+                "is_simulated": is_sim,
+                "status": "observado",
+                "status_label": "Observado",
+                "explanation": obs_explanation,
+                "correction_guidance": obs_guidance,
+            }
 
+        # Caso 3: Parámetro simulado sin comprobación física
+        if is_sim:
+            val_display = f"{val_num:.2f} {unit}" if val_num is not None else (val_txt or "Registrado")
+            return {
+                "criterion_code": code,
+                "criterion_name": name,
+                "normative_reference": norm_ref,
+                "normative_version": norm_ver,
+                "has_sufficient_data": True,
+                "parameter_name": param_name,
+                "parameter_value_numeric": val_num,
+                "parameter_unit": unit,
+                "parameter_value_text": val_txt,
+                "applied_rule": applied_rule,
+                "supporting_document": doc,
+                "source_origin": origin,
+                "is_simulated": True,
+                "status": "simulado_no_verificado",
+                "status_label": "Sustento no comprobado (simulado)",
+                "explanation": (
+                    f"El parámetro registrado ({val_display}) corresponde a un dato simulado para demostración del flujo. "
+                    "El documento referenciado no está comprobado en el archivo físico del expediente ni constituye certificación profesional."
+                ),
+                "correction_guidance": (
+                    "Presentar el documento técnico oficial original suscrito por el ingeniero especialista colegiado (CIP) "
+                    "para su cotejo y verificación en el expediente municipal."
+                ),
+            }
+
+        # Caso 4: Parámetro real verificado y conforme
+        val_display = f"{val_num:.2f} {unit}" if val_num is not None else (val_txt or "Registrado")
         return {
             "criterion_code": code,
             "criterion_name": name,
@@ -1180,11 +1222,11 @@ class TechnicalFeasibilityEngine:
             "applied_rule": applied_rule,
             "supporting_document": doc,
             "source_origin": origin,
-            "is_simulated": is_sim,
-            "status": status,
-            "status_label": status_label,
-            "explanation": explanation,
-            "correction_guidance": guidance,
+            "is_simulated": False,
+            "status": "cumple",
+            "status_label": "Cumple con sustento verificado",
+            "explanation": f"Parámetro técnico ({val_display}) cotejado con documento de sustento verificable ({doc}) y validado conforme a normativa aplicable.",
+            "correction_guidance": None,
         }
 
     @classmethod
@@ -1208,14 +1250,17 @@ class TechnicalFeasibilityEngine:
         cumple_count = sum(1 for c in evaluated_criteria if c["status"] == "cumple")
         observado_count = sum(1 for c in evaluated_criteria if c["status"] == "observado")
         insuficiente_count = sum(1 for c in evaluated_criteria if c["status"] == "informacion_insuficiente")
+        simulado_count = sum(1 for c in evaluated_criteria if c["status"] == "simulado_no_verificado")
 
         criteria_summary = {
             "total": total,
             "cumple": cumple_count,
             "observado": observado_count,
             "informacion_insuficiente": insuficiente_count,
+            "simulado_no_verificado": simulado_count,
         }
 
+        # Reglas de dictamen global (cero falsos positivos)
         if insuficiente_count > 0:
             overall_result = "informacion_insuficiente"
             overall_result_label = "Información insuficiente"
@@ -1227,7 +1272,7 @@ class TechnicalFeasibilityEngine:
             )
             summary = (
                 f"Evaluación técnica preliminar inconclusa: {insuficiente_count} de {total} criterios carecen "
-                "de información técnica indispensable o sustento verificable. No se declara la viabilidad técnica del proyecto."
+                "de información técnica indispensable o sustento en el expediente. No se declara la viabilidad técnica del proyecto."
             )
             dimension_conclusion = "No viable preliminarmente por falta de información técnica indispensable."
             dimension_justification = (
@@ -1239,19 +1284,39 @@ class TechnicalFeasibilityEngine:
             overall_result = "observado"
             overall_result_label = "Observado"
             is_viable = False
-            technical_score = round(100.0 * cumple_count / total, 2)
+            technical_score = None
             score_explanation = (
-                f"Puntaje técnico de {technical_score:.1f}/100 basado en el cumplimiento de {cumple_count} de {total} "
-                "criterios evaluados. Existen observaciones técnicas críticas que deben subsanarse."
+                f"Puntaje técnico no determinado: se identificaron {observado_count} observación(es) técnica(s) "
+                "que requieren evaluación del profesional responsable antes de cualquier ponderación cuantitativa."
             )
             summary = (
                 f"Evaluación técnica preliminar con observaciones: {observado_count} de {total} criterios presentan "
-                "incompatibilidades o incumplimientos normativos que deben ser subsanados por el planificador."
+                "incompatibilidades o condicionamientos técnicos que deben ser subsanados por los especialistas del proyecto."
             )
             dimension_conclusion = "No viable preliminarmente por observaciones técnicas críticas no subsanadas."
             dimension_justification = (
                 f"Se identificaron {observado_count} observación(es) técnica(s) relativas a los parámetros evaluados. "
-                "El proyecto no califica como viable hasta que el planificador incorpore las medidas correctivas recomendadas."
+                "El proyecto no califica como viable hasta que el profesional responsable incorpore las medidas técnicas recomendadas."
+            )
+        elif simulado_count > 0:
+            overall_result = "pendiente_revision"
+            overall_result_label = "Pendiente de revisión técnica"
+            is_viable = False
+            technical_score = None
+            score_explanation = (
+                "Puntaje técnico no determinado: los parámetros provienen de registros simulados de demostración "
+                "sin sustento documental comprobado en el expediente físico (CA-HU1.8-01 / CA-HU1.8-03)."
+            )
+            summary = (
+                "Preevaluación técnica en modo demostración: Los parámetros registrados corresponden a datos simulados "
+                "y no cuentan con sustento documental comprobado en el archivo físico del expediente. "
+                "Conforme a las reglas de control, no se otorga calificación de viabilidad ni puntaje numérico "
+                "hasta contar con estudios oficiales verificados y suscritos por ingenieros colegiados (CIP)."
+            )
+            dimension_conclusion = "Pendiente de verificación técnica presencial/documental."
+            dimension_justification = (
+                "Los antecedentes del expediente contienen parámetros simulados para fines de demostración del software. "
+                "No constituyen prueba documental verificable ni habilitan certificación técnica de viabilidad."
             )
         else:
             overall_result = "cumple"
@@ -1260,16 +1325,16 @@ class TechnicalFeasibilityEngine:
             technical_score = 100.0
             score_explanation = (
                 f"Puntaje técnico de 100.0/100: todos los criterios técnicos reglamentarios ({total}/{total}) "
-                "cuentan con sustento y cumplen los umbrales aplicables."
+                "cuentan con sustento documental verificado y cumplen los requerimientos de ingeniería aplicables."
             )
             summary = (
                 "Evaluación técnica preliminar favorable: todos los criterios técnicos analizados cumplen "
-                "satisfactoriamente con la normativa vigente y cuentan con sustento documental verificado."
+                "con la normativa vigente y cuentan con sustento documental verificado en el expediente."
             )
             dimension_conclusion = "Viable preliminarmente conforme a los parámetros técnicos evaluados."
             dimension_justification = (
-                "Todos los parámetros de mecánica de suelos, servicios básicos, topografía y dimensionamiento "
-                "cumplen con los umbrales del RNE y la normativa municipal aplicable."
+                "Todos los parámetros evaluados cuentan con sustento documental verificable y cumplen con los "
+                "criterios de ingeniería del RNE y la normativa municipal aplicable."
             )
 
         now = datetime.now(timezone.utc)

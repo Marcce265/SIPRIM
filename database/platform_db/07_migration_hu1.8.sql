@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS technical_feasibility_assessments (
     status VARCHAR(32) NOT NULL DEFAULT 'completed'
         CHECK (status IN ('completed', 'failed')),
     overall_result VARCHAR(32) NOT NULL
-        CHECK (overall_result IN ('cumple', 'observado', 'informacion_insuficiente')),
+        CHECK (overall_result IN ('cumple', 'observado', 'informacion_insuficiente', 'pendiente_revision')),
     overall_result_label VARCHAR(80) NOT NULL,
     is_viable BOOLEAN NOT NULL DEFAULT FALSE,
     is_preliminary_opinion BOOLEAN NOT NULL DEFAULT TRUE,

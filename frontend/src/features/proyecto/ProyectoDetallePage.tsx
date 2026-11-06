@@ -1528,6 +1528,16 @@ export function ProyectoDetallePage() {
                     </span>
                     <span className="metric-hint">Datos faltantes indispensables</span>
                   </div>
+
+                  {(technicalAssessment.criteria_summary.simulado_no_verificado ?? 0) > 0 && (
+                    <div className="technical-metric-card">
+                      <span className="metric-label">Sustento simulado</span>
+                      <span className="metric-value text-warning">
+                        {technicalAssessment.criteria_summary.simulado_no_verificado}
+                      </span>
+                      <span className="metric-hint">No comprobado en archivo físico</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="technical-criteria-list" data-testid="technical-criteria-list">

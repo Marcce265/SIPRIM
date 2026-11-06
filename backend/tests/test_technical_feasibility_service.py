@@ -1,8 +1,10 @@
 from decimal import Decimal
+from typing import Any
 from uuid import UUID, uuid4
 import psycopg
 from psycopg.rows import dict_row
 import pytest
+from fastapi.testclient import TestClient
 
 from backend.application.services.pmv1_services import (
     TechnicalFeasibilityEngine,
@@ -12,10 +14,13 @@ from backend.domain.exceptions.pmv1_exceptions import (
     VersionNoPertenecienteError,
     RecursoPMV1NoEncontradoError,
     ConfiguracionPMV1Error,
+    CredencialesInvalidasError,
 )
+from backend.infrastructure.config.dependencies import get_auth_service, get_platform_service
 from backend.infrastructure.config.settings import get_settings
+from backend.main import create_app
 
-PROJECT_A_ID = UUID("a0000000-0000-4000-a000-00000000000a")  # PRY-A (Cumple)
+PROJECT_A_ID = UUID("a0000000-0000-4000-a000-00000000000a")  # PRY-A (Simulado)
 PROJECT_B_ID = UUID("a0000000-0000-4000-a000-00000000000b")  # PRY-B (Info insuficiente)
 PROJECT_C_ID = UUID("a0000000-0000-4000-a000-00000000000c")  # PRY-C (Observado)
 PROJECT_D_ID = UUID("a0000000-0000-4000-a000-00000000000d")  # PRY-D (Info insuficiente total)
@@ -36,35 +41,56 @@ def get_test_platform_service() -> PlatformService:
 
 
 # ==============================================================================
-# 1. Pruebas unitarias de motor (TechnicalFeasibilityEngine)
+# 1. Pruebas unitarias de motor (TechnicalFeasibilityEngine - HU1.8 auditado)
 # ==============================================================================
 
-def test_engine_criterion_soil_mechanics_compliant():
+def test_engine_criterion_simulated_yields_sustento_no_comprobado():
+    """Dato simulado: no debe afirmar verificacin real ni certificacin profesional."""
     meta = TechnicalFeasibilityEngine.CANONICAL_CRITERIA[0]  # mecanica_suelos
+    row = {
+        "has_sufficient_data": True,
+        "parameter_name": "Capacidad portante admisible informada q_adm",
+        "parameter_value_numeric": 1.45,
+        "parameter_unit": "kg/cm²",
+        "supporting_document": "[Dato simulado para demostración] Informe Técnico N.° 048-2026-EMS/MDT",
+        "source_origin": "simulated",
+        "is_simulated": True,
+    }
+    item = TechnicalFeasibilityEngine.evaluate_criterion(meta, row)
+    assert item["status"] == "simulado_no_verificado"
+    assert item["status_label"] == "Sustento no comprobado (simulado)"
+    assert "dato simulado" in item["explanation"].lower()
+    assert item["correction_guidance"] is not None
+    assert "oficial original suscrito" in item["correction_guidance"]
+
+
+def test_engine_criterion_verified_real_data_complies():
+    """Dato real no simulado con sustento pblico: se valida conforme."""
+    meta = TechnicalFeasibilityEngine.CANONICAL_CRITERIA[0]
     row = {
         "has_sufficient_data": True,
         "parameter_name": "Capacidad portante admisible q_adm",
         "parameter_value_numeric": 1.45,
         "parameter_unit": "kg/cm²",
-        "supporting_document": "Informe Técnico N.° 048-2026-EMS/MDT",
-        "source_origin": "simulated",
-        "is_simulated": True,
+        "supporting_document": "Informe Geotécnico Oficial N.° 010-2026-CIP-UNCP",
+        "source_origin": "public",
+        "is_simulated": False,
     }
     item = TechnicalFeasibilityEngine.evaluate_criterion(meta, row)
     assert item["status"] == "cumple"
-    assert item["status_label"] == "Cumple"
+    assert item["status_label"] == "Cumple con sustento verificado"
     assert item["correction_guidance"] is None
-    assert "1.45" in item["explanation"]
 
 
-def test_engine_criterion_soil_mechanics_observed():
+def test_engine_criterion_soil_mechanics_observed_non_prescriptive():
+    """Criterio observado: debe solicitar evaluacin del profesional, sin prescribir pilotes arbitrariamente."""
     meta = TechnicalFeasibilityEngine.CANONICAL_CRITERIA[0]  # mecanica_suelos
     row = {
         "has_sufficient_data": True,
-        "parameter_name": "Capacidad portante admisible q_adm",
+        "parameter_name": "Capacidad portante admisible informada q_adm",
         "parameter_value_numeric": 0.65,
         "parameter_unit": "kg/cm²",
-        "supporting_document": "Informe Geotécnico N.° 014-2026-GEO",
+        "supporting_document": "[Dato simulado para demostración] Informe Geotécnico N.° 014-2026-GEO",
         "source_origin": "simulated",
         "is_simulated": True,
     }
@@ -72,7 +98,8 @@ def test_engine_criterion_soil_mechanics_observed():
     assert item["status"] == "observado"
     assert item["status_label"] == "Observado"
     assert item["correction_guidance"] is not None
-    assert "cimentación profunda" in item["correction_guidance"]
+    # No debe prescribir exclusivamente pilotes/caissons como nica verdad, sino remitir al especialista
+    assert "especialista en geotecnia y estructuras" in item["correction_guidance"]
 
 
 def test_engine_criterion_insufficient_data():
@@ -88,45 +115,58 @@ def test_engine_criterion_insufficient_data():
     assert "SEDAM Huancayo" in item["correction_guidance"]
 
 
-def test_engine_evaluate_all_compliant():
+def test_engine_evaluate_all_simulated_yields_pendiente_revision_and_null_score():
+    """Con datos simulados (PRY-A): overall_result = pendiente_revision, is_viable = False, score = None."""
     params = [
-        {"criterion_code": "mecanica_suelos", "has_sufficient_data": True, "parameter_value_numeric": 1.5, "parameter_unit": "kg/cm²", "supporting_document": "Doc 1"},
-        {"criterion_code": "servicios_basicos", "has_sufficient_data": True, "parameter_value_numeric": 20.0, "parameter_unit": "m", "supporting_document": "Doc 2"},
-        {"criterion_code": "topografia_taludes", "has_sufficient_data": True, "parameter_value_numeric": 5.0, "parameter_unit": "%", "supporting_document": "Doc 3"},
-        {"criterion_code": "dimensionamiento_predio", "has_sufficient_data": True, "parameter_value_numeric": 500.0, "parameter_unit": "m²", "supporting_document": "Doc 4"},
+        {"criterion_code": "mecanica_suelos", "has_sufficient_data": True, "parameter_value_numeric": 1.45, "parameter_unit": "kg/cm²", "supporting_document": "Doc Sim 1", "is_simulated": True, "source_origin": "simulated"},
+        {"criterion_code": "servicios_basicos", "has_sufficient_data": True, "parameter_value_numeric": 12.0, "parameter_unit": "m", "supporting_document": "Doc Sim 2", "is_simulated": True, "source_origin": "simulated"},
+        {"criterion_code": "topografia_taludes", "has_sufficient_data": True, "parameter_value_numeric": 4.5, "parameter_unit": "%", "supporting_document": "Doc Sim 3", "is_simulated": True, "source_origin": "simulated"},
+        {"criterion_code": "dimensionamiento_predio", "has_sufficient_data": True, "parameter_value_numeric": 1250.0, "parameter_unit": "m²", "supporting_document": "Doc Sim 4", "is_simulated": True, "source_origin": "simulated"},
     ]
     res = TechnicalFeasibilityEngine.evaluate(uuid4(), "PRY-TEST", uuid4(), 1, params)
+    assert res["overall_result"] == "pendiente_revision"
+    assert res["overall_result_label"] == "Pendiente de revisión técnica"
+    assert res["is_viable"] is False
+    assert res["technical_score"] is None
+    assert "no determinado" in res["score_explanation"].lower()
+    assert res["criteria_summary"]["simulado_no_verificado"] == 4
+
+
+def test_engine_evaluate_real_verified_complies():
+    """Solo con sustento real comprobado se declara viabilidad preliminar y 100/100."""
+    params = [
+        {"criterion_code": "mecanica_suelos", "has_sufficient_data": True, "parameter_value_numeric": 1.5, "parameter_unit": "kg/cm²", "supporting_document": "Doc Real 1", "is_simulated": False, "source_origin": "public"},
+        {"criterion_code": "servicios_basicos", "has_sufficient_data": True, "parameter_value_numeric": 20.0, "parameter_unit": "m", "supporting_document": "Doc Real 2", "is_simulated": False, "source_origin": "public"},
+        {"criterion_code": "topografia_taludes", "has_sufficient_data": True, "parameter_value_numeric": 5.0, "parameter_unit": "%", "supporting_document": "Doc Real 3", "is_simulated": False, "source_origin": "public"},
+        {"criterion_code": "dimensionamiento_predio", "has_sufficient_data": True, "parameter_value_numeric": 500.0, "parameter_unit": "m²", "supporting_document": "Doc Real 4", "is_simulated": False, "source_origin": "public"},
+    ]
+    res = TechnicalFeasibilityEngine.evaluate(uuid4(), "PRY-REAL", uuid4(), 1, params)
     assert res["overall_result"] == "cumple"
     assert res["is_viable"] is True
     assert res["technical_score"] == 100.0
-    assert res["criteria_summary"]["total"] == 4
-    assert res["criteria_summary"]["cumple"] == 4
-    assert res["criteria_summary"]["observado"] == 0
-    assert res["criteria_summary"]["informacion_insuficiente"] == 0
-    assert "opinión preliminar automatizada" in res["disclaimer"].lower()
 
 
-def test_engine_evaluate_observed_fails_viability():
+def test_engine_evaluate_observed_fails_viability_and_null_score():
     params = [
-        {"criterion_code": "mecanica_suelos", "has_sufficient_data": True, "parameter_value_numeric": 0.70, "parameter_unit": "kg/cm²", "supporting_document": "Doc 1"},
-        {"criterion_code": "servicios_basicos", "has_sufficient_data": True, "parameter_value_numeric": 20.0, "parameter_unit": "m", "supporting_document": "Doc 2"},
-        {"criterion_code": "topografia_taludes", "has_sufficient_data": True, "parameter_value_numeric": 5.0, "parameter_unit": "%", "supporting_document": "Doc 3"},
-        {"criterion_code": "dimensionamiento_predio", "has_sufficient_data": True, "parameter_value_numeric": 500.0, "parameter_unit": "m²", "supporting_document": "Doc 4"},
+        {"criterion_code": "mecanica_suelos", "has_sufficient_data": True, "parameter_value_numeric": 0.65, "parameter_unit": "kg/cm²", "supporting_document": "Doc Obs", "is_simulated": True, "source_origin": "simulated"},
+        {"criterion_code": "servicios_basicos", "has_sufficient_data": True, "parameter_value_numeric": 145.0, "parameter_value_text": "condiciona SEDAM", "parameter_unit": "m", "supporting_document": "Doc Obs 2", "is_simulated": True, "source_origin": "simulated"},
+        {"criterion_code": "topografia_taludes", "has_sufficient_data": True, "parameter_value_numeric": 12.0, "parameter_unit": "%", "supporting_document": "Doc 3", "is_simulated": True, "source_origin": "simulated"},
+        {"criterion_code": "dimensionamiento_predio", "has_sufficient_data": True, "parameter_value_numeric": 2400.0, "parameter_unit": "m²", "supporting_document": "Doc 4", "is_simulated": True, "source_origin": "simulated"},
     ]
     res = TechnicalFeasibilityEngine.evaluate(uuid4(), "PRY-TEST", uuid4(), 1, params)
     assert res["overall_result"] == "observado"
     assert res["is_viable"] is False
-    assert res["technical_score"] == 75.0  # 3 de 4 cumplen
-    assert res["criteria_summary"]["observado"] == 1
+    assert res["technical_score"] is None
+    assert res["criteria_summary"]["observado"] == 2
 
 
 def test_engine_evaluate_insufficient_data_score_is_strictly_none():
-    """Cero falsos positivos: si falta información, el puntaje técnico DEBE ser None (CA-HU1.8-03)."""
+    """Cero falsos positivos: si falta informacin, el puntaje tcnico DEBE ser None (CA-HU1.8-03)."""
     params = [
         {"criterion_code": "mecanica_suelos", "has_sufficient_data": False, "parameter_value_numeric": None},
-        {"criterion_code": "servicios_basicos", "has_sufficient_data": True, "parameter_value_numeric": 20.0, "parameter_unit": "m", "supporting_document": "Doc 2"},
-        {"criterion_code": "topografia_taludes", "has_sufficient_data": True, "parameter_value_numeric": 5.0, "parameter_unit": "%", "supporting_document": "Doc 3"},
-        {"criterion_code": "dimensionamiento_predio", "has_sufficient_data": True, "parameter_value_numeric": 500.0, "parameter_unit": "m²", "supporting_document": "Doc 4"},
+        {"criterion_code": "servicios_basicos", "has_sufficient_data": True, "parameter_value_numeric": 20.0, "parameter_unit": "m", "supporting_document": "Doc 2", "is_simulated": True, "source_origin": "simulated"},
+        {"criterion_code": "topografia_taludes", "has_sufficient_data": True, "parameter_value_numeric": 5.0, "parameter_unit": "%", "supporting_document": "Doc 3", "is_simulated": True, "source_origin": "simulated"},
+        {"criterion_code": "dimensionamiento_predio", "has_sufficient_data": True, "parameter_value_numeric": 500.0, "parameter_unit": "m²", "supporting_document": "Doc 4", "is_simulated": True, "source_origin": "simulated"},
     ]
     res = TechnicalFeasibilityEngine.evaluate(uuid4(), "PRY-TEST", uuid4(), 1, params)
     assert res["overall_result"] == "informacion_insuficiente"
@@ -136,25 +176,25 @@ def test_engine_evaluate_insufficient_data_score_is_strictly_none():
 
 
 # ==============================================================================
-# 2. Pruebas de integración con base de datos (PlatformService)
+# 2. Pruebas de integracin con base de datos (PlatformService)
 # ==============================================================================
 
-def test_evaluate_pry_a_fully_compliant():
+def test_evaluate_pry_a_simulated_yields_pendiente_revision():
+    """En PRY-A (semilla simulada), la evaluacin tcnica resulta 'pendiente_revision' y puntaje None."""
     service = get_test_platform_service()
     res = service.evaluate_technical_feasibility(
         project_id=PROJECT_A_ID,
         actor_id=PLANNER_ID,
     )
-    assert res["overall_result"] == "cumple"
-    assert res["is_viable"] is True
-    assert res["technical_score"] == 100.0
-    assert res["criteria_summary"]["cumple"] == 4
-    assert res["criteria_summary"]["observado"] == 0
-    assert res["criteria_summary"]["informacion_insuficiente"] == 0
+    assert res["overall_result"] == "pendiente_revision"
+    assert res["overall_result_label"] == "Pendiente de revisión técnica"
+    assert res["is_viable"] is False
+    assert res["technical_score"] is None
+    assert res["criteria_summary"]["simulado_no_verificado"] == 4
     assert "ADVERTENCIA DE CONTROL" in res["disclaimer"]
-    assert "preliminar" in res["dimension_conclusion"].lower()
+    assert "simulados" in res["summary"].lower()
 
-    # Comprobar evento de auditoría
+    # Comprobar evento de auditora
     with psycopg.connect(get_test_db_url(), row_factory=dict_row) as conn:
         audit = conn.execute(
             """
@@ -166,7 +206,7 @@ def test_evaluate_pry_a_fully_compliant():
             (str(PROJECT_A_ID),),
         ).fetchone()
         assert audit is not None
-        assert audit["details"]["overall_result"] == "cumple"
+        assert audit["details"]["overall_result"] == "pendiente_revision"
 
 
 def test_evaluate_pry_c_with_observations():
@@ -177,21 +217,19 @@ def test_evaluate_pry_c_with_observations():
     )
     assert res["overall_result"] == "observado"
     assert res["is_viable"] is False
-    assert res["criteria_summary"]["observado"] == 2  # suelos y servicios
-    assert res["criteria_summary"]["cumple"] == 2
-    assert res["technical_score"] == 50.0  # 2/4 = 50%
+    assert res["criteria_summary"]["observado"] == 2
+    assert res["technical_score"] is None
 
-    # Verificar que los criterios observados contienen motivo y acción requerida
+    # Verificar que los criterios observados contienen motivo y accin no prescriptiva
     criteria_map = {c["criterion_code"]: c for c in res["criteria"]}
     soil = criteria_map["mecanica_suelos"]
     assert soil["status"] == "observado"
     assert "0.65" in soil["explanation"]
     assert soil["correction_guidance"] is not None
-    assert "cimentación profunda" in soil["correction_guidance"]
+    assert "especialista en geotecnia y estructuras" in soil["correction_guidance"]
 
     services = criteria_map["servicios_basicos"]
     assert services["status"] == "observado"
-    assert "145" in services["explanation"]
     assert services["correction_guidance"] is not None
 
 
@@ -275,24 +313,20 @@ def test_get_technical_feasibility_alien_version_rejected():
 
 def test_get_project_includes_technical_assessment_strictly_read_only():
     service = get_test_platform_service()
-    # Asegurar que PRY-A está evaluado
     service.evaluate_technical_feasibility(
         project_id=PROJECT_A_ID,
         actor_id=PLANNER_ID,
     )
 
-    # get_project debe incluir technical_assessment
     proj = service.get_project(PROJECT_A_ID)
     assert proj["technical_assessment"] is not None
-    assert proj["technical_assessment"]["overall_result"] == "cumple"
-    assert proj["technical_assessment"]["technical_score"] == 100.0
+    assert proj["technical_assessment"]["overall_result"] == "pendiente_revision"
+    assert proj["technical_assessment"]["technical_score"] is None
 
 
 def test_version_isolation():
-    """Una versión nueva creada no debe heredar ni exhibir automáticamente la evaluación técnica anterior."""
     service = get_test_platform_service()
     with psycopg.connect(get_test_db_url(), row_factory=dict_row) as conn:
-        # Crear versión 2 temporal en PRY-A
         new_v_id = uuid4()
         conn.execute(
             """
@@ -306,7 +340,6 @@ def test_version_isolation():
         conn.commit()
 
     try:
-        # Consulta para v99 no debe tener evaluación previa
         v99_assessment = service.get_technical_feasibility(PROJECT_A_ID, version_id=new_v_id)
         assert v99_assessment is None
     finally:
@@ -314,14 +347,10 @@ def test_version_isolation():
             conn.execute("DELETE FROM project_versions WHERE id = %s", (new_v_id,))
             conn.commit()
 
+
 # ==============================================================================
 # 3. Pruebas de API HTTP (FastAPI Controller)
 # ==============================================================================
-from typing import Any
-from fastapi.testclient import TestClient
-from backend.main import create_app
-from backend.infrastructure.config.dependencies import get_auth_service, get_platform_service
-from backend.domain.exceptions.pmv1_exceptions import CredencialesInvalidasError
 
 class MockAuthService:
     def decode(self, token: str) -> dict[str, Any]:
@@ -347,9 +376,9 @@ def test_api_post_technical_assessment_planner_success(client: TestClient):
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert data["overall_result"] == "cumple"
-    assert data["is_viable"] is True
-    assert data["technical_score"] == 100.0
+    assert data["overall_result"] == "pendiente_revision"
+    assert data["is_viable"] is False
+    assert data["technical_score"] is None
     assert len(data["criteria"]) == 4
 
 
@@ -374,7 +403,7 @@ def test_api_get_technical_assessment_success(client: TestClient):
     assert resp.status_code == 200
     data = resp.json()
     assert data is not None
-    assert data["overall_result"] == "cumple"
+    assert data["overall_result"] == "pendiente_revision"
 
 
 def test_api_get_technical_assessment_alien_version_bad_request(client: TestClient):
@@ -390,4 +419,3 @@ def test_api_get_technical_assessment_alien_version_bad_request(client: TestClie
     )
     assert resp.status_code == 400
     assert "no pertenece" in resp.json()["detail"].lower()
-
