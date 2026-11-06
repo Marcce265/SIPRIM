@@ -19,6 +19,8 @@ from backend.application.dto.pmv1_dto import (
     NormativeDocumentListResponse,
     NormativeSearchRequest,
     NormativeSearchResponse,
+    PertEstimateCreate,
+    PertEstimateResponse,
     PMV1ProjectCreate,
     PMV1ProjectResponse,
     PMV1ValidationResponse,
@@ -385,4 +387,35 @@ def get_environmental_assessment(
     service: Annotated[PlatformService, Depends(get_platform_service)],
 ) -> dict[str, Any]:
     return service.get_environmental_assessment(project_id=project_id)
+
+@router.post(
+    "/projects/{project_id}/pert-estimate",
+    response_model=PertEstimateResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Registra o actualiza la estimación de duración de obra e incertidumbre PERT (HU1.9)",
+)
+def register_pert_estimate(
+    project_id: Annotated[UUID, Path()],
+    data: PertEstimateCreate,
+    user: Annotated[dict[str, Any], Depends(require_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+) -> dict[str, Any]:
+    return service.register_pert_estimate(
+        project_id=project_id,
+        actor_id=UUID(user["sub"]),
+        data=data,
+    )
+
+
+@router.get(
+    "/projects/{project_id}/pert-estimate",
+    response_model=PertEstimateResponse | None,
+    summary="Consulta la estimación de duración de obra e incertidumbre PERT del proyecto (HU1.9)",
+)
+def get_pert_estimate(
+    project_id: Annotated[UUID, Path()],
+    _: Annotated[dict[str, Any], Depends(require_planner)],
+    service: Annotated[PlatformService, Depends(get_platform_service)],
+) -> dict[str, Any] | None:
+    return service.get_pert_estimate(project_id=project_id)
 

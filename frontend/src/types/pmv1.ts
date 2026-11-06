@@ -51,6 +51,7 @@ export interface PMV1ProjectResponse {
   estimated_budget_pen: number
   beneficiaries_count: number
   checkpoint?: CheckpointResponse | null
+  pert_estimate?: PertEstimateResponse | null
 }
 
 export interface PMV1ValidationResponse {
@@ -312,5 +313,34 @@ export interface EnvironmentalAssessmentResponse {
   score_explanation?: string | null
   evaluated_at: string
   duplicated?: boolean
+}
+
+export interface PertEstimateCreate {
+  project_version_id?: string | null
+  optimistic_duration: number
+  most_likely_duration: number
+  pessimistic_duration: number
+  time_unit?: string
+}
+
+export interface PertEstimateResponse {
+  id: string
+  project_id: string
+  project_version_id: string
+  registered_by_user_id: string
+  time_unit: string
+  optimistic_duration: number
+  most_likely_duration: number
+  pessimistic_duration: number
+  expected_duration: number
+  standard_deviation: number
+  variance: number
+  confidence_interval_low: number
+  confidence_interval_high: number
+  formula_applied: string
+  disclaimer: string
+  explanation: string
+  created_at: string
+  updated_at: string
 }
 

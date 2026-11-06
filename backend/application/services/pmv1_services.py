@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import socket
 import hashlib
+import math
 import re
 import secrets
 import string
@@ -18,10 +19,11 @@ from argon2.exceptions import InvalidHashError, VerifyMismatchError
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from backend.application.dto.pmv1_dto import PMV1ProjectCreate
+from backend.application.dto.pmv1_dto import PMV1ProjectCreate, PertEstimateCreate
 from backend.domain.exceptions.pmv1_exceptions import (
     ConfiguracionPMV1Error,
     CredencialesInvalidasError,
+    EstimacionPERTInvalidaError,
     ExpedientePMV1IncompletoError,
     RecursoPMV1NoEncontradoError,
     ServicioNoDisponibleError,
@@ -479,6 +481,185 @@ class LegalAssessmentEngine:
         }
 
 
+
+class PertDurationEngine:
+    """Motor de cálculo y validación de estimación de duración de obra e incertidumbre (PERT) - HU1.9.
+
+    Criterios de aceptación:
+    - CA-HU1.9-01: Duración esperada con fórmula (a + 4m + b)/6, desviación estándar (b - a)/6,
+      varianza ((b - a)/6)², e indicación expresa de estimación referencial y no plazo garantizado.
+    - CA-HU1.9-02: Validación estricta de completitud, números finitos y 0 <= a <= m <= b,
+      señalando con precisión qué valor debe corregirse y por qué.
+    """
+
+    FORMULA_APPLIED = (
+        "Duración esperada: μ = (a + 4m + b) / 6; "
+        "Desviación estándar (incertidumbre): σ = (b - a) / 6; "
+        "Varianza: σ² = ((b - a) / 6)²"
+    )
+
+    DISCLAIMER = (
+        "La duración calculada bajo metodología PERT representa una aproximación probabilística sujeta a "
+        "variabilidad e incertidumbre durante la ejecución de la obra. No constituye compromiso contractual "
+        "ni plazo garantizado de entrega. Esta estimación no reemplaza la programación detallada de obra ni "
+        "el cronograma vinculante de ejecución."
+    )
+
+    @classmethod
+    def validate_inputs(
+        cls,
+        optimistic: Any,
+        most_likely: Any,
+        pessimistic: Any,
+        time_unit: str = "meses",
+    ) -> tuple[Decimal, Decimal, Decimal, str]:
+        """Valida que a, m, b estén completos, sean números finitos y cumplan 0 <= a <= m <= b."""
+        # 1. Completitud
+        if optimistic is None:
+            raise EstimacionPERTInvalidaError(
+                "Falta ingresar la duración optimista (a).",
+                campo="optimistic_duration",
+                motivo="Falta el valor de duración optimista (a). Debe ser un número mayor o igual a 0.",
+            )
+        if most_likely is None:
+            raise EstimacionPERTInvalidaError(
+                "Falta ingresar la duración más probable (m).",
+                campo="most_likely_duration",
+                motivo="Falta el valor de duración más probable (m). Debe cumplir a <= m <= b.",
+            )
+        if pessimistic is None:
+            raise EstimacionPERTInvalidaError(
+                "Falta ingresar la duración pesimista (b).",
+                campo="pessimistic_duration",
+                motivo="Falta el valor de duración pesimista (b). Debe cumplir m <= b.",
+            )
+
+        # 2. Conversión a Decimal y verificación de finitud
+        try:
+            a_val = float(optimistic)
+            if math.isnan(a_val) or math.isinf(a_val):
+                raise ValueError()
+            a_dec = Decimal(str(optimistic)).quantize(Decimal("0.0001"))
+        except Exception:
+            raise EstimacionPERTInvalidaError(
+                "La duración optimista (a) debe ser un número finito válido.",
+                campo="optimistic_duration",
+                motivo="El valor ingresado para la duración optimista no es un número finito.",
+            )
+
+        try:
+            m_val = float(most_likely)
+            if math.isnan(m_val) or math.isinf(m_val):
+                raise ValueError()
+            m_dec = Decimal(str(most_likely)).quantize(Decimal("0.0001"))
+        except Exception:
+            raise EstimacionPERTInvalidaError(
+                "La duración más probable (m) debe ser un número finito válido.",
+                campo="most_likely_duration",
+                motivo="El valor ingresado para la duración más probable no es un número finito.",
+            )
+
+        try:
+            b_val = float(pessimistic)
+            if math.isnan(b_val) or math.isinf(b_val):
+                raise ValueError()
+            b_dec = Decimal(str(pessimistic)).quantize(Decimal("0.0001"))
+        except Exception:
+            raise EstimacionPERTInvalidaError(
+                "La duración pesimista (b) debe ser un número finito válido.",
+                campo="pessimistic_duration",
+                motivo="El valor ingresado para la duración pesimista no es un número finito.",
+            )
+
+        # 3. No negatividad (0 <= a, 0 <= m, 0 <= b)
+        if a_dec < Decimal("0"):
+            raise EstimacionPERTInvalidaError(
+                f"La duración optimista (a = {a_dec:.2f}) no puede ser negativa; debe ser mayor o igual a 0.",
+                campo="optimistic_duration",
+                motivo="La duración optimista no puede ser un valor negativo.",
+            )
+        if m_dec < Decimal("0"):
+            raise EstimacionPERTInvalidaError(
+                f"La duración más probable (m = {m_dec:.2f}) no puede ser negativa; debe ser mayor o igual a 0.",
+                campo="most_likely_duration",
+                motivo="La duración más probable no puede ser un valor negativo.",
+            )
+        if b_dec < Decimal("0"):
+            raise EstimacionPERTInvalidaError(
+                f"La duración pesimista (b = {b_dec:.2f}) no puede ser negativa; debe ser mayor o igual a 0.",
+                campo="pessimistic_duration",
+                motivo="La duración pesimista no puede ser un valor negativo.",
+            )
+
+        # 4. Orden jerárquico 0 <= a <= m <= b
+        if a_dec > m_dec:
+            raise EstimacionPERTInvalidaError(
+                f"Orden inválido: la duración optimista (a = {a_dec:.2f}) no puede ser mayor que la duración más probable (m = {m_dec:.2f}).",
+                campo="optimistic_duration",
+                motivo=f"La estimación optimista ({a_dec:.2f}) supera a la más probable ({m_dec:.2f}), violando la condición a <= m.",
+            )
+        if m_dec > b_dec:
+            raise EstimacionPERTInvalidaError(
+                f"Orden inválido: la duración más probable (m = {m_dec:.2f}) no puede ser mayor que la duración pesimista (b = {b_dec:.2f}).",
+                campo="most_likely_duration",
+                motivo=f"La estimación más probable ({m_dec:.2f}) supera a la pesimista ({b_dec:.2f}), violando la condición m <= b.",
+            )
+        if a_dec > b_dec:
+            raise EstimacionPERTInvalidaError(
+                f"Orden inválido: la duración optimista (a = {a_dec:.2f}) no puede ser mayor que la duración pesimista (b = {b_dec:.2f}).",
+                campo="pessimistic_duration",
+                motivo=f"La estimación optimista ({a_dec:.2f}) supera a la pesimista ({b_dec:.2f}), violando la condición a <= b.",
+            )
+
+        clean_unit = time_unit.strip().lower() if time_unit and time_unit.strip() else "meses"
+        if clean_unit not in ("meses", "días", "dias", "semanas"):
+            clean_unit = "meses"
+        if clean_unit == "dias":
+            clean_unit = "días"
+
+        return a_dec, m_dec, b_dec, clean_unit
+
+    @classmethod
+    def calculate(
+        cls,
+        optimistic: Decimal,
+        most_likely: Decimal,
+        pessimistic: Decimal,
+        time_unit: str = "meses",
+    ) -> dict[str, Any]:
+        """Calcula duración esperada PERT, desviación estándar, varianza e intervalo."""
+        six = Decimal("6")
+        expected = (optimistic + (Decimal("4") * most_likely) + pessimistic) / six
+        std_dev = (pessimistic - optimistic) / six
+        variance = std_dev * std_dev
+
+        interval_low = expected - std_dev
+        if interval_low < Decimal("0"):
+            interval_low = Decimal("0")
+        interval_high = expected + std_dev
+
+        explanation = (
+            f"Duración esperada PERT: ({optimistic:.2f} + 4×{most_likely:.2f} + {pessimistic:.2f}) / 6 = {expected:.2f} {time_unit}. "
+            f"Incertidumbre (desviación estándar PERT): ({pessimistic:.2f} - {optimistic:.2f}) / 6 = ±{std_dev:.2f} {time_unit}. "
+            f"Varianza del plazo: {variance:.4f} {time_unit}². "
+            f"Rango esperado (μ ± σ): [{interval_low:.2f}, {interval_high:.2f}] {time_unit}."
+        )
+
+        return {
+            "time_unit": time_unit,
+            "optimistic_duration": optimistic,
+            "most_likely_duration": most_likely,
+            "pessimistic_duration": pessimistic,
+            "expected_duration": expected,
+            "standard_deviation": std_dev,
+            "variance": variance,
+            "confidence_interval_low": interval_low,
+            "confidence_interval_high": interval_high,
+            "formula_applied": cls.FORMULA_APPLIED,
+            "disclaimer": cls.DISCLAIMER,
+            "explanation": explanation,
+        }
+
 class RiskCheckpointEngine:
     """Motor de gestión de puntos de control (checkpoints) y pausas de flujo ante riesgos altos (HU3.1).
 
@@ -831,9 +1012,155 @@ class PlatformService:
             if not row:
                 raise RecursoPMV1NoEncontradoError("Proyecto no encontrado")
             checkpoint = RiskCheckpointEngine.get_active_checkpoint(conn, row["project_version_id"])
+            pert_estimate = self._get_pert_estimate_with_conn(conn, row["project_version_id"])
             res = dict(row)
             res["checkpoint"] = checkpoint
+            res["pert_estimate"] = pert_estimate
             return res
+
+
+    def _get_pert_estimate_with_conn(
+        self, conn: psycopg.Connection[Any], project_version_id: UUID
+    ) -> dict[str, Any] | None:
+        row = conn.execute(
+            """
+            SELECT id, project_id, project_version_id, registered_by_user_id, time_unit,
+                   optimistic_duration, most_likely_duration, pessimistic_duration,
+                   expected_duration, standard_deviation, variance,
+                   confidence_interval_low, confidence_interval_high,
+                   formula_applied, disclaimer, explanation, created_at, updated_at
+            FROM project_pert_estimates
+            WHERE project_version_id = %s
+            """,
+            (project_version_id,),
+        ).fetchone()
+        if not row:
+            return None
+        return dict(row)
+
+    def get_pert_estimate(
+        self, project_id: UUID, project_version_id: UUID | None = None
+    ) -> dict[str, Any] | None:
+        """Recupera la estimación de duración PERT para la versión del expediente (HU1.9)."""
+        project = self.get_project(project_id)
+        target_version_id = project_version_id or project["project_version_id"]
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            return self._get_pert_estimate_with_conn(conn, target_version_id)
+
+    def register_pert_estimate(
+        self,
+        project_id: UUID,
+        actor_id: UUID,
+        data: PertEstimateCreate | dict[str, Any],
+    ) -> dict[str, Any]:
+        """Calcula y persiste la estimación de duración PERT e incertidumbre vinculada a la versión (HU1.9)."""
+        project = self.get_project(project_id)
+        if isinstance(data, dict):
+            req_version_id = data.get("project_version_id")
+            opt = data.get("optimistic_duration")
+            ml = data.get("most_likely_duration")
+            pess = data.get("pessimistic_duration")
+            t_unit = data.get("time_unit", "meses")
+        else:
+            req_version_id = data.project_version_id
+            opt = data.optimistic_duration
+            ml = data.most_likely_duration
+            pess = data.pessimistic_duration
+            t_unit = data.time_unit
+
+        version_id = req_version_id or project["project_version_id"]
+
+        a, m, b, unit = PertDurationEngine.validate_inputs(
+            optimistic=opt,
+            most_likely=ml,
+            pessimistic=pess,
+            time_unit=t_unit,
+        )
+
+        calc = PertDurationEngine.calculate(
+            optimistic=a,
+            most_likely=m,
+            pessimistic=b,
+            time_unit=unit,
+        )
+
+        estimate_id = uuid4()
+        with psycopg.connect(self.db_url, row_factory=dict_row) as conn, conn.transaction():
+            row = conn.execute(
+                """
+                INSERT INTO project_pert_estimates
+                (id, project_id, project_version_id, registered_by_user_id, time_unit,
+                 optimistic_duration, most_likely_duration, pessimistic_duration,
+                 expected_duration, standard_deviation, variance,
+                 confidence_interval_low, confidence_interval_high,
+                 formula_applied, disclaimer, explanation, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now(), now())
+                ON CONFLICT (project_version_id) DO UPDATE SET
+                    registered_by_user_id = EXCLUDED.registered_by_user_id,
+                    time_unit = EXCLUDED.time_unit,
+                    optimistic_duration = EXCLUDED.optimistic_duration,
+                    most_likely_duration = EXCLUDED.most_likely_duration,
+                    pessimistic_duration = EXCLUDED.pessimistic_duration,
+                    expected_duration = EXCLUDED.expected_duration,
+                    standard_deviation = EXCLUDED.standard_deviation,
+                    variance = EXCLUDED.variance,
+                    confidence_interval_low = EXCLUDED.confidence_interval_low,
+                    confidence_interval_high = EXCLUDED.confidence_interval_high,
+                    formula_applied = EXCLUDED.formula_applied,
+                    disclaimer = EXCLUDED.disclaimer,
+                    explanation = EXCLUDED.explanation,
+                    updated_at = now()
+                RETURNING id, project_id, project_version_id, registered_by_user_id, time_unit,
+                          optimistic_duration, most_likely_duration, pessimistic_duration,
+                          expected_duration, standard_deviation, variance,
+                          confidence_interval_low, confidence_interval_high,
+                          formula_applied, disclaimer, explanation, created_at, updated_at
+                """,
+                (
+                    estimate_id,
+                    project_id,
+                    version_id,
+                    actor_id,
+                    unit,
+                    calc["optimistic_duration"],
+                    calc["most_likely_duration"],
+                    calc["pessimistic_duration"],
+                    calc["expected_duration"],
+                    calc["standard_deviation"],
+                    calc["variance"],
+                    calc["confidence_interval_low"],
+                    calc["confidence_interval_high"],
+                    calc["formula_applied"],
+                    calc["disclaimer"],
+                    calc["explanation"],
+                ),
+            ).fetchone()
+
+            conn.execute(
+                """
+                INSERT INTO audit_events
+                (actor_user_id, action, entity_type, entity_id, details)
+                VALUES (%s, 'PERT_ESTIMATE_REGISTERED', 'project_pert_estimate', %s, %s)
+                """,
+                (
+                    actor_id,
+                    row["id"],
+                    Jsonb(
+                        {
+                            "project_id": str(project_id),
+                            "project_version_id": str(version_id),
+                            "time_unit": unit,
+                            "a": str(calc["optimistic_duration"]),
+                            "m": str(calc["most_likely_duration"]),
+                            "b": str(calc["pessimistic_duration"]),
+                            "expected": str(calc["expected_duration"]),
+                            "std_dev": str(calc["standard_deviation"]),
+                        }
+                    ),
+                ),
+            )
+
+        return dict(row)
 
     def get_project_checkpoint(self, project_id: UUID) -> dict[str, Any] | None:
         """Obtiene el punto de control persistente activo para la versión del proyecto (HU3.1)."""

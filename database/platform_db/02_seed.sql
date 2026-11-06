@@ -523,3 +523,30 @@ INSERT INTO evaluation_checkpoints (
     updated_at = NOW();
 
 UPDATE projects SET status = 'pending_review' WHERE id = 'a0000000-0000-4000-a000-00000000000c';
+
+-- ============================================================================
+-- PMV 2 - Sprint 2 - HU1.9: Datos semilla de estimación PERT (Demostración)
+-- Proyecto A (PRY-A): estimación inicial a=4m, m=6m, b=10m en meses
+-- ============================================================================
+INSERT INTO project_pert_estimates (
+    id, project_id, project_version_id, registered_by_user_id, time_unit,
+    optimistic_duration, most_likely_duration, pessimistic_duration,
+    expected_duration, standard_deviation, variance,
+    confidence_interval_low, confidence_interval_high,
+    formula_applied, disclaimer, explanation, created_at, updated_at
+) VALUES (
+    'd1000000-0000-4000-a000-000000000001',
+    'a0000000-0000-4000-a000-00000000000a',
+    'b0000000-0000-4000-a000-00000000000a',
+    '10000000-0000-4000-a000-000000000002',
+    'meses',
+    4.0000, 6.0000, 10.0000,
+    6.3333, 1.0000, 1.0000,
+    5.3333, 7.3333,
+    'Duración esperada: μ = (a + 4m + b) / 6; Desviación estándar (incertidumbre): σ = (b - a) / 6; Varianza: σ² = ((b - a) / 6)²',
+    'La duración calculada bajo metodología PERT representa una aproximación probabilística sujeta a variabilidad e incertidumbre durante la ejecución de la obra. No constituye compromiso contractual ni plazo garantizado de entrega. Esta estimación no reemplaza la programación detallada de obra ni el cronograma vinculante de ejecución.',
+    'Duración esperada PERT: (4.00 + 4×6.00 + 10.00) / 6 = 6.33 meses. Incertidumbre (desviación estándar PERT): (10.00 - 4.00) / 6 = ±1.00 meses. Varianza del plazo: 1.0000 meses². Rango esperado (μ ± σ): [5.33, 7.33] meses.',
+    NOW(),
+    NOW()
+) ON CONFLICT (project_version_id) DO NOTHING;
+

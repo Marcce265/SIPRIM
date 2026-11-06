@@ -176,3 +176,27 @@ Las migraciones DDL (`03_migration_hu1.4.sql` y `03_migration_hu1.6.sql`) contie
   - **Protección contra exposición prematura o tardía de resultados:** `CompletionProcessor.process` y `get_evaluation` impiden que una evaluación pausada registre o exponga resultados económicos o puntajes como si hubiera concluido.
   - **Impedimento de aprobación mientras esté pendiente:** Mientras exista un punto de control en estado pendiente, ningún proceso puede marcar la evaluación como completada ni emitir una aprobación final humana.
   - **Aislamiento entre versiones:** Si la versión del expediente cambia, no se reutiliza silenciosamente la decisión de riesgo de la versión anterior; cada versión es evaluada de manera independiente con sus propias evidencias técnicas.
+
+
+### HU1.9: Estimar la Duración de la Obra Considerando Incertidumbre (PERT)
+`platform_db` incorpora la migración `06_migration_hu1.9.sql`:
+- `project_pert_estimates`: Tabla de persistencia de estimaciones probabilísticas de duración de obra según metodología PERT (Project Evaluation and Review Technique), vinculada a `project_id` y a la versión exacta del expediente `project_version_id`.
+  - Campos de entrada: `optimistic_duration` ($a$), `most_likely_duration` ($m$), `pessimistic_duration` ($b$), y unidad de tiempo explícita `time_unit` (ej. `'meses'`, `'días'`).
+  - Campos calculados:
+    - Duración esperada: $\mu = \frac{a + 4m + b}{6}$.
+    - Incertidumbre / Desviación estándar: $\sigma = \frac{b - a}{6}$.
+    - Varianza del plazo: $\sigma^2 = \left(\frac{b - a}{6}\right)^2$.
+    - Intervalo de referencia: $[\max(0, \mu - \sigma), \mu + \sigma]$.
+    - Rango de estimaciones: $[a, b]$.
+  - Trazabilidad y gobernanza: `registered_by_user_id`, `formula_applied`, `disclaimer`, `explanation`, `created_at`, `updated_at`.
+- Restricciones de integridad a nivel de base de datos:
+  - `uq_pert_project_version`: Restricción `UNIQUE (project_version_id)` que garantiza estricto aislamiento por versión. Una versión nueva no hereda ni sobreescribe estimaciones de versiones anteriores.
+  - `chk_pert_order`: Restricción `CHECK (optimistic_duration <= most_likely_duration AND most_likely_duration <= pessimistic_duration)` que impide registrar datos que violen la jerarquía PERT $0 \le a \le m \le b$.
+  - `chk_pert_non_negative`: Restricción `CHECK (optimistic_duration >= 0 AND most_likely_duration >= 0 AND pessimistic_duration >= 0)` que impide valores negativos.
+- Vista en español:
+  - `vista_estimaciones_pert`: Integra código y versión del expediente, unidad temporal, valores ingresados, duración esperada, incertidumbre, varianza e intervalo de referencia.
+- Criterios de aceptación cumplidos:
+  - **`CA-HU1.9-01` (Cálculo con incertidumbre y aviso obligatorio):** El planificador registra las tres duraciones en la misma unidad explícita; el sistema calcula $\mu$, $\sigma$, $\sigma^2$, rango $[a, b]$ e intervalo $[\max(0, \mu - \sigma), \mu + \sigma]$. Muestra de forma expresa y destacada la leyenda:
+    *“AVISO OBLIGATORIO · ESTIMACIÓN REFERENCIAL, NO PLAZO GARANTIZADO: La duración calculada bajo metodología PERT representa una aproximación probabilística sujeta a variabilidad e incertidumbre durante la ejecución de la obra. No constituye compromiso contractual ni plazo garantizado de entrega.”*
+    junto con la advertencia de que no reemplaza la programación detallada de obra ni el cronograma vinculante de ejecución.
+  - **`CA-HU1.9-02` (Validación de completitud, finitud, no negatividad y orden):** Si algún dato falta, es no finito, negativo o viola el orden $0 \le a \le m \le b$, el sistema indica con precisión cuál de los tres valores debe corregirse y el motivo exacto, rechazando la estimación y limpiando cualquier resultado previo para no presentar como válido un cálculo caduco frente a nuevos datos inválidos.

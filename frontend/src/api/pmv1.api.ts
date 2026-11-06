@@ -6,6 +6,8 @@ import type {
   LegalAssessmentResponse,
   LegalPrecheckResponse,
   NormativeSearchResponse,
+  PertEstimateCreate,
+  PertEstimateResponse,
   PMV1ProjectCreate,
   PMV1ProjectResponse,
   PMV1ValidationResponse,
@@ -185,3 +187,19 @@ export function evaluateLegalAssessment(
   })
 }
 
+export function getPertEstimate(projectId: string): Promise<PertEstimateResponse | null> {
+  return apiFetch<PertEstimateResponse | null>(`/api/v1/projects/${projectId}/pert-estimate`, {
+    auth: true,
+  })
+}
+
+export function registerPertEstimate(
+  projectId: string,
+  payload: PertEstimateCreate,
+): Promise<PertEstimateResponse> {
+  return apiFetch<PertEstimateResponse>(`/api/v1/projects/${projectId}/pert-estimate`, {
+    method: 'POST',
+    auth: true,
+    body: JSON.stringify(payload),
+  })
+}

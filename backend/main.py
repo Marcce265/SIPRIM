@@ -6,6 +6,7 @@ from backend.domain.exceptions.pmv1_exceptions import (
     AccesoDenegadoError,
     ConfiguracionPMV1Error,
     CredencialesInvalidasError,
+    EstimacionPERTInvalidaError,
     ExpedientePMV1IncompletoError,
     RecursoPMV1NoEncontradoError,
     ServicioNoDisponibleError,
@@ -115,6 +116,19 @@ def create_app() -> FastAPI:
         request: Request, exc: ServicioNoDisponibleError
     ) -> JSONResponse:
         return JSONResponse(status_code=503, content={"detail": str(exc)})
+
+    @application.exception_handler(EstimacionPERTInvalidaError)
+    async def estimacion_pert_invalida_handler(
+        request: Request, exc: EstimacionPERTInvalidaError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "detail": str(exc),
+                "field": exc.campo,
+                "reason": exc.motivo,
+            },
+        )
 
     return application
 

@@ -11,9 +11,11 @@ import {
   getEnvironmentalAssessment,
   getEvaluation,
   getHumanApproval,
+  getPertEstimate,
   getProject,
   getProjectCheckpoint,
   getSocialAccessibility,
+  registerPertEstimate,
   requestEvaluation,
   validateProject,
   zoningPrecheck,
@@ -23,6 +25,7 @@ import type {
   CheckpointResponse,
   EvaluationResponse,
   HumanApprovalStatusResponse,
+  PertEstimateResponse,
   PMV1ProjectResponse,
   EnvironmentalAssessmentResponse,
   PMV1ValidationResponse,
@@ -54,6 +57,13 @@ export function ProyectoDetallePage() {
   const [socialError, setSocialError] = useState<string | null>(null)
   const [environmentalAssessment, setEnvironmentalAssessment] = useState<EnvironmentalAssessmentResponse | null>(null)
   const [environmentalError, setEnvironmentalError] = useState<string | null>(null)
+  const [pertEstimate, setPertEstimate] = useState<PertEstimateResponse | null>(null)
+  const [pertInputA, setPertInputA] = useState<string>('')
+  const [pertInputM, setPertInputM] = useState<string>('')
+  const [pertInputB, setPertInputB] = useState<string>('')
+  const [pertTimeUnit, setPertTimeUnit] = useState<string>('meses')
+  const [pertError, setPertError] = useState<{ field?: string; reason?: string; message: string } | null>(null)
+  const [pertSuccess, setPertSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(flash ?? null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -66,6 +76,13 @@ export function ProyectoDetallePage() {
       setProject(data)
       if (data.checkpoint) {
         setCheckpoint(data.checkpoint)
+      }
+      if (data.pert_estimate) {
+        setPertEstimate(data.pert_estimate)
+        setPertInputA(data.pert_estimate.optimistic_duration.toString())
+        setPertInputM(data.pert_estimate.most_likely_duration.toString())
+        setPertInputB(data.pert_estimate.pessimistic_duration.toString())
+        setPertTimeUnit(data.pert_estimate.time_unit)
       }
       rememberProject(mapPmV1ToProyecto(data))
     } catch (err) {
@@ -113,13 +130,178 @@ export function ProyectoDetallePage() {
     }
   }, [projectId])
 
+  const loadPertEstimate = useCallback(async () => {
+    if (!projectId) return
+    try {
+      const data = await getPertEstimate(projectId)
+      setPertEstimate(data)
+      if (data) {
+        setPertInputA(data.optimistic_duration.toString())
+        setPertInputM(data.most_likely_duration.toString())
+        setPertInputB(data.pessimistic_duration.toString())
+        setPertTimeUnit(data.time_unit)
+      }
+    } catch {
+      /* opcional */
+    }
+  }, [projectId])
+
+  const handleCalculatePert = async () => {
+    if (!projectId) return
+    setPertSuccess(null)
+
+    const rawA = pertInputA.trim()
+    const rawM = pertInputM.trim()
+    const rawB = pertInputB.trim()
+
+    if (!rawA) {
+      setPertEstimate(null)
+      setPertError({
+        field: 'optimistic_duration',
+        reason: 'Falta ingresar la duración optimista (a).',
+        message: 'Falta ingresar la duración optimista (a). Ingrese un valor numérico mayor o igual a 0.',
+      })
+      return
+    }
+    if (!rawM) {
+      setPertEstimate(null)
+      setPertError({
+        field: 'most_likely_duration',
+        reason: 'Falta ingresar la duración más probable (m).',
+        message: 'Falta ingresar la duración más probable (m). Ingrese un valor que cumpla a ≤ m ≤ b.',
+      })
+      return
+    }
+    if (!rawB) {
+      setPertEstimate(null)
+      setPertError({
+        field: 'pessimistic_duration',
+        reason: 'Falta ingresar la duración pesimista (b).',
+        message: 'Falta ingresar la duración pesimista (b). Ingrese un valor que cumpla m ≤ b.',
+      })
+      return
+    }
+
+    const a = Number(rawA)
+    const m = Number(rawM)
+    const b = Number(rawB)
+
+    if (isNaN(a) || !isFinite(a)) {
+      setPertEstimate(null)
+      setPertError({
+        field: 'optimistic_duration',
+        reason: 'La duración optimista (a) debe ser un número finito válido.',
+        message: 'El valor ingresado en duración optimista (a) no es un número finito.',
+      })
+      return
+    }
+    if (isNaN(m) || !isFinite(m)) {
+      setPertEstimate(null)
+      setPertError({
+        field: 'most_likely_duration',
+        reason: 'La duración más probable (m) debe ser un número finito válido.',
+        message: 'El valor ingresado en duración más probable (m) no es un número finito.',
+      })
+      return
+    }
+    if (isNaN(b) || !isFinite(b)) {
+      setPertEstimate(null)
+      setPertError({
+        field: 'pessimistic_duration',
+        reason: 'La duración pesimista (b) debe ser un número finito válido.',
+        message: 'El valor ingresado en duración pesimista (b) no es un número finito.',
+      })
+      return
+    }
+
+    if (a < 0) {
+      setPertEstimate(null)
+      setPertError({
+        field: 'optimistic_duration',
+        reason: `La duración optimista (a = ${a}) no puede ser negativa; debe ser mayor o igual a 0.`,
+        message: 'La duración optimista no puede ser un número negativo.',
+      })
+      return
+    }
+    if (m < 0) {
+      setPertEstimate(null)
+      setPertError({
+        field: 'most_likely_duration',
+        reason: `La duración más probable (m = ${m}) no puede ser negativa; debe ser mayor o igual a 0.`,
+        message: 'La duración más probable no puede ser un número negativo.',
+      })
+      return
+    }
+    if (b < 0) {
+      setPertEstimate(null)
+      setPertError({
+        field: 'pessimistic_duration',
+        reason: `La duración pesimista (b = ${b}) no puede ser negativa; debe ser mayor o igual a 0.`,
+        message: 'La duración pesimista no puede ser un número negativo.',
+      })
+      return
+    }
+
+    if (a > m) {
+      setPertEstimate(null)
+      setPertError({
+        field: 'optimistic_duration',
+        reason: `Orden inválido: la duración optimista (a = ${a}) no puede ser mayor que la duración más probable (m = ${m}). Corrija el orden 0 ≤ a ≤ m ≤ b.`,
+        message: `El valor optimista (${a}) supera al más probable (${m}). Corrija el orden para poder calcular la estimación PERT.`,
+      })
+      return
+    }
+    if (m > b) {
+      setPertEstimate(null)
+      setPertError({
+        field: 'most_likely_duration',
+        reason: `Orden inválido: la duración más probable (m = ${m}) no puede ser mayor que la duración pesimista (b = ${b}). Corrija el orden 0 ≤ a ≤ m ≤ b.`,
+        message: `El valor más probable (${m}) supera al pesimista (${b}). Corrija el orden para poder calcular la estimación PERT.`,
+      })
+      return
+    }
+    if (a > b) {
+      setPertEstimate(null)
+      setPertError({
+        field: 'pessimistic_duration',
+        reason: `Orden inválido: la duración optimista (a = ${a}) no puede ser mayor que la duración pesimista (b = ${b}). Corrija el orden 0 ≤ a ≤ m ≤ b.`,
+        message: `El valor optimista (${a}) supera al pesimista (${b}). Corrija el orden para poder calcular la estimación PERT.`,
+      })
+      return
+    }
+
+    setBusy('pert')
+    setPertError(null)
+    try {
+      const res = await registerPertEstimate(projectId, {
+        project_version_id: project?.project_version_id,
+        optimistic_duration: a,
+        most_likely_duration: m,
+        pessimistic_duration: b,
+        time_unit: pertTimeUnit,
+      })
+      setPertEstimate(res)
+      setPertSuccess('Estimación PERT calculada y registrada correctamente para la versión del expediente.')
+    } catch (err: any) {
+      setPertEstimate(null)
+      setPertError({
+        field: err.field,
+        reason: err.reason || err.detail,
+        message: err.detail || err.message || 'No se pudo calcular la estimación PERT.',
+      })
+    } finally {
+      setBusy(null)
+    }
+  }
+
   useEffect(() => {
     void loadProject()
     void loadApproval()
     void loadCheckpoint()
     void loadSocialAssessment()
     void loadEnvironmentalAssessment()
-  }, [loadProject, loadApproval, loadCheckpoint, loadSocialAssessment, loadEnvironmentalAssessment])
+    void loadPertEstimate()
+  }, [loadProject, loadApproval, loadCheckpoint, loadSocialAssessment, loadEnvironmentalAssessment, loadPertEstimate])
 
   const runValidate = async () => {
     if (!projectId) return
@@ -1086,6 +1268,245 @@ export function ProyectoDetallePage() {
 
                 <TechnicalDetails data={environmentalAssessment} />
               </>
+            )}
+          </section>
+
+
+          {/* PMV 2 · HU1.9: Estimación de duración de obra e incertidumbre (PERT) */}
+          <section className="flow-panel pert-flow-panel" aria-label="Estimación PERT e incertidumbre de plazos">
+            <div className="flow-panel-heading">
+              <div>
+                <span className="story-label">PMV 2 · HU1.9</span>
+                <h2>Estimación de duración de obra e incertidumbre (PERT)</h2>
+              </div>
+              <span className="review-badge">Planificación y Plazos</span>
+            </div>
+            <p className="flow-hint">
+              Registre las tres duraciones de la obra en la misma unidad de tiempo para estimar la duración esperada bajo incertidumbre con la distribución PERT (0 ≤ a ≤ m ≤ b).
+            </p>
+
+            {hasRole('PLANNER') && (
+              <div className="pert-inputs-container">
+                <div className="pert-inputs-grid">
+                  <div className="pert-input-field">
+                    <label htmlFor="pert-unit">
+                      <span>Unidad de tiempo</span>
+                      <span className="pert-unit-tag">unidad</span>
+                    </label>
+                    <select
+                      id="pert-unit"
+                      className="form-field-input"
+                      value={pertTimeUnit}
+                      onChange={(e) => setPertTimeUnit(e.target.value)}
+                    >
+                      <option value="meses">Meses</option>
+                      <option value="días">Días</option>
+                      <option value="semanas">Semanas</option>
+                    </select>
+                  </div>
+
+                  <div className="pert-input-field">
+                    <label htmlFor="pert-opt">
+                      <span>Duración optimista (a)</span>
+                      <span className="pert-unit-tag">{pertTimeUnit}</span>
+                    </label>
+                    <input
+                      id="pert-opt"
+                      type="number"
+                      step="any"
+                      min="0"
+                      className="form-field-input"
+                      placeholder={`Ej. 4.0 (${pertTimeUnit})`}
+                      value={pertInputA}
+                      onChange={(e) => {
+                        setPertInputA(e.target.value)
+                        setPertSuccess(null)
+                      }}
+                    />
+                  </div>
+
+                  <div className="pert-input-field">
+                    <label htmlFor="pert-likely">
+                      <span>Duración más probable (m)</span>
+                      <span className="pert-unit-tag">{pertTimeUnit}</span>
+                    </label>
+                    <input
+                      id="pert-likely"
+                      type="number"
+                      step="any"
+                      min="0"
+                      className="form-field-input"
+                      placeholder={`Ej. 6.0 (${pertTimeUnit})`}
+                      value={pertInputM}
+                      onChange={(e) => {
+                        setPertInputM(e.target.value)
+                        setPertSuccess(null)
+                      }}
+                    />
+                  </div>
+
+                  <div className="pert-input-field">
+                    <label htmlFor="pert-pess">
+                      <span>Duración pesimista (b)</span>
+                      <span className="pert-unit-tag">{pertTimeUnit}</span>
+                    </label>
+                    <input
+                      id="pert-pess"
+                      type="number"
+                      step="any"
+                      min="0"
+                      className="form-field-input"
+                      placeholder={`Ej. 10.0 (${pertTimeUnit})`}
+                      value={pertInputB}
+                      onChange={(e) => {
+                        setPertInputB(e.target.value)
+                        setPertSuccess(null)
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={busy !== null}
+                    onClick={() => void handleCalculatePert()}
+                  >
+                    {busy === 'pert' ? 'Calculando y guardando…' : 'Calcular y registrar estimación PERT'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {pertError && (
+              <div className="pert-error-banner" role="alert">
+                <div className="pert-error-header">
+                  <span>⚠️</span>
+                  <span>Error de validación en estimaciones de plazo (HU1.9)</span>
+                </div>
+                <div className="pert-error-detail">
+                  {pertError.field && (
+                    <strong>
+                      Campo a corregir:{' '}
+                      {pertError.field === 'optimistic_duration'
+                        ? 'Duración optimista (a)'
+                        : pertError.field === 'most_likely_duration'
+                          ? 'Duración más probable (m)'
+                          : pertError.field === 'pessimistic_duration'
+                            ? 'Duración pesimista (b)'
+                            : pertError.field}
+                      .
+                    </strong>
+                  )}{' '}
+                  {pertError.reason || pertError.message}
+                </div>
+                <div className="pert-error-advice">
+                  Requisito: Los tres valores deben estar completos, ser finitos y cumplir estrictamente 0 ≤ a ≤ m ≤ b.
+                </div>
+              </div>
+            )}
+
+            {pertSuccess && <Alert variant="success">{pertSuccess}</Alert>}
+
+            {pertEstimate && !pertError && (
+              <div className="pert-result-container">
+                {/* Aviso obligatorio de estimación no garantizada */}
+                <div className="pert-disclaimer-callout" role="note">
+                  <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>ℹ️</span>
+                  <div>
+                    <strong>AVISO OBLIGATORIO · ESTIMACIÓN REFERENCIAL, NO PLAZO GARANTIZADO</strong>
+                    <p>{pertEstimate.disclaimer}</p>
+                  </div>
+                </div>
+
+                {/* Resumen de magnitudes clave */}
+                <div className="pert-metrics-grid">
+                  <div className="pert-metric-card highlight">
+                    <div className="pert-metric-label">Duración esperada PERT (μ)</div>
+                    <div className="pert-metric-value-row">
+                      <span className="pert-metric-num">{Number(pertEstimate.expected_duration).toFixed(2)}</span>
+                      <span className="pert-metric-unit">{pertEstimate.time_unit}</span>
+                    </div>
+                    <div className="pert-metric-sub">Fórmula: (a + 4m + b) / 6</div>
+                  </div>
+
+                  <div className="pert-metric-card">
+                    <div className="pert-metric-label">Incertidumbre / Desv. estándar (σ)</div>
+                    <div className="pert-metric-value-row">
+                      <span className="pert-metric-num">± {Number(pertEstimate.standard_deviation).toFixed(2)}</span>
+                      <span className="pert-metric-unit">{pertEstimate.time_unit}</span>
+                    </div>
+                    <div className="pert-metric-sub">Incertidumbre PERT: (b - a) / 6 (No es margen garantizado)</div>
+                  </div>
+
+                  <div className="pert-metric-card">
+                    <div className="pert-metric-label">Varianza del plazo (σ²)</div>
+                    <div className="pert-metric-value-row">
+                      <span className="pert-metric-num">{Number(pertEstimate.variance).toFixed(4)}</span>
+                      <span className="pert-metric-unit">{pertEstimate.time_unit}²</span>
+                    </div>
+                    <div className="pert-metric-sub">Variabilidad cuadrática: ((b - a) / 6)²</div>
+                  </div>
+                </div>
+
+                {/* Desglose de parámetros y fórmula aplicada */}
+                <div className="pert-details-panel">
+                  <h4>Desglose de estimaciones ingresadas y fórmula aplicada</h4>
+                  <div className="pert-params-row">
+                    <div className="pert-param-item">
+                      <span className="pert-param-k">Optimista (a)</span>
+                      <span className="pert-param-v">
+                        {Number(pertEstimate.optimistic_duration).toFixed(2)} {pertEstimate.time_unit}
+                      </span>
+                    </div>
+                    <div className="pert-param-item">
+                      <span className="pert-param-k">Más probable (m)</span>
+                      <span className="pert-param-v">
+                        {Number(pertEstimate.most_likely_duration).toFixed(2)} {pertEstimate.time_unit}
+                      </span>
+                    </div>
+                    <div className="pert-param-item">
+                      <span className="pert-param-k">Pesimista (b)</span>
+                      <span className="pert-param-v">
+                        {Number(pertEstimate.pessimistic_duration).toFixed(2)} {pertEstimate.time_unit}
+                      </span>
+                    </div>
+                    <div className="pert-param-item">
+                      <span className="pert-param-k">Dispersión (b - a)</span>
+                      <span className="pert-param-v">
+                        {(Number(pertEstimate.pessimistic_duration) - Number(pertEstimate.optimistic_duration)).toFixed(2)}{' '}
+                        {pertEstimate.time_unit}
+                      </span>
+                    </div>
+                    <div className="pert-param-item">
+                      <span className="pert-param-k">Rango de estimaciones [a, b]</span>
+                      <span className="pert-param-v">
+                        [{Number(pertEstimate.optimistic_duration).toFixed(2)}, {Number(pertEstimate.pessimistic_duration).toFixed(2)}]{' '}
+                        {pertEstimate.time_unit}
+                      </span>
+                    </div>
+                    <div className="pert-param-item">
+                      <span className="pert-param-k">Rango esperado (μ ± σ)</span>
+                      <span className="pert-param-v">
+                        [{Number(pertEstimate.confidence_interval_low).toFixed(2)},{' '}
+                        {Number(pertEstimate.confidence_interval_high).toFixed(2)}] {pertEstimate.time_unit}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pert-formula-box">
+                    <strong>Fórmula aplicada: </strong>
+                    {pertEstimate.formula_applied}
+                  </div>
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', color: '#475569', lineHeight: 1.4 }}>
+                    <strong>Explicación: </strong>
+                    {pertEstimate.explanation}
+                  </p>
+                </div>
+
+                <TechnicalDetails data={pertEstimate} />
+              </div>
             )}
           </section>
 

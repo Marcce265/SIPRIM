@@ -75,6 +75,38 @@ class CheckpointResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+class PertEstimateCreate(BaseModel):
+    """Solicitud de registro o cálculo de estimación PERT (HU1.9)."""
+
+    project_version_id: UUID | None = None
+    optimistic_duration: Decimal = Field(description="Duración optimista (a)")
+    most_likely_duration: Decimal = Field(description="Duración más probable (m)")
+    pessimistic_duration: Decimal = Field(description="Duración pesimista (b)")
+    time_unit: str = Field(default="meses", description="Unidad de tiempo (ej. meses, días)")
+
+
+class PertEstimateResponse(BaseModel):
+    """Respuesta con cálculo e incertidumbre PERT (HU1.9)."""
+
+    id: UUID
+    project_id: UUID
+    project_version_id: UUID
+    registered_by_user_id: UUID
+    time_unit: str
+    optimistic_duration: float
+    most_likely_duration: float
+    pessimistic_duration: float
+    expected_duration: float
+    standard_deviation: float
+    variance: float
+    confidence_interval_low: float
+    confidence_interval_high: float
+    formula_applied: str
+    disclaimer: str
+    explanation: str
+    created_at: datetime
+    updated_at: datetime
+
 class PMV1ProjectResponse(BaseModel):
     project_id: UUID
     project_version_id: UUID
@@ -89,6 +121,7 @@ class PMV1ProjectResponse(BaseModel):
     estimated_budget_pen: Decimal
     beneficiaries_count: int
     checkpoint: CheckpointResponse | None = None
+    pert_estimate: PertEstimateResponse | None = None
 
 
 class PMV1ValidationResponse(BaseModel):

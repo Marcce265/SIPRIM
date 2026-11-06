@@ -25,3 +25,17 @@ class ConfiguracionPMV1Error(Exception):
 class ServicioNoDisponibleError(Exception):
     """Error controlado cuando un servicio de base de datos o infraestructura no responde."""
     pass
+
+class EstimacionPERTInvalidaError(Exception):
+    """Error cuando los parámetros de duración PERT están incompletos, no son finitos o no cumplen 0 <= a <= m <= b."""
+
+    def __init__(
+        self,
+        mensaje: str,
+        campo: str | None = None,
+        motivo: str | None = None,
+    ) -> None:
+        self.campo = campo
+        self.motivo = motivo
+        super().__init__(mensaje)
+

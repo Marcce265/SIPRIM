@@ -806,6 +806,52 @@ class FakePlatform:
             ],
         }
 
+    def get_pert_estimate(
+        self, project_id: UUID, project_version_id: UUID | None = None
+    ) -> dict[str, Any] | None:
+        if str(project_id).endswith("b"):
+            return None
+        return {
+            "id": UUID("d1000000-0000-4000-a000-000000000001"),
+            "project_id": project_id,
+            "project_version_id": VERSION_ID,
+            "registered_by_user_id": UUID("10000000-0000-4000-a000-000000000002"),
+            "time_unit": "meses",
+            "optimistic_duration": Decimal("4.0000"),
+            "most_likely_duration": Decimal("6.0000"),
+            "pessimistic_duration": Decimal("10.0000"),
+            "expected_duration": Decimal("6.3333"),
+            "standard_deviation": Decimal("1.0000"),
+            "variance": Decimal("1.0000"),
+            "confidence_interval_low": Decimal("5.3333"),
+            "confidence_interval_high": Decimal("7.3333"),
+            "formula_applied": "Duración esperada: μ = (a + 4m + b) / 6; Desviación estándar (incertidumbre): σ = (b - a) / 6; Varianza: σ² = ((b - a) / 6)²",
+            "disclaimer": "Aviso importante: Estimación referencial de duración bajo incertidumbre (método PERT); no constituye un plazo contractual ni garantizado.",
+            "explanation": "Duración esperada PERT: (4.00 + 4×6.00 + 10.00) / 6 = 6.33 meses.",
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+
+    def register_pert_estimate(
+        self, project_id: UUID, actor_id: UUID, data: Any
+    ) -> dict[str, Any]:
+        opt = data.optimistic_duration if hasattr(data, "optimistic_duration") else data["optimistic_duration"]
+        ml = data.most_likely_duration if hasattr(data, "most_likely_duration") else data["most_likely_duration"]
+        pess = data.pessimistic_duration if hasattr(data, "pessimistic_duration") else data["pessimistic_duration"]
+        unit = data.time_unit if hasattr(data, "time_unit") else data.get("time_unit", "meses")
+        from backend.application.services.pmv1_services import PertDurationEngine
+        a, m, b, u = PertDurationEngine.validate_inputs(opt, ml, pess, unit)
+        calc = PertDurationEngine.calculate(a, m, b, u)
+        return {
+            "id": UUID("d1000000-0000-4000-a000-000000000001"),
+            "project_id": project_id,
+            "project_version_id": VERSION_ID,
+            "registered_by_user_id": actor_id,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+            **calc,
+        }
+
     def get_project_checkpoint(self, project_id: UUID) -> dict[str, Any] | None:
         if str(project_id).endswith("c"):
             return {
@@ -1623,3 +1669,93 @@ def test_request_evaluation_high_risk_idempotency_api(client: TestClient):
     assert data2["event_id"] is None
     assert data2["duplicated"] is True
     assert data2["checkpoint"] is not None
+
+
+def test_pert_estimate_api_calculate_and_register(client: TestClient):
+    """CA-HU1.9-01: Planificador registra duraciones optimista, más probable y pesimista
+    y recibe cálculo PERT e incertidumbre con aviso de estimación no garantizada."""
+    headers = {"Authorization": "Bearer token-prueba"}
+    resp = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/pert-estimate",
+        headers=headers,
+        json={
+            "optimistic_duration": "4.0",
+            "most_likely_duration": "6.0",
+            "pessimistic_duration": "10.0",
+            "time_unit": "meses",
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert float(data["expected_duration"]) == pytest.approx(6.3333, abs=0.001)
+    assert float(data["standard_deviation"]) == pytest.approx(1.0, abs=0.001)
+    assert float(data["variance"]) == pytest.approx(1.0, abs=0.001)
+    assert "compromiso contractual ni plazo garantizado" in data["disclaimer"]
+    assert "μ = (a + 4m + b) / 6" in data["formula_applied"]
+    assert data["time_unit"] == "meses"
+
+
+def test_pert_estimate_api_invalid_order_fails_422(client: TestClient):
+    """CA-HU1.9-02: Orden incorrecto (a > m) produce error 422 señalando el campo y motivo."""
+    headers = {"Authorization": "Bearer token-prueba"}
+    resp = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/pert-estimate",
+        headers=headers,
+        json={
+            "optimistic_duration": "8.0",
+            "most_likely_duration": "6.0",
+            "pessimistic_duration": "10.0",
+            "time_unit": "meses",
+        },
+    )
+    assert resp.status_code == 422
+    data = resp.json()
+    assert "optimistic_duration" in data.get("field", "")
+    assert "no puede ser mayor que la duración más probable" in data.get("detail", "")
+
+
+def test_pert_estimate_api_negative_fails_422(client: TestClient):
+    """CA-HU1.9-02: Valor negativo produce error 422 indicando el campo y motivo."""
+    headers = {"Authorization": "Bearer token-prueba"}
+    resp = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/pert-estimate",
+        headers=headers,
+        json={
+            "optimistic_duration": "-2.0",
+            "most_likely_duration": "5.0",
+            "pessimistic_duration": "8.0",
+            "time_unit": "meses",
+        },
+    )
+    assert resp.status_code == 422
+    data = resp.json()
+    assert data.get("field") == "optimistic_duration"
+    assert "no puede ser negativa" in data.get("detail", "")
+
+
+def test_pert_estimate_api_get_success(client: TestClient):
+    headers = {"Authorization": "Bearer token-prueba"}
+    resp = client.get(f"/api/v1/projects/{PROJECT_ID}/pert-estimate", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data is not None
+    assert float(data["expected_duration"]) == pytest.approx(6.3333, abs=0.001)
+
+
+def test_pert_estimate_api_get_none_when_empty(client: TestClient):
+    headers = {"Authorization": "Bearer token-prueba"}
+    # PROJECT_B_ID ends with 'b', FakePlatform returns None
+    resp = client.get(
+        f"/api/v1/projects/{UUID('a0000000-0000-4000-a000-00000000000b')}/pert-estimate",
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json() is None
+
+
+def test_pert_estimate_api_forbidden_without_auth(client: TestClient):
+    resp = client.post(
+        f"/api/v1/projects/{PROJECT_ID}/pert-estimate",
+        json={"optimistic_duration": "3.0", "most_likely_duration": "5.0", "pessimistic_duration": "8.0"},
+    )
+    assert resp.status_code == 401

@@ -78,3 +78,22 @@ SELECT p.code AS codigo_proyecto,
 FROM human_approvals ha
 JOIN projects p ON p.id = ha.project_id
 JOIN project_versions pv ON pv.id = ha.project_version_id;
+
+CREATE OR REPLACE VIEW vista_estimaciones_pert AS
+SELECT p.code AS codigo_proyecto,
+       pv.version_number AS version_expediente,
+       e.time_unit AS unidad_tiempo,
+       e.optimistic_duration AS duracion_optimista_a,
+       e.most_likely_duration AS duracion_mas_probable_m,
+       e.pessimistic_duration AS duracion_pesimista_b,
+       e.expected_duration AS duracion_esperada_pert,
+       e.standard_deviation AS desviacion_estandar_pert,
+       e.variance AS varianza_pert,
+       e.confidence_interval_low AS intervalo_inferior_pert,
+       e.confidence_interval_high AS intervalo_superior_pert,
+       e.disclaimer AS aviso,
+       e.updated_at AS actualizada_en
+FROM project_pert_estimates e
+JOIN project_versions pv ON pv.id = e.project_version_id
+JOIN projects p ON p.id = e.project_id;
+
