@@ -696,24 +696,44 @@ class RiskCheckpointEngine:
 
         if row:
             if row["risk_level"] in cls.PAUSE_RISK_LEVELS and row.get("requires_human_review"):
-                obs = (
-                    row.get("risk_observation")
-                    or "Riesgo ambiental alto detectado por proximidad crítica a cuerpo de agua o faja marginal ribereña."
+                declared_ev = row.get("declared_vs_evidence_json") or {}
+                prox = declared_ev.get("proximity_to_water_meters")
+                in_risk = declared_ev.get("is_in_protected_or_risk_area")
+
+                cause_items = []
+                if prox is not None and float(prox) < 50.0:
+                    cause_items.append(f"Proximidad crítica a cuerpo de agua ({float(prox):.1f} m < 50 m reglamentarios)")
+                if in_risk:
+                    cause_items.append("Emplazamiento en zona clasificada de riesgo territorial o faja marginal intangible")
+
+                cause = (
+                    f"Causa técnica de pausa: Riesgo ambiental alto por {'; '.join(cause_items)}."
+                    if cause_items
+                    else "Causa técnica de pausa: Detección de condición de riesgo ambiental territorial alto."
                 )
+
+                verifiable = declared_ev.get("verifiable_evidence")
+                if verifiable and verifiable.strip():
+                    obs = f"Comprobación técnica requerida: {verifiable.strip()} Requiere verificar delimitación física de faja marginal y sustento de mitigación formal."
+                elif row.get("risk_observation") and row["risk_observation"].strip() != cause:
+                    obs = row["risk_observation"].strip()
+                else:
+                    obs = "Observación pendiente de aclaración"
+
                 return {
                     "risk_source": "environmental",
                     "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
                     "risk_level": row["risk_level"],
                     "risk_level_label": "Riesgo Alto",
-                    "reason": obs,
+                    "reason": cause,
                     "details": {
                         "environmental_assessment_id": str(row["id"]),
                         "risk_level": row["risk_level"],
-                        "risk_observation": obs,
+                        "cause": cause,
                         "observation": obs,
-                        "cause": obs,
+                        "risk_observation": obs,
                         "requires_human_review": True,
-                        "declared_vs_evidence": row.get("declared_vs_evidence_json"),
+                        "declared_vs_evidence": declared_ev,
                     },
                 }
             # Si ya existe una evaluación formal registrada para esta versión y no es de riesgo alto,
@@ -743,20 +763,20 @@ class RiskCheckpointEngine:
 
         if rec_row:
             cause_text = (
-                f"Riesgo ambiental alto detectado: Componente '{rec_row['environmental_component']}'. "
-                f"Distancia crítica a cuerpo de agua ({rec_row['proximity_to_water_meters']} m < 50 m reglamentarios)."
+                f"Causa técnica de pausa: Componente '{rec_row['environmental_component']}'. "
+                f"Distancia crítica a cuerpo de agua ({rec_row['proximity_to_water_meters']} m < 50 m reglamentarios) en zona clasificada de riesgo territorial."
             )
             obs_text = (
-                rec_row["verifiable_evidence"]
-                or f"Predio emplazado a {rec_row['proximity_to_water_meters']} m de cauce hídrico. Fuente: {rec_row['source_name']}."
+                f"Comprobación técnica requerida: {rec_row['verifiable_evidence']}. Requiere verificar delimitación física y sustento de mitigaciones aprobado por ANA."
+                if rec_row.get("verifiable_evidence")
+                else "Observación pendiente de aclaración"
             )
-            reason = f"{cause_text} Evidencia: {obs_text}"
             return {
                 "risk_source": "environmental",
                 "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
                 "risk_level": "high",
                 "risk_level_label": "Riesgo Alto",
-                "reason": reason,
+                "reason": cause_text,
                 "details": {
                     "record_id": str(rec_row["id"]),
                     "component": rec_row["environmental_component"],
@@ -764,8 +784,8 @@ class RiskCheckpointEngine:
                     "is_in_protected_or_risk_area": rec_row["is_in_protected_or_risk_area"],
                     "source_name": rec_row["source_name"],
                     "cause": cause_text,
-                    "risk_observation": obs_text,
                     "observation": obs_text,
+                    "risk_observation": obs_text,
                 },
             }
 
@@ -801,19 +821,26 @@ class RiskCheckpointEngine:
         cause = raw_cause.strip() if isinstance(raw_cause, str) and raw_cause.strip() else None
 
         # 2. Observación concreta que requiere revisión humana
-        raw_obs = (
-            details.get("observation")
-            or details.get("risk_observation")
-        )
+        # Buscar en details exclusivamente por la observación de revisión humana
+        raw_obs = details.get("observation") or details.get("risk_observation")
         if not raw_obs and isinstance(details.get("declared_vs_evidence"), dict):
             raw_obs = details["declared_vs_evidence"].get("verifiable_evidence")
 
-        if not raw_obs and cause:
-            raw_obs = cause
+        # REGLA HU3.2: NO copiar 'cause' a 'observation' cuando esta última falte.
+        # Mostrar 'Observación pendiente de aclaración' y conservar el estado pendiente.
+        if raw_obs and isinstance(raw_obs, str) and raw_obs.strip():
+            # Si raw_obs es idéntico a cause (datos previos no diferenciados)
+            if raw_obs.strip() == (cause or "").strip() and isinstance(details.get("declared_vs_evidence"), dict):
+                verifiable = details["declared_vs_evidence"].get("verifiable_evidence")
+                if verifiable and isinstance(verifiable, str) and verifiable.strip():
+                    observation = f"Comprobación técnica requerida: {verifiable.strip()}"
+                else:
+                    observation = "Observación pendiente de aclaración"
+            else:
+                observation = raw_obs.strip()
+        else:
+            observation = "Observación pendiente de aclaración"
 
-        observation = raw_obs.strip() if isinstance(raw_obs, str) and raw_obs.strip() else None
-
-        # Si faltan datos en el punto de control, indicar con claridad sin inventar explicaciones
         fallback_cause = "Información incompleta: La causa técnica específica de la pausa no se encuentra registrada."
         reason_text = cause or fallback_cause
 
@@ -1050,6 +1077,37 @@ class PlatformService:
             checkpoint = RiskCheckpointEngine.get_active_checkpoint(conn, row["project_version_id"])
             pert_estimate = self._get_pert_estimate_with_conn(conn, row["project_version_id"])
             res = dict(row)
+
+            # HU3.2: Determinar el estado efectivo para la versión vigente del expediente.
+            # Si el registro global 'projects.status' quedó en 'pending_review' por un punto de control
+            # de una versión histórica (v1), pero la versión vigente (v2+) no tiene punto de control activo:
+            if checkpoint is not None:
+                res["status"] = "pending_review"
+            elif res["status"] == "pending_review":
+                # La versión vigente NO tiene punto de control activo.
+                # Determinar su estado efectivo a partir de sus propias evaluaciones:
+                eval_row = conn.execute(
+                    """
+                    SELECT status FROM evaluations
+                    WHERE project_version_id = %s
+                    ORDER BY requested_at DESC LIMIT 1
+                    """,
+                    (row["project_version_id"],),
+                ).fetchone()
+                if eval_row and eval_row["status"] == "completed":
+                    effective_status = "evaluated"
+                elif eval_row and eval_row["status"] in ("queued", "processing"):
+                    effective_status = "evaluating"
+                else:
+                    effective_status = "ready"
+
+                res["status"] = effective_status
+                # Sincronizar el estado del proyecto en la base de datos para la versión vigente
+                conn.execute(
+                    "UPDATE projects SET status = %s, updated_at = now() WHERE id = %s",
+                    (effective_status, project_id),
+                )
+
             res["checkpoint"] = checkpoint
             res["pert_estimate"] = pert_estimate
             return res
@@ -1938,9 +1996,9 @@ class PlatformService:
 
         project = self.get_project(project_id)
         with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
-            if project["status"] == "pending_review" or RiskCheckpointEngine.has_pending_checkpoint(conn, project["project_version_id"]):
+            if RiskCheckpointEngine.has_pending_checkpoint(conn, project["project_version_id"]):
                 raise ConfiguracionPMV1Error(
-                    "El expediente se encuentra en estado 'Pendiente de revisión' por punto de control de riesgo alto. "
+                    "El expediente se encuentra en estado 'Pendiente de revisión' por punto de control de riesgo alto en su versión vigente. "
                     "Conforme a HU3.1, no se puede emitir una aprobación final mientras la revisión humana esté pendiente."
                 )
 
@@ -2032,14 +2090,14 @@ class PlatformService:
                 SELECT id AS approval_id, project_id, project_version_id, decision,
                        justification, conditions, decided_by_user_id, idempotency_key, decided_at
                 FROM human_approvals
-                WHERE project_id = %s
+                WHERE project_id = %s AND project_version_id = %s
                 ORDER BY decided_at DESC
                 LIMIT 1
                 """,
-                (project_id,),
+                (project_id, project["project_version_id"]),
             ).fetchone()
 
-        is_paused = project["status"] == "pending_review" or checkpoint is not None
+        is_paused = checkpoint is not None
         is_evaluated = project["status"] in ("evaluated", "approved", "rejected", "observed") and not is_paused
         requires_human_approval = project["status"] == "evaluated" and latest is None and not is_paused
 

@@ -423,11 +423,14 @@ export function ProyectoDetallePage() {
       ? rawCheckpoint
       : null
 
-  // HU3.1 / HU3.2: La pausa y el aviso aplican si el expediente vigente está en pending_review
-  // o posee un punto de control activo asociado a la versión actual.
-  const isPaused =
-    (project?.status === 'pending_review' || activeCheckpoint?.status === 'pending_review') &&
-    (!activeCheckpoint || activeCheckpoint.project_version_id === project?.project_version_id)
+  // HU3.1 / HU3.2: El aviso de pausa aplica ÚNICAMENTE si la versión vigente posee un punto de control
+  // activo en estado 'pending_review' correspondiente a esa versión.
+  const isPaused = Boolean(
+    activeCheckpoint &&
+      activeCheckpoint.status === 'pending_review' &&
+      project &&
+      activeCheckpoint.project_version_id === project.project_version_id
+  )
 
   // HU3.2 CA01: Extraer la causa técnica específica y la observación para revisión humana.
   // Si los datos están incompletos, indicarlo con claridad sin inventar explicaciones.
@@ -438,12 +441,12 @@ export function ProyectoDetallePage() {
     (typeof approval?.pause_reason === 'string' && approval.pause_reason.trim()) ||
     null
 
-  const pauseObservation =
+  const rawObservation =
     (typeof activeCheckpoint?.observation === 'string' && activeCheckpoint.observation.trim()) ||
-    (typeof activeCheckpoint?.details?.risk_observation === 'string' &&
-      activeCheckpoint.details.risk_observation.trim()) ||
     (typeof activeCheckpoint?.details?.observation === 'string' &&
       activeCheckpoint.details.observation.trim()) ||
+    (typeof activeCheckpoint?.details?.risk_observation === 'string' &&
+      activeCheckpoint.details.risk_observation.trim()) ||
     (typeof activeCheckpoint?.details?.declared_vs_evidence === 'object' &&
     activeCheckpoint.details.declared_vs_evidence !== null &&
     'verifiable_evidence' in activeCheckpoint.details.declared_vs_evidence &&
@@ -451,6 +454,11 @@ export function ProyectoDetallePage() {
       ? ((activeCheckpoint.details.declared_vs_evidence as Record<string, unknown>).verifiable_evidence as string).trim()
       : null) ||
     null
+
+  const pauseObservation =
+    rawObservation && rawObservation !== pauseCause && rawObservation !== 'Observación pendiente de aclaración'
+      ? rawObservation
+      : null
 
   return (
     <div className="form-page pmv1-flow">
@@ -519,7 +527,7 @@ export function ProyectoDetallePage() {
                       pauseObservation
                     ) : (
                       <span className="checkpoint-incomplete-warning">
-                        Información incompleta: No se registró una observación técnica concreta en el punto de control. Requiere aclaración técnica por el equipo responsable para la revisión humana.
+                        Observación pendiente de aclaración: Se requiere comprobación técnica en campo y sustento formal de mitigaciones aprobadas.
                       </span>
                     )}
                   </p>
