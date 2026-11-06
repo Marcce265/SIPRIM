@@ -8,6 +8,7 @@ import { RoleRoute } from '../features/auth/RoleRoute'
 import { ConsultarPage } from '../features/consultar/ConsultarPage'
 import { HomePage } from '../features/home/HomePage'
 import { GeminiIntegrationPage } from '../features/ia/GeminiIntegrationPage'
+import { PrediccionMLPage } from '../features/ml/PrediccionMLPage'
 import { RevisionJuridicaPage } from '../features/juridica/RevisionJuridicaPage'
 import { NormativaPage } from '../features/normativa/NormativaPage'
 import { ProyectoDetallePage } from '../features/proyecto/ProyectoDetallePage'
@@ -26,6 +27,7 @@ export function AppRoutes() {
           <Route path="registrar" element={<RegistrarPage />} />
           <Route path="consultar" element={<ConsultarPage />} />
           <Route path="integracion-ia" element={<GeminiIntegrationPage />} />
+          <Route path="prediccion-ml" element={<PrediccionMLPage />} />
           <Route path="proyectos/:projectId" element={<ProyectoDetallePage />} />
           <Route
             path="proyectos/:projectId/revision-juridica"
