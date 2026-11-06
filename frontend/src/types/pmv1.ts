@@ -16,6 +16,8 @@ export interface CheckpointResponse {
   status: 'pending_review' | 'resolved' | 'bypassed' | string
   status_label: string
   reason: string
+  cause?: string | null
+  observation?: string | null
   risk_source: string
   risk_source_label: string
   risk_level: string

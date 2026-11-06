@@ -696,19 +696,22 @@ class RiskCheckpointEngine:
 
         if row:
             if row["risk_level"] in cls.PAUSE_RISK_LEVELS and row.get("requires_human_review"):
+                obs = (
+                    row.get("risk_observation")
+                    or "Riesgo ambiental alto detectado por proximidad crítica a cuerpo de agua o faja marginal ribereña."
+                )
                 return {
                     "risk_source": "environmental",
                     "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
                     "risk_level": row["risk_level"],
                     "risk_level_label": "Riesgo Alto",
-                    "reason": (
-                        row.get("risk_observation")
-                        or "Riesgo ambiental alto detectado por proximidad crítica a cuerpo de agua o faja marginal ribereña."
-                    ),
+                    "reason": obs,
                     "details": {
                         "environmental_assessment_id": str(row["id"]),
                         "risk_level": row["risk_level"],
-                        "risk_observation": row.get("risk_observation"),
+                        "risk_observation": obs,
+                        "observation": obs,
+                        "cause": obs,
                         "requires_human_review": True,
                         "declared_vs_evidence": row.get("declared_vs_evidence_json"),
                     },
@@ -739,11 +742,15 @@ class RiskCheckpointEngine:
         ).fetchone()
 
         if rec_row:
-            reason = (
+            cause_text = (
                 f"Riesgo ambiental alto detectado: Componente '{rec_row['environmental_component']}'. "
-                f"Distancia crítica a cuerpo de agua ({rec_row['proximity_to_water_meters']} m < 50 m reglamentarios). "
-                f"Evidencia: {rec_row['verifiable_evidence'] or rec_row['source_name']}."
+                f"Distancia crítica a cuerpo de agua ({rec_row['proximity_to_water_meters']} m < 50 m reglamentarios)."
             )
+            obs_text = (
+                rec_row["verifiable_evidence"]
+                or f"Predio emplazado a {rec_row['proximity_to_water_meters']} m de cauce hídrico. Fuente: {rec_row['source_name']}."
+            )
+            reason = f"{cause_text} Evidencia: {obs_text}"
             return {
                 "risk_source": "environmental",
                 "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
@@ -756,6 +763,9 @@ class RiskCheckpointEngine:
                     "proximity_to_water_meters": float(rec_row["proximity_to_water_meters"]) if rec_row["proximity_to_water_meters"] else None,
                     "is_in_protected_or_risk_area": rec_row["is_in_protected_or_risk_area"],
                     "source_name": rec_row["source_name"],
+                    "cause": cause_text,
+                    "risk_observation": obs_text,
+                    "observation": obs_text,
                 },
             }
 
@@ -767,7 +777,7 @@ class RiskCheckpointEngine:
         conn: psycopg.Connection,
         project_version_id: UUID,
     ) -> dict[str, Any] | None:
-        """Recupera el punto de control pendiente activo para la versión específica del expediente."""
+        """Recupera el punto de control pendiente activo para la versión específica del expediente (HU3.1 / HU3.2)."""
         row = conn.execute(
             """
             SELECT id AS checkpoint_id, project_id, project_version_id, evaluation_id,
@@ -784,6 +794,29 @@ class RiskCheckpointEngine:
         if not row:
             return None
 
+        details = row["details"] if isinstance(row["details"], dict) else {}
+
+        # 1. Causa específica de la pausa
+        raw_cause = details.get("cause") or row.get("reason")
+        cause = raw_cause.strip() if isinstance(raw_cause, str) and raw_cause.strip() else None
+
+        # 2. Observación concreta que requiere revisión humana
+        raw_obs = (
+            details.get("observation")
+            or details.get("risk_observation")
+        )
+        if not raw_obs and isinstance(details.get("declared_vs_evidence"), dict):
+            raw_obs = details["declared_vs_evidence"].get("verifiable_evidence")
+
+        if not raw_obs and cause:
+            raw_obs = cause
+
+        observation = raw_obs.strip() if isinstance(raw_obs, str) and raw_obs.strip() else None
+
+        # Si faltan datos en el punto de control, indicar con claridad sin inventar explicaciones
+        fallback_cause = "Información incompleta: La causa técnica específica de la pausa no se encuentra registrada."
+        reason_text = cause or fallback_cause
+
         return {
             "checkpoint_id": row["checkpoint_id"],
             "project_id": row["project_id"],
@@ -792,21 +825,23 @@ class RiskCheckpointEngine:
             "checkpoint_type": row["checkpoint_type"],
             "status": row["status"],
             "status_label": "Pendiente de revisión",
-            "reason": row["reason"],
-            "risk_source": row["risk_source"],
+            "reason": reason_text,
+            "cause": cause,
+            "observation": observation,
+            "risk_source": row["risk_source"] or "no_especificado",
             "risk_source_label": {
                 "environmental": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
                 "legal": "Conformidad jurídica / Citas normativas",
-            }.get(row["risk_source"], row["risk_source"]),
-            "risk_level": row["risk_level"],
+            }.get(row["risk_source"], row["risk_source"] or "Origen no especificado"),
+            "risk_level": row["risk_level"] or "high",
             "risk_level_label": {
                 "high": "Riesgo Alto",
                 "moderate": "Riesgo Moderado",
                 "low": "Riesgo Bajo",
-            }.get(row["risk_level"], row["risk_level"]),
+            }.get(row["risk_level"], row["risk_level"] or "Riesgo Alto"),
             "requires_human_review": True,
             "allows_final_approval": False,
-            "details": row["details"] if isinstance(row["details"], dict) else {},
+            "details": details,
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
         }

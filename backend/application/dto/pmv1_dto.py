@@ -55,7 +55,7 @@ class PMV1ProjectCreate(BaseModel):
 
 
 class CheckpointResponse(BaseModel):
-    """Punto de control persistente del flujo de evaluación ante riesgos altos (HU3.1)."""
+    """Punto de control persistente del flujo de evaluación ante riesgos altos (HU3.1 / HU3.2)."""
 
     checkpoint_id: UUID
     project_id: UUID
@@ -65,6 +65,8 @@ class CheckpointResponse(BaseModel):
     status: str = "pending_review"
     status_label: str = "Pendiente de revisión"
     reason: str
+    cause: str | None = None
+    observation: str | None = None
     risk_source: str
     risk_source_label: str
     risk_level: str = "high"

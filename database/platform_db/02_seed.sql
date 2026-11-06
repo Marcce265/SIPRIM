@@ -512,7 +512,7 @@ INSERT INTO evaluation_checkpoints (
     'Punto de control activado: Riesgo ambiental alto detectado por proximidad crítica (25 m) a la faja marginal del Río Shullcas sin medidas de mitigación autorizadas.',
     'environmental',
     'high',
-    '{"risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)", "risk_level_label": "Riesgo Alto", "distance_to_water_body_m": 25.0, "water_body_name": "Río Shullcas", "inside_protected_or_risk_area": true, "requires_human_review": true}'::jsonb,
+    '{"risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)", "risk_level_label": "Riesgo Alto", "distance_to_water_body_m": 25.0, "water_body_name": "Río Shullcas", "inside_protected_or_risk_area": true, "requires_human_review": true, "cause": "Punto de control activado: Riesgo ambiental alto detectado por proximidad crítica (25 m) a la faja marginal del Río Shullcas sin medidas de mitigación autorizadas.", "risk_observation": "Predio emplazado a 25 metros de la faja marginal del Río Shullcas. Zona clasificada como de muy alto riesgo no mitigable e intangible según PDM Huancayo 2017-2037 (O.M. N.° 636-MPH) y Ley 29664 (SINAGERD); riesgo crítico de escorrentía con hidrocarburos y alteración del ecosistema ribereño. Requiere verificación técnica de faja marginal y medidas de mitigación autorizadas por ANA."}'::jsonb,
     NOW(),
     NOW()
 ) ON CONFLICT (project_version_id, risk_source, checkpoint_type) DO UPDATE SET

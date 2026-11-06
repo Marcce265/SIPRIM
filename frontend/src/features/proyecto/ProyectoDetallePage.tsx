@@ -414,11 +414,43 @@ export function ProyectoDetallePage() {
 
   const proyectoView = project ? mapPmV1ToProyecto(project) : null
   const physicalExpediente = projectId ? getPhysicalExpediente(projectId) : null
-  const activeCheckpoint = checkpoint ?? project?.checkpoint ?? approval?.checkpoint ?? null
+
+  // HU3.2: Garantizar aislamiento estricto por versión del expediente.
+  // Un punto de control de una versión anterior u obsoleta no debe presentarse como activo en la versión vigente.
+  const rawCheckpoint = checkpoint ?? project?.checkpoint ?? approval?.checkpoint ?? null
+  const activeCheckpoint =
+    rawCheckpoint && project && rawCheckpoint.project_version_id === project.project_version_id
+      ? rawCheckpoint
+      : null
+
+  // HU3.1 / HU3.2: La pausa y el aviso aplican si el expediente vigente está en pending_review
+  // o posee un punto de control activo asociado a la versión actual.
   const isPaused =
-    project?.status === 'pending_review' ||
-    activeCheckpoint?.status === 'pending_review' ||
-    Boolean(approval?.is_paused)
+    (project?.status === 'pending_review' || activeCheckpoint?.status === 'pending_review') &&
+    (!activeCheckpoint || activeCheckpoint.project_version_id === project?.project_version_id)
+
+  // HU3.2 CA01: Extraer la causa técnica específica y la observación para revisión humana.
+  // Si los datos están incompletos, indicarlo con claridad sin inventar explicaciones.
+  const pauseCause =
+    (typeof activeCheckpoint?.cause === 'string' && activeCheckpoint.cause.trim()) ||
+    (typeof activeCheckpoint?.reason === 'string' && activeCheckpoint.reason.trim()) ||
+    (typeof activeCheckpoint?.details?.cause === 'string' && activeCheckpoint.details.cause.trim()) ||
+    (typeof approval?.pause_reason === 'string' && approval.pause_reason.trim()) ||
+    null
+
+  const pauseObservation =
+    (typeof activeCheckpoint?.observation === 'string' && activeCheckpoint.observation.trim()) ||
+    (typeof activeCheckpoint?.details?.risk_observation === 'string' &&
+      activeCheckpoint.details.risk_observation.trim()) ||
+    (typeof activeCheckpoint?.details?.observation === 'string' &&
+      activeCheckpoint.details.observation.trim()) ||
+    (typeof activeCheckpoint?.details?.declared_vs_evidence === 'object' &&
+    activeCheckpoint.details.declared_vs_evidence !== null &&
+    'verifiable_evidence' in activeCheckpoint.details.declared_vs_evidence &&
+    typeof (activeCheckpoint.details.declared_vs_evidence as Record<string, unknown>).verifiable_evidence === 'string'
+      ? ((activeCheckpoint.details.declared_vs_evidence as Record<string, unknown>).verifiable_evidence as string).trim()
+      : null) ||
+    null
 
   return (
     <div className="form-page pmv1-flow">
@@ -441,53 +473,103 @@ export function ProyectoDetallePage() {
           )}
 
           {isPaused && (
-            <section className="checkpoint-pause-banner" aria-label="Punto de control de riesgo">
+            <section
+              className="checkpoint-pause-banner"
+              aria-label="Aviso gerencial de punto de control de riesgo"
+              data-testid="checkpoint-pause-banner"
+            >
               <div className="checkpoint-pause-header">
                 <h3 className="checkpoint-pause-title">
-                  <span>⚠️</span> Punto de control activo · Proceso pausado por riesgo alto
+                  <span aria-hidden="true">⚠️</span> Punto de control activo · Evaluación pausada por riesgo alto
                 </h3>
                 <span className="checkpoint-badge">
                   Pendiente de revisión
                 </span>
               </div>
 
-              <div className="checkpoint-reason-box">
-                <div className="checkpoint-reason-title">Causa del punto de control (HU3.1)</div>
-                <p className="checkpoint-reason-text">
-                  {activeCheckpoint?.reason ??
-                    approval?.pause_reason ??
-                    'Se detectó una condición de riesgo alto configurada para revisión humana. El flujo ha detenido el procesamiento y no continuará automáticamente.'}
-                </p>
+              <div className="checkpoint-target-bar">
+                <strong>Expediente afectado:</strong>{' '}
+                <span>
+                  {project?.code} (Versión {project?.version_number}) · {project?.title}
+                </span>
+              </div>
+
+              <div className="checkpoint-boxes-grid">
+                <div className="checkpoint-cause-box">
+                  <div className="checkpoint-reason-title">
+                    Causa técnica específica de la pausa (HU3.2 · CA01)
+                  </div>
+                  <p className="checkpoint-reason-text">
+                    {pauseCause ? (
+                      pauseCause
+                    ) : (
+                      <span className="checkpoint-incomplete-warning">
+                        Información incompleta: La causa técnica específica de la pausa no se encuentra registrada en el punto de control. Requiere aclaración por el equipo técnico. Se conserva el estado pendiente de revisión.
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                <div className="checkpoint-observation-box">
+                  <div className="checkpoint-observation-title">
+                    Observación concreta para revisión humana (HU3.2 · CA01)
+                  </div>
+                  <p className="checkpoint-observation-text">
+                    {pauseObservation ? (
+                      pauseObservation
+                    ) : (
+                      <span className="checkpoint-incomplete-warning">
+                        Información incompleta: No se registró una observación técnica concreta en el punto de control. Requiere aclaración técnica por el equipo responsable para la revisión humana.
+                      </span>
+                    )}
+                  </p>
+                </div>
               </div>
 
               <div className="checkpoint-meta-grid">
                 <div className="checkpoint-meta-item">
-                  <div className="checkpoint-meta-label">Estado de procesamiento</div>
-                  <div className="checkpoint-meta-value">Pendiente de revisión</div>
+                  <div className="checkpoint-meta-label">Expediente y versión</div>
+                  <div className="checkpoint-meta-value">
+                    {project?.code} (v{project?.version_number})
+                  </div>
                 </div>
                 <div className="checkpoint-meta-item">
-                  <div className="checkpoint-meta-label">Origen de riesgo</div>
+                  <div className="checkpoint-meta-label">Estado de procesamiento</div>
+                  <div className="checkpoint-meta-value" style={{ color: '#b91c1c', fontWeight: 700 }}>
+                    Pendiente de revisión
+                  </div>
+                </div>
+                <div className="checkpoint-meta-item">
+                  <div className="checkpoint-meta-label">Origen de detección</div>
                   <div className="checkpoint-meta-value">
-                    {activeCheckpoint?.risk_source_label ?? 'Impacto ambiental territorial'}
+                    {activeCheckpoint?.risk_source_label ?? 'Impacto ambiental territorial (Recurso hídrico / Ecosistema)'}
                   </div>
                 </div>
                 <div className="checkpoint-meta-item">
                   <div className="checkpoint-meta-label">Nivel de riesgo</div>
-                  <div className="checkpoint-meta-value" style={{ color: '#dc2626' }}>
+                  <div className="checkpoint-meta-value" style={{ color: '#dc2626', fontWeight: 700 }}>
                     {activeCheckpoint?.risk_level_label ?? 'Riesgo Alto'}
                   </div>
                 </div>
                 <div className="checkpoint-meta-item">
-                  <div className="checkpoint-meta-label">Dictamen final</div>
-                  <div className="checkpoint-meta-value" style={{ color: '#b91c1c' }}>
-                    Bloqueado hasta revisión
+                  <div className="checkpoint-meta-label">Fecha del punto de control</div>
+                  <div className="checkpoint-meta-value">
+                    {activeCheckpoint?.created_at ? formatDate(activeCheckpoint.created_at) : 'Fecha no registrada'}
+                  </div>
+                </div>
+                <div className="checkpoint-meta-item">
+                  <div className="checkpoint-meta-label">Acción requerida</div>
+                  <div className="checkpoint-meta-value" style={{ color: '#9a3412', fontWeight: 600 }}>
+                    Revisión humana obligatoria (Gerente de Planeamiento)
                   </div>
                 </div>
               </div>
 
-              <p className="checkpoint-footer-notice">
-                <strong>Garantía de control (CA-HU3.1-01):</strong> El sistema detiene el avance en este punto de control persistente. No se emitirá una conclusión completada ni se permitirá dictamen de aprobación definitiva sin una validación humana previa.
-              </p>
+              <div className="checkpoint-footer-container">
+                <p className="checkpoint-footer-notice">
+                  <strong>Control gerencial (CA-HU3.2-01 / CA-HU3.2-02):</strong> El procesamiento automático ha sido detenido en este punto de control persistente. La evaluación no concluye ni se da por aprobada, y no habrá continuación automática. Mientras la causa no sea resuelta mediante validación humana facultada, este aviso y el estado pendiente permanecerán disponibles al recargar, reingresar o consultar nuevamente el expediente, sin repetir la evaluación ni crear puntos de control duplicados.
+                </p>
+              </div>
             </section>
           )}
 
