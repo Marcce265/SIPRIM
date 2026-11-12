@@ -21,6 +21,9 @@ from backend.infrastructure.config.settings import get_settings
 from backend.infrastructure.input.controllers.evaluacion_ia_controller import (
     router as evaluacion_ia_router,
 )
+from backend.infrastructure.input.controllers.ml_controller import (
+    router as ml_router,
+)
 from backend.infrastructure.input.controllers.pmv1_controller import (
     router as pmv1_router,
 )
@@ -46,6 +49,7 @@ def create_app() -> FastAPI:
 
     application.include_router(proyecto_router)
     application.include_router(evaluacion_ia_router)
+    application.include_router(ml_router)
     application.include_router(pmv1_router)
 
     @application.get("/health", tags=["Sistema"])

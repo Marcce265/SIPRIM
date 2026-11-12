@@ -1,0 +1,67 @@
+{
+  "dataset_size": 1500,
+  "train_size": 1125,
+  "test_size": 375,
+  "features": [
+    "monto_inversion",
+    "beneficiarios",
+    "plazo_dias_programado",
+    "tipo_proyecto",
+    "zona_intervencion",
+    "complejidad_tecnica",
+    "variacion_diseno_pct"
+  ],
+  "modelo_1_sobrecosto": {
+    "nombre": "Caso 1: Riesgo de Sobrecosto Presupuestal",
+    "algoritmo": "RandomForestClassifier(n_estimators=150, max_depth=9, class_weight='balanced')",
+    "accuracy": 0.9173,
+    "precision": 0.8788,
+    "recall": 0.8855,
+    "f1_score": 0.8821,
+    "roc_auc": 0.969,
+    "confusion_matrix": [
+      [
+        228,
+        16
+      ],
+      [
+        15,
+        116
+      ]
+    ],
+    "classes": [
+      "BAJO_RIESGO",
+      "ALTO_RIESGO"
+    ]
+  },
+  "modelo_2_viabilidad_plazo": {
+    "nombre": "Caso 2: Viabilidad de Plazo y Retraso en Ejecución",
+    "algoritmo": "GradientBoostingClassifier(n_estimators=140, max_depth=6, learning_rate=0.08)",
+    "accuracy": 0.8,
+    "precision": 0.8002,
+    "recall": 0.8,
+    "f1_score": 0.7999,
+    "confusion_matrix": [
+      [
+        132,
+        17,
+        1
+      ],
+      [
+        21,
+        95,
+        15
+      ],
+      [
+        0,
+        21,
+        73
+      ]
+    ],
+    "classes": [
+      "VIABLE",
+      "RIESGO_MODERADO",
+      "CRITICO"
+    ]
+  }
+}
