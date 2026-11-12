@@ -1,0 +1,38 @@
+name: Sync deployment mirror
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: sync-deployment-mirror
+  cancel-in-progress: false
+jobs:
+  sync:
+    if: github.repository == 'PieroMSL/SIPRIM'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fast-forward mirror from the official main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          official=$(gh api repos/Marcce265/SIPRIM/git/ref/heads/main --jq '.object.sha')
+          mirror=$(gh api repos/PieroMSL/SIPRIM/git/ref/heads/main --jq '.object.sha')
+          printf 'Official: %s\nMirror before: %s\n' "$official" "$mirror" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$official" = "$mirror" ]; then
+            echo 'Already synchronized; no push or deployment needed.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          status=$(gh api "repos/PieroMSL/SIPRIM/compare/$mirror...Marcce265:main" --jq '.status')
+          if [ "$status" != 'ahead' ]; then
+            echo "::error::Mirror diverged ($status). No force push performed; review differences."
+            exit 1
+          fi
+          gh api --method PATCH repos/PieroMSL/SIPRIM/git/refs/heads/main -f sha="$official" -F force=false
+          after=$(gh api repos/PieroMSL/SIPRIM/git/ref/heads/main --jq '.object.sha')
+          printf 'Mirror after: %s\n' "$after" >> "$GITHUB_STEP_SUMMARY"
+          test "$after" = "$official"
