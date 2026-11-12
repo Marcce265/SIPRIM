@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "builds": [
+    {"src": "frontend/package.json", "use": "@vercel/static-build", "config": {"distDir": "dist"}},
+    {"src": "api/index.py", "use": "@vercel/python", "config": {"maxDuration": 300}}
+  ],
+  "routes": [
+    {"src": "/api(?:/.*)?", "dest": "/api/index.py"},
+    {"src": "/health", "dest": "/api/index.py"},
+    {"src": "/(?:docs|openapi.json|redoc)", "dest": "/api/index.py"},
+    {"handle": "filesystem"},
+    {"src": "/.*", "dest": "/index.html"}
+  ]
+}
