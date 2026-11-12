@@ -1,7 +1,7 @@
 import type { ApiErrorBody } from '../types/proyecto'
 import { clearAccessToken, loadAccessToken } from './authStorage'
 
-export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000'
+export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000')
 
 export async function parseApiError(response: Response): Promise<string> {
   try {
@@ -78,7 +78,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
       throw new Error(
-        'El servidor no respondió a tiempo. Verifique que la API esté activa en http://127.0.0.1:8000.',
+        'El servidor no respondió a tiempo. Intente nuevamente en unos momentos.',
       )
     }
     throw new Error(

@@ -176,7 +176,14 @@ def get_auth_service() -> AuthService:
 @lru_cache
 def get_platform_service() -> PlatformService:
     settings = get_settings()
-    return PlatformService(settings.platform_db_url, CeleryTaskDispatcher(), enable_demo_fallback=settings.enable_demo_fallback)
+    import os
+
+    dispatcher = CeleryTaskDispatcher()
+    if os.environ.get("VERCEL") == "1":
+        from backend.infrastructure.output.broker.serverless_dispatcher import ServerlessTaskDispatcher
+
+        dispatcher = ServerlessTaskDispatcher()
+    return PlatformService(settings.platform_db_url, dispatcher, enable_demo_fallback=settings.enable_demo_fallback)
 
 
 bearer = HTTPBearer(auto_error=False)

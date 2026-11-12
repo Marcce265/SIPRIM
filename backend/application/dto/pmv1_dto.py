@@ -168,7 +168,7 @@ class PMV1ProjectResponse(BaseModel):
     beneficiaries_count: int
     checkpoint: CheckpointResponse | None = None
     pert_estimate: PertEstimateResponse | None = None
-    technical_assessment: TechnicalFeasibilityResponse | None = None
+    technical_assessment: "TechnicalFeasibilityResponse | None" = None
 
 
 class PMV1ValidationResponse(BaseModel):
@@ -683,3 +683,7 @@ class UnifiedAssessmentSummaryResponse(BaseModel):
     allows_final_approval: bool = Field(description="True si está habilitado para avanzar a dictamen final")
     blocking_reasons: list[str] = Field(default_factory=list, description="Motivos de detención o bloqueo si los hay")
     generated_at: datetime
+
+
+# Resolve the technical assessment declared after the project response.
+PMV1ProjectResponse.model_rebuild()
