@@ -28,8 +28,7 @@ export async function parseApiError(response: Response): Promise<string> {
   }
   if (response.status === 500) {
     return (
-      'Error interno del servidor (500). Si acaba de levantar Docker, ejecute el bootstrap PMV1 ' +
-      'en auth_db (ver database/README.md) y reinicie la API.'
+      'Ocurrió un error interno. Intente nuevamente o contacte al responsable del sistema.'
     )
   }
   return `Error del servidor (${response.status})`
