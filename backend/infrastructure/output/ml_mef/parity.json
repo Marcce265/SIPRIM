@@ -1,0 +1,134 @@
+[
+  {
+    "budget_pen": 4875868.24,
+    "categories": {
+      "FUNCION": "EDUCACIÓN",
+      "DEPARTAMENTO": "PIURA",
+      "DES_MODALIDAD": "ADMINISTRACIÓN INDIRECTA - POR CONTRATA",
+      "TIPO_INVERSION": "INTERVENCIONES IRI"
+    },
+    "cost_probability": 0.2693304427971708,
+    "duration_days": 253.15977323339445
+  },
+  {
+    "budget_pen": 822158.17,
+    "categories": {
+      "FUNCION": "SANEAMIENTO",
+      "DEPARTAMENTO": "LA LIBERTAD",
+      "DES_MODALIDAD": "ADMINISTRACIÓN INDIRECTA - POR CONTRATA",
+      "TIPO_INVERSION": "PROYECTO DE INVERSION"
+    },
+    "cost_probability": 0.3227551494491337,
+    "duration_days": 128.85636704139384
+  },
+  {
+    "budget_pen": 63635.0,
+    "categories": {
+      "FUNCION": "SALUD",
+      "DEPARTAMENTO": "PUNO",
+      "DES_MODALIDAD": "ADMINISTRACIÓN DIRECTA",
+      "TIPO_INVERSION": "INVERSIONES IOARR"
+    },
+    "cost_probability": 0.23743103264464474,
+    "duration_days": 60.53406082868331
+  },
+  {
+    "budget_pen": 1632376.37,
+    "categories": {
+      "FUNCION": "CULTURA Y DEPORTE",
+      "DEPARTAMENTO": "ICA",
+      "DES_MODALIDAD": "ADMINISTRACIÓN INDIRECTA - POR CONTRATA",
+      "TIPO_INVERSION": "PROYECTO DE INVERSION"
+    },
+    "cost_probability": 0.36823156406616697,
+    "duration_days": 186.72602973334443
+  },
+  {
+    "budget_pen": 353012.76,
+    "categories": {
+      "FUNCION": "CULTURA Y DEPORTE",
+      "DEPARTAMENTO": "LIMA",
+      "DES_MODALIDAD": "ADMINISTRACIÓN DIRECTA",
+      "TIPO_INVERSION": "PROYECTO DE INVERSION"
+    },
+    "cost_probability": 0.32586154053754735,
+    "duration_days": 105.27212693715492
+  },
+  {
+    "budget_pen": 1415254.38,
+    "categories": {
+      "FUNCION": "VIVIENDA Y DESARROLLO URBANO",
+      "DEPARTAMENTO": "ICA",
+      "DES_MODALIDAD": "ADMINISTRACIÓN INDIRECTA - POR CONTRATA",
+      "TIPO_INVERSION": "INVERSIONES IOARR"
+    },
+    "cost_probability": 0.3092515726673065,
+    "duration_days": 127.97861893101992
+  },
+  {
+    "budget_pen": 736092.7,
+    "categories": {
+      "FUNCION": "TRANSPORTE",
+      "DEPARTAMENTO": "LIMA",
+      "DES_MODALIDAD": "ADMINISTRACIÓN INDIRECTA - POR CONTRATA,ADMINISTRACIÓN DIRECTA",
+      "TIPO_INVERSION": "PROYECTO DE INVERSION"
+    },
+    "cost_probability": 0.3256582789512432,
+    "duration_days": 102.89434208630338
+  },
+  {
+    "budget_pen": 7461996.69,
+    "categories": {
+      "FUNCION": "TRANSPORTE",
+      "DEPARTAMENTO": "ANCASH",
+      "DES_MODALIDAD": "ADMINISTRACIÓN INDIRECTA - POR CONTRATA",
+      "TIPO_INVERSION": "PROYECTO DE INVERSION"
+    },
+    "cost_probability": 0.331090214350137,
+    "duration_days": 275.0287876318974
+  },
+  {
+    "budget_pen": 527893.61,
+    "categories": {
+      "FUNCION": "TRANSPORTE",
+      "DEPARTAMENTO": "SAN MARTIN",
+      "DES_MODALIDAD": "ADMINISTRACIÓN INDIRECTA - POR CONTRATA",
+      "TIPO_INVERSION": "PROYECTO DE INVERSION"
+    },
+    "cost_probability": 0.3357635937199255,
+    "duration_days": 117.30349671840263
+  },
+  {
+    "budget_pen": 331112.72,
+    "categories": {
+      "FUNCION": "SALUD",
+      "DEPARTAMENTO": "LA LIBERTAD",
+      "DES_MODALIDAD": "ADMINISTRACIÓN DIRECTA",
+      "TIPO_INVERSION": "INVERSIONES IOARR"
+    },
+    "cost_probability": 0.25427096639727503,
+    "duration_days": 95.6265202158252
+  },
+  {
+    "budget_pen": 187482.53,
+    "categories": {
+      "FUNCION": "TRANSPORTE",
+      "DEPARTAMENTO": "SAN MARTIN",
+      "DES_MODALIDAD": "ADMINISTRACIÓN DIRECTA",
+      "TIPO_INVERSION": "INVERSIONES IOARR"
+    },
+    "cost_probability": 0.26373306197251245,
+    "duration_days": 71.06772875438752
+  },
+  {
+    "budget_pen": 254676.83,
+    "categories": {
+      "FUNCION": "SALUD",
+      "DEPARTAMENTO": "UCAYALI",
+      "DES_MODALIDAD": "ADMINISTRACIÓN DIRECTA,ADMINISTRACIÓN INDIRECTA - POR CONTRATA",
+      "TIPO_INVERSION": "INVERSIONES IOARR"
+    },
+    "cost_probability": 0.28561075223810045,
+    "duration_days": 100.91751324530753
+  }
+]
