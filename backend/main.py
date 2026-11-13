@@ -27,6 +27,7 @@ from backend.infrastructure.input.controllers.pmv1_controller import (
 from backend.infrastructure.input.controllers.proyecto_controller import (
     router as proyecto_router,
 )
+from backend.infrastructure.input.controllers.predictive_ml_controller import router as predictive_ml_router
 
 
 def create_app() -> FastAPI:
@@ -47,6 +48,7 @@ def create_app() -> FastAPI:
     application.include_router(proyecto_router)
     application.include_router(evaluacion_ia_router)
     application.include_router(pmv1_router)
+    application.include_router(predictive_ml_router)
 
     @application.get("/health", tags=["Sistema"])
     def health() -> dict[str, str]:
