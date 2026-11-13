@@ -1,3 +1,7 @@
+import logging
+from time import perf_counter
+from uuid import uuid4
+
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -33,6 +37,7 @@ from backend.infrastructure.input.controllers.pruebas_controller import router a
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    logging.getLogger("siprim.requests").setLevel(logging.INFO)
     application = FastAPI(
         title=settings.app_name,
         version="1.0.0",
@@ -45,6 +50,34 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @application.middleware("http")
+    async def request_diagnostics(request: Request, call_next):
+        request_id = uuid4().hex
+        started = perf_counter()
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            # Never log payloads, authorization, query strings or exception text.
+            logging.getLogger("siprim.requests").error(
+                "request_failed request_id=%s error_type=%s", request_id, type(exc).__name__
+            )
+            response = JSONResponse(status_code=500, content={
+                "detail": "Ocurrio un error interno. Intente nuevamente o contacte a soporte.",
+                "request_id": request_id,
+            })
+        response.headers["X-Request-ID"] = request_id
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        if request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store"
+        route = request.scope.get("route")
+        logging.getLogger("siprim.requests").info(
+            "request_completed request_id=%s method=%s route=%s status=%s duration_ms=%.2f",
+            request_id, request.method, getattr(route, "path", "unmatched"),
+            response.status_code, (perf_counter() - started) * 1000,
+        )
+        return response
 
     application.include_router(proyecto_router)
     application.include_router(evaluacion_ia_router)
