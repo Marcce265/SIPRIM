@@ -26,7 +26,6 @@ from backend.domain.ports.evaluacion_juridica_repository_port import (
 from backend.domain.ports.ia_service_port import IAServicePort
 from backend.domain.ports.proyecto_repository_port import ProyectoRepositoryPort
 from backend.infrastructure.config.settings import get_settings
-from backend.infrastructure.output.broker.celery_app import CeleryTaskDispatcher
 from backend.infrastructure.output.legal.evaluacion_juridica_provisional_adapter import (
     EvaluacionJuridicaProvisionalAdapter,
 )
@@ -178,12 +177,19 @@ def get_platform_service() -> PlatformService:
     settings = get_settings()
     import os
 
-    dispatcher = CeleryTaskDispatcher()
     if os.environ.get("VERCEL") == "1":
         from backend.infrastructure.output.broker.serverless_dispatcher import ServerlessTaskDispatcher
 
         dispatcher = ServerlessTaskDispatcher()
-    return PlatformService(settings.platform_db_url, dispatcher, enable_demo_fallback=settings.enable_demo_fallback)
+    else:
+        from backend.infrastructure.output.broker.celery_app import CeleryTaskDispatcher
+
+        dispatcher = CeleryTaskDispatcher()
+    return PlatformService(
+        settings.platform_db_url,
+        dispatcher,
+        enable_demo_fallback=settings.enable_demo_fallback,
+    )
 
 
 bearer = HTTPBearer(auto_error=False)

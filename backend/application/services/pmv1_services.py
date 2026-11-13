@@ -231,7 +231,7 @@ class NormativeSearchEngine:
         "hasta", "la", "las", "le", "les", "lo", "los", "me", "mi", "mis", "muy",
         "nos", "nosotros", "o", "para", "pero", "por", "que", "qué", "se", "según",
         "sin", "so", "sobre", "son", "su", "sus", "te", "ti", "tu", "tus", "un",
-        "una", "unas", "unos", "y", "ya"
+        "una", "unas", "unos", "y", "ya", "no"
     }
 
     @classmethod
@@ -278,6 +278,44 @@ class NormativeSearchEngine:
             score += 20.0
 
         return round(score, 2)
+
+    @classmethod
+    def is_relevant(
+        cls, chunk: dict[str, Any], query: str, keywords: list[str]
+    ) -> bool:
+        """Evita resultados espurios cuando solo coincide una palabra incidental.
+
+        Una consulta por identificador o frase exacta siempre es relevante. Para
+        consultas libres con varias palabras se exige que coincida, como mínimo,
+        la mitad de los términos significativos. Así una entrada sin sustento no
+        produce normas ni alertas ficticias (CA-HU2.1-03 / CA-HU2.3-02).
+        """
+        normalized_query = query.strip().lower()
+        searchable_parts = (
+            str(chunk.get("id", "")),
+            str(chunk.get("topic", "")),
+            str(chunk.get("content", "")),
+            str(chunk.get("document_name", "")),
+            str(chunk.get("short_code", "")),
+        )
+        lowered_parts = tuple(part.lower() for part in searchable_parts)
+
+        if normalized_query and (
+            normalized_query == lowered_parts[0]
+            or any(normalized_query in part for part in lowered_parts[1:])
+        ):
+            return True
+
+        if not keywords:
+            return False
+
+        searchable_tokens: set[str] = set()
+        for part in lowered_parts:
+            searchable_tokens.update(re.findall(r"[\wáéíóúüñ]+", part))
+
+        matched = {keyword for keyword in keywords if keyword in searchable_tokens}
+        required_matches = 1 if len(keywords) <= 2 else (len(keywords) + 1) // 2
+        return len(matched) >= required_matches
 
 
 
@@ -3436,7 +3474,9 @@ class PlatformService:
                 for r in rows:
                     item = dict(r)
                     score = NormativeSearchEngine.score_chunk(item, cleaned_query, keywords)
-                    if score > 0:
+                    if score > 0 and NormativeSearchEngine.is_relevant(
+                        item, cleaned_query, keywords
+                    ):
                         item["relevance_score"] = score
                         item["location"] = NormativeSearchEngine.resolve_location(item)
                         scored.append(item)
@@ -3506,7 +3546,9 @@ class PlatformService:
             scored = []
             for item in fallback_rows:
                 score = NormativeSearchEngine.score_chunk(item, cleaned_query, keywords)
-                if score > 0:
+                if score > 0 and NormativeSearchEngine.is_relevant(
+                    item, cleaned_query, keywords
+                ):
                     item_copy = dict(item)
                     item_copy["relevance_score"] = score
                     item_copy["location"] = NormativeSearchEngine.resolve_location(item_copy)
@@ -4223,6 +4265,20 @@ class PlatformService:
                 "Conforme a HU3.1, no se puede emitir una aprobación final mientras la revisión humana esté pendiente."
             )
 
+        if cleaned_decision == "approved":
+            unified_summary = self.get_unified_assessment_summary(
+                project_id=project_id,
+                version_id=project["project_version_id"],
+            )
+            if not unified_summary["allows_final_approval"]:
+                reasons = unified_summary.get("blocking_reasons") or [
+                    "La evaluación multidimensional está incompleta o contiene dimensiones no conformes."
+                ]
+                raise ConfiguracionPMV1Error(
+                    "Aprobación final bloqueada por el resumen unificado (HU1.12): "
+                    + " ".join(str(reason) for reason in reasons)
+                )
+
         with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
             if RiskCheckpointEngine.has_pending_checkpoint(conn, project["project_version_id"]):
                 raise ConfiguracionPMV1Error(
@@ -4378,6 +4434,11 @@ class PlatformService:
             legal_row and legal_row["status"] == "requires_review" and not has_legal_alert
         )
 
+        unified_summary = self.get_unified_assessment_summary(
+            project_id=project_id,
+            version_id=project["project_version_id"],
+        )
+
         is_paused = (checkpoint is not None) or (project["status"] == "pending_review")
         is_evaluated = project["status"] in ("evaluated", "approved", "rejected", "observed") and not is_paused
 
@@ -4389,7 +4450,16 @@ class PlatformService:
         if legal_requires_review:
             blocking_reasons.append("Dimensión jurídica en estado 'requires_review' por citas no verificables o dictamen pendiente (HU2.2/HU1.12)")
 
-        allows_final_approval = not is_paused and not has_legal_alert and not legal_requires_review
+        for reason in unified_summary.get("blocking_reasons", []):
+            if reason not in blocking_reasons:
+                blocking_reasons.append(reason)
+
+        allows_final_approval = (
+            not is_paused
+            and not has_legal_alert
+            and not legal_requires_review
+            and bool(unified_summary.get("allows_final_approval"))
+        )
         requires_human_approval = project["status"] == "evaluated" and latest is None and allows_final_approval
 
         return {
@@ -4614,24 +4684,6 @@ class PlatformService:
                 indicator_rows=[dict(r) for r in rows],
                 equity_rows=[dict(r) for r in equity_rows],
             )
-            # Si el resultado ambiental es de riesgo alto y requiere revisión humana,
-            # activar automáticamente el punto de control persistente (HU3.1)
-            if assessment.get("risk_level") == "high" and assessment.get("requires_human_review"):
-                RiskCheckpointEngine.create_or_get_checkpoint(
-                    conn,
-                    project_id=project_id,
-                    project_version_id=version_id or project.get("project_version_id"),
-                    evaluation_id=None,
-                    risk_info={
-                        "risk_source": "environmental",
-                        "risk_source_label": "Impacto ambiental territorial (Recurso hídrico / Ecosistema)",
-                        "risk_level": "high",
-                        "risk_level_label": "Riesgo Alto",
-                        "reason": assessment.get("risk_observation") or "Riesgo ambiental alto detectado.",
-                        "details": assessment,
-                    },
-                )
-
             return {
                 **assessment,
                 "duplicated": False,
@@ -4827,8 +4879,29 @@ class PlatformService:
                 ),
             )
 
+            checkpoint = None
+            if (
+                assessment.get("risk_level") == "high"
+                and assessment.get("requires_human_review")
+            ):
+                # HU3.1: el hallazgo ambiental debe detener el flujo en el mismo
+                # acto que lo registra. Esperar a una solicitud económica posterior
+                # dejaba disponibles otras etapas y no constituía una pausa real.
+                risk_info = RiskCheckpointEngine.detect_high_risk_condition(
+                    conn, project["project_version_id"]
+                )
+                if risk_info:
+                    checkpoint = RiskCheckpointEngine.create_or_get_checkpoint(
+                        conn,
+                        project_id=project_id,
+                        project_version_id=project["project_version_id"],
+                        evaluation_id=None,
+                        risk_info=risk_info,
+                    )
+
         return {
             **assessment,
+            "checkpoint": checkpoint,
             "duplicated": False,
         }
 

@@ -289,3 +289,12 @@ integración, pero el recorrido normal no realiza solicitudes al backend.
 
 Los PDF y materiales de referencia del proyecto van en la carpeta [`docs/`](docs/).
 Consulta [`docs/README.md`](docs/README.md) para el índice de archivos.
+
+## Despliegue serverless
+
+El repositorio incluye configuración para publicar el backend FastAPI y el
+frontend Vite juntos en el proyecto Vercel existente. La ejecución serverless
+usa PostgreSQL externo persistente y procesa la evaluación económica dentro de
+la petición, sin depender de un worker residente. Consulte
+[`docs/DEPLOYMENT_MIRROR.md`](docs/DEPLOYMENT_MIRROR.md) para el origen oficial,
+la sincronización y las comprobaciones previas a producción.

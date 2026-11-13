@@ -687,6 +687,7 @@ export function ProyectoDetallePage() {
                 </p>
 
                 {/* Formulario de Reanudación de Evaluación desde Checkpoint (HU3.4) */}
+                {(hasRole('PLANNER') || hasRole('ADMIN')) ? (
                 <form
                   onSubmit={handleResumeCheckpoint}
                   style={{
@@ -743,6 +744,12 @@ export function ProyectoDetallePage() {
                     {resumingCheckpoint ? 'Reanudando evaluación...' : 'Autorizar y reanudar evaluación'}
                   </button>
                 </form>
+                ) : (
+                  <p className="checkpoint-footer-notice">
+                    Su perfil puede consultar la pausa, pero no está autorizado para reanudarla.
+                    Se requiere un Gerente de Planeamiento o Administrador (CA-HU3.4-02).
+                  </p>
+                )}
               </div>
             </section>
           )}
@@ -879,7 +886,7 @@ export function ProyectoDetallePage() {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  disabled={busy !== null}
+                  disabled={busy !== null || isPaused}
                   onClick={() => void runSocialAssessment()}
                 >
                   {busy === 'social'
@@ -1272,7 +1279,7 @@ export function ProyectoDetallePage() {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  disabled={busy !== null}
+                  disabled={busy !== null || isPaused}
                   onClick={() => void runEnvironmentalAssessment()}
                 >
                   {busy === 'environmental'
@@ -1613,7 +1620,7 @@ export function ProyectoDetallePage() {
                   type="button"
                   className="btn btn-primary"
                   onClick={handleEvaluateTechnical}
-                  disabled={technicalLoading}
+                  disabled={technicalLoading || isPaused}
                   data-testid="evaluate-technical-feasibility-btn"
                 >
                   {technicalLoading
@@ -1918,7 +1925,7 @@ export function ProyectoDetallePage() {
                   <button
                     type="button"
                     className="btn btn-primary"
-                    disabled={busy !== null}
+                    disabled={busy !== null || isPaused}
                     onClick={() => void handleCalculatePert()}
                   >
                     {busy === 'pert' ? 'Calculando y guardando…' : 'Calcular y registrar estimación PERT'}
@@ -2073,12 +2080,18 @@ export function ProyectoDetallePage() {
             <p className="flow-hint">
               Contrasta los antecedentes del expediente con el corpus normativo versionado, citando el artículo o sección exacta de la norma aplicable para su cotejo directo, o advirtiendo cita no verificable sin fabricar artículos (Asesoría Jurídica).
             </p>
-            <Link
-              to={`/proyectos/${projectId}/revision-juridica`}
-              className="btn btn-primary"
-            >
-              Abrir detalle de revisión jurídica y citas exactas
-            </Link>
+            {isPaused ? (
+              <div className="checkpoint-blocked-alert">
+                Revisión jurídica temporalmente detenida por el punto de control activo.
+              </div>
+            ) : (
+              <Link
+                to={`/proyectos/${projectId}/revision-juridica`}
+                className="btn btn-primary"
+              >
+                Abrir detalle de revisión jurídica y citas exactas
+              </Link>
+            )}
           </section>
 
           <section className="flow-panel">
@@ -2089,7 +2102,7 @@ export function ProyectoDetallePage() {
             <button
               type="button"
               className="btn btn-secondary"
-              disabled={busy !== null}
+              disabled={busy !== null || isPaused}
               onClick={() => void runZoning()}
             >
               {busy === 'zoning' ? 'Analizando…' : 'Analizar compatibilidad urbanística'}
@@ -2565,13 +2578,25 @@ export function ProyectoDetallePage() {
                   <Link to="/normativa">Consultar normativa aplicable</Link>
                 </li>
               )}
-              {hasRole('ADMIN') && !isPaused && !approval?.has_legal_alert && (
+              {hasRole('ADMIN') &&
+                !isPaused &&
+                !approval?.has_legal_alert &&
+                unifiedSummary?.allows_final_approval && (
                 <li>
                   <Link to={`/proyectos/${projectId}/aprobacion`}>
                     Emitir dictamen de aprobación
                   </Link>
                 </li>
               )}
+              {hasRole('ADMIN') &&
+                !isPaused &&
+                !approval?.has_legal_alert &&
+                unifiedSummary &&
+                !unifiedSummary.allows_final_approval && (
+                  <li className="muted">
+                    Emisión de aprobación deshabilitada: complete o subsane todas las dimensiones del resumen unificado.
+                  </li>
+                )}
               {hasRole('ADMIN') && !isPaused && approval?.has_legal_alert && (
                 <li className="muted" style={{ color: '#b91c1c', fontWeight: 600 }}>
                   Emisión de dictamen y priorización deshabilitadas: expediente bloqueado por Alerta Legal activa (HU2.3).

@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getHumanApproval, getProject, submitHumanApproval } from '../../api/pmv1.api'
+import {
+  getHumanApproval,
+  getProject,
+  getUnifiedAssessmentSummary,
+  submitHumanApproval,
+} from '../../api/pmv1.api'
 import { Alert } from '../../components/ui/Alert'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { TechnicalDetails } from '../../components/ui/TechnicalDetails'
-import type { HumanApprovalStatusResponse, PMV1ProjectResponse } from '../../types/pmv1'
+import type {
+  HumanApprovalStatusResponse,
+  PMV1ProjectResponse,
+  UnifiedAssessmentSummaryResponse,
+} from '../../types/pmv1'
 import { newIdempotencyKey } from '../../utils/idempotency'
 
 type Decision = 'approved' | 'rejected' | 'observed'
@@ -13,6 +22,7 @@ export function AprobacionPage() {
   const { projectId = '' } = useParams()
   const [project, setProject] = useState<PMV1ProjectResponse | null>(null)
   const [status, setStatus] = useState<HumanApprovalStatusResponse | null>(null)
+  const [summary, setSummary] = useState<UnifiedAssessmentSummaryResponse | null>(null)
   const [decision, setDecision] = useState<Decision>('approved')
   const [justification, setJustification] = useState('Dictamen de cierre PMV1 conforme a evaluación técnica.')
   const [conditions, setConditions] = useState('')
@@ -21,13 +31,28 @@ export function AprobacionPage() {
   const [loading, setLoading] = useState(false)
   const isPaused = Boolean(status?.is_paused) || project?.status === 'pending_review'
   const hasLegalAlert = Boolean(status?.has_legal_alert)
-  const isApprovalBlocked = isPaused || (hasLegalAlert && decision === 'approved')
+  const summaryBlocksApproval = decision === 'approved' && !summary?.allows_final_approval
+  const isApprovalBlocked =
+    isPaused || (hasLegalAlert && decision === 'approved') || summaryBlocksApproval
 
   const refresh = useCallback(async () => {
     if (!projectId) return
-    const [proj, appr] = await Promise.all([getProject(projectId), getHumanApproval(projectId)])
+    const [proj, appr, unified] = await Promise.all([
+      getProject(projectId),
+      getHumanApproval(projectId),
+      getUnifiedAssessmentSummary(projectId),
+    ])
     setProject(proj)
     setStatus(appr)
+    setSummary(unified)
+    if (!unified.allows_final_approval) {
+      setDecision((current) => (current === 'approved' ? 'observed' : current))
+      setJustification((current) =>
+        current === 'Dictamen de cierre PMV1 conforme a evaluación técnica.'
+          ? 'Expediente observado: debe completar y subsanar las dimensiones pendientes.'
+          : current,
+      )
+    }
   }, [projectId])
 
   useEffect(() => {
@@ -91,6 +116,15 @@ export function AprobacionPage() {
           Conforme a las reglas de control, no es posible emitir un dictamen final de aprobación definitiva ni avanzar a priorización hasta que la alerta sea resuelta o levantada formalmente por personal autorizado de Asesoría Jurídica.
         </Alert>
       )}
+      {summary && !summary.allows_final_approval && (
+        <Alert variant="error">
+          <strong>Aprobación definitiva deshabilitada (HU1.12):</strong>{' '}
+          {summary.blocking_reasons.length > 0
+            ? summary.blocking_reasons.join(' ')
+            : `Faltan por completar o subsanar: ${summary.missing_dimensions.join(', ')}.`}
+          {' '}Todavía puede registrar el expediente como observado o rechazado.
+        </Alert>
+      )}
       {error && <Alert variant="error">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
 
@@ -102,7 +136,9 @@ export function AprobacionPage() {
             value={decision}
             onChange={(e) => setDecision(e.target.value as Decision)}
           >
-            <option value="approved">Aprobado</option>
+            <option value="approved" disabled={!summary?.allows_final_approval}>
+              Aprobado
+            </option>
             <option value="observed">Observado (exige condiciones)</option>
             <option value="rejected">Rechazado</option>
           </select>

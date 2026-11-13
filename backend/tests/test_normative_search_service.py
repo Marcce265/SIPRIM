@@ -34,6 +34,25 @@ def test_keywords_extraction_and_stop_words():
     assert "huancayo" in keywords
 
 
+def test_nonsense_identifier_is_not_treated_as_normative_evidence():
+    """CA-HU2.1-03/CA-HU2.3-02: una coincidencia incidental no inventa sustento."""
+    platform = PlatformService(
+        DEAD_DB_URL,
+        CeleryTaskDispatcher(),
+        enable_demo_fallback=True,
+    )
+
+    result = platform.search_normatives(
+        "zzqxj-no-existe-987654",
+        actor_id=uuid4(),
+        only_in_force=True,
+    )
+
+    assert result["total_results"] == 0
+    assert result["results"] == []
+    assert result.get("alerts", []) == []
+
+
 def test_score_chunk_exact_id_match():
     chunk = {
         "id": "PDUPDM-02",
@@ -173,7 +192,7 @@ def test_hu21_ca3_no_evidence_returns_zero_results_without_inventing():
     results = []
     for item in active_docs:
         score = NormativeSearchEngine.score_chunk(item, irrelevant_query, kw)
-        if score > 0:
+        if score > 0 and NormativeSearchEngine.is_relevant(item, irrelevant_query, kw):
             results.append(item)
 
     assert len(results) == 0, "No debe retornar fragmentos inventados para consultas sin sustento"

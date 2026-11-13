@@ -266,6 +266,18 @@ def test_platform_service_environmental_flow():
     assert res_c["risk_level"] == "high"
     assert res_c["requires_human_review"] is True
     assert res_c["favorable"] is not True
+    assert res_c["checkpoint"] is not None
+    assert res_c["checkpoint"]["status"] == "pending_review"
+
+    db_url = settings.platform_db_url.replace(
+        "postgresql+psycopg://", "postgresql://", 1
+    )
+    with psycopg.connect(db_url) as conn:
+        project_c_status = conn.execute(
+            "SELECT status FROM projects WHERE id = %s",
+            (PROJECT_C_ID,),
+        ).fetchone()[0]
+    assert project_c_status == "pending_review"
     assert res_c["risk_observation"] is not None
 
     # 3. Caso PRY-B (Información insuficiente, nunca favorable por defecto)
