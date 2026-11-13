@@ -55,6 +55,9 @@ export function Layout() {
               Integración IA
             </NavLink>
             {(hasRole('PLANNER') || hasRole('ADMIN')) && <NavLink to="/prediccion-ml" className={navLinkClass}>Predicciones ML</NavLink>}
+            <NavLink to="/pruebas-metricas" className={navLinkClass}>
+              Pruebas y Métricas
+            </NavLink>
             {hasRole('LEGAL_ADVISOR') && (
               <NavLink to="/normativa" className={navLinkClass}>
                 Normativa

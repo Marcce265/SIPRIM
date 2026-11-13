@@ -1,0 +1,69 @@
+System:
+  Kernel: 7.2.8-200.fc44.x86_64 arch: x86_64 bits: 64 compiler: gcc v: 16.2.1
+  Desktop: GNOME v: 50.5 Distro: Fedora Linux 44 (Workstation Edition)
+Machine:
+  Type: Desktop System: Gigabyte product: H510M H V2 v: -CF
+    serial: <superuser required>
+  Mobo: Gigabyte model: H510M H V2 v: x.x serial: <superuser required>
+    Firmware: UEFI vendor: American Megatrends v: F2 date: 06/07/2023
+CPU:
+  Info: 6-core model: 11th Gen Intel Core i5-11400 bits: 64 type: MT MCP
+    arch: Rocket Lake rev: 1 cache: L1: 480 KiB L2: 3 MiB L3: 12 MiB
+  Speed (MHz): avg: 4295 min/max: 800/4400 cores: 1: 4295 2: 4295 3: 4295
+    4: 4295 5: 4295 6: 4295 7: 4295 8: 4295 9: 4295 10: 4295 11: 4295 12: 4295
+    bogomips: 62208
+  Flags-basic: avx avx2 ht lm nx pae sse sse2 sse3 sse4_1 sse4_2 ssse3 vmx
+Graphics:
+  Device-1: NVIDIA GP108 [GeForce GT 1030] driver: nouveau v: kernel
+    arch: Pascal bus-ID: 02:00.0 temp: 45.0 C
+  Display: wayland server: X.Org v: 24.1.13 with: Xwayland v: 24.1.13
+    compositor: gnome-shell driver: dri: nouveau gpu: nouveau resolution:
+    1: 1920x1080~60Hz 2: 1920x1080~60Hz
+  API: OpenGL v: 4.3 vendor: mesa v: 26.2.3 glx-v: 1.4 direct-render: yes
+    renderer: NV138
+  API: EGL Message: EGL data requires eglinfo. Check --recommends.
+  Info: Tools: api: glxinfo gpu: nvidia-settings x11: xdriinfo, xdpyinfo,
+    xprop, xrandr
+Audio:
+  Device-1: Intel vendor: Gigabyte driver: snd_hda_intel v: kernel
+    bus-ID: 00:1f.3
+  Device-2: NVIDIA GP108 High Definition Audio driver: snd_hda_intel
+    v: kernel bus-ID: 02:00.1
+  API: ALSA v: k7.2.8-200.fc44.x86_64 status: kernel-api
+  Server-1: PipeWire v: 1.6.9 status: active
+Network:
+  Device-1: Realtek RTL8111/8168/8211/8411 PCI Express Gigabit Ethernet
+    vendor: Gigabyte driver: r8169 v: kernel port: 3000 bus-ID: 07:00.0
+  IF: enp7s0 state: up speed: 100 Mbps duplex: half mac: <filter>
+  IF-ID-1: br-7d85a2343aef state: up speed: 10000 Mbps duplex: unknown
+    mac: <filter>
+  IF-ID-2: br-bcb784db8ae6 state: up speed: 10000 Mbps duplex: unknown
+    mac: <filter>
+  IF-ID-3: docker0 state: down mac: <filter>
+  IF-ID-4: vethc9f5010 state: up speed: 10000 Mbps duplex: full
+    mac: <filter>
+  IF-ID-5: vethfb88f0b state: up speed: 10000 Mbps duplex: full
+    mac: <filter>
+Drives:
+  Local Storage: total: 223.57 GiB used: 30.68 GiB (13.7%)
+  ID-1: /dev/sda vendor: Western Digital model: WD Green 2.5 240GB
+    size: 223.57 GiB
+Partition:
+  ID-1: / size: 221.98 GiB used: 30.04 GiB (13.5%) fs: btrfs dev: /dev/sda3
+  ID-2: /boot size: 973.4 MiB used: 629.8 MiB (64.7%) fs: ext4
+    dev: /dev/sda2
+  ID-3: /boot/efi size: 598.8 MiB used: 20.1 MiB (3.4%) fs: vfat
+    dev: /dev/sda1
+  ID-4: /home size: 221.98 GiB used: 30.04 GiB (13.5%) fs: btrfs
+    dev: /dev/sda3
+Swap:
+  ID-1: swap-1 type: zram size: 8 GiB used: 8 KiB (0.0%) dev: /dev/zram0
+Sensors:
+  System Temperatures: cpu: 37.0 C pch: 42.0 C mobo: 31.0 C gpu: nouveau
+    temp: 45.0 C
+  Fan Speeds (rpm): N/A
+Info:
+  Memory: total: 16 GiB available: 15.49 GiB used: 7.02 GiB (45.3%)
+  Processes: 472 Uptime: 1h 21m Init: systemd
+  Packages: 9 note: see --rpm Compilers: gcc: 16.2.1 Shell: Bash v: 5.3.9
+    inxi: 3.3.41

@@ -13,6 +13,7 @@ import { NormativaPage } from '../features/normativa/NormativaPage'
 import { ProyectoDetallePage } from '../features/proyecto/ProyectoDetallePage'
 import { RegistrarPage } from '../features/registrar/RegistrarPage'
 import { PredictiveMLPage } from '../features/ml/PredictiveMLPage'
+import { PruebasMetricasPage } from '../features/pruebas/PruebasMetricasPage'
 
 export function AppRoutes() {
   return (
@@ -30,6 +31,7 @@ export function AppRoutes() {
           <Route element={<RoleRoute anyOf={['PLANNER', 'ADMIN']} />}>
             <Route path="prediccion-ml" element={<PredictiveMLPage />} />
           </Route>
+          <Route path="pruebas-metricas" element={<PruebasMetricasPage />} />
           <Route path="proyectos/:projectId" element={<ProyectoDetallePage />} />
           <Route
             path="proyectos/:projectId/revision-juridica"
