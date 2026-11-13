@@ -9,3 +9,5 @@ node_modules/
 frontend/dist/
 docs/_extracted_summary.txt
 
+.vercel
+.env*
