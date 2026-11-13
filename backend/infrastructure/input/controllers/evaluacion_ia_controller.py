@@ -12,10 +12,11 @@ from backend.domain.exceptions.ia_exceptions import (
     IARateLimitError,
     IATimeoutError,
 )
-from backend.infrastructure.config.dependencies import get_evaluar_proyecto_ia_use_case
+from backend.infrastructure.config.dependencies import get_evaluar_proyecto_ia_use_case, require_planner
 
 
-router = APIRouter(prefix="/api/v1/proyectos", tags=["Evaluacion IA"])
+router = APIRouter(prefix="/api/v1/proyectos", tags=["Evaluacion IA"],
+                   dependencies=[Depends(require_planner)])
 
 
 @router.post(

@@ -25,10 +25,13 @@ from backend.infrastructure.config.dependencies import (
     get_obtener_proyecto_use_case,
     get_registrar_proyecto_use_case,
     get_validar_proyecto_use_case,
+    require_planner,
+    require_legal_or_planner,
 )
 
 
-router = APIRouter(prefix="/api/v1/proyectos", tags=["Proyectos"])
+router = APIRouter(prefix="/api/v1/proyectos", tags=["Proyectos"],
+                   dependencies=[Depends(require_legal_or_planner)])
 
 
 @router.post(
@@ -38,6 +41,7 @@ router = APIRouter(prefix="/api/v1/proyectos", tags=["Proyectos"])
     summary="Registrar un proyecto urbano",
 )
 def registrar_proyecto(
+    _: Annotated[dict, Depends(require_planner)],
     data: ProyectoCreate,
     use_case: Annotated[
         RegistrarProyectoUseCase, Depends(get_registrar_proyecto_use_case)
@@ -72,6 +76,7 @@ def obtener_proyecto(
     summary="Validar que el expediente este completo",
 )
 def validar_proyecto(
+    _: Annotated[dict, Depends(require_planner)],
     proyecto_id: Annotated[int, Path(gt=0)],
     use_case: Annotated[
         ValidarProyectoUseCase, Depends(get_validar_proyecto_use_case)
@@ -86,6 +91,7 @@ def validar_proyecto(
     summary="Calcular la evaluacion economica parcial",
 )
 def evaluar_economia_proyecto(
+    _: Annotated[dict, Depends(require_planner)],
     proyecto_id: Annotated[int, Path(gt=0)],
     use_case: Annotated[
         EvaluarEconomiaProyectoUseCase,
@@ -101,6 +107,7 @@ def evaluar_economia_proyecto(
     summary="Solicitar la evaluacion de cumplimiento legal",
 )
 def evaluar_cumplimiento_legal(
+    _: Annotated[dict, Depends(require_planner)],
     proyecto_id: Annotated[int, Path(gt=0)],
     use_case: Annotated[
         EvaluarCumplimientoLegalUseCase,

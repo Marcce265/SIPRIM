@@ -6,6 +6,7 @@ from backend.infrastructure.config.dependencies import (
     get_evaluacion_juridica_repository,
     get_evaluador_juridico,
     get_proyecto_repository,
+    get_current_user,
 )
 from backend.main import create_app
 
@@ -17,7 +18,9 @@ def client() -> TestClient:
     get_evaluacion_economica_repository.cache_clear()
     get_evaluacion_juridica_repository.cache_clear()
     get_evaluador_juridico.cache_clear()
-    with TestClient(create_app()) as test_client:
+    app = create_app()
+    app.dependency_overrides[get_current_user] = lambda: {"sub": "10000000-0000-4000-a000-000000000002", "roles": ["PLANNER"]}
+    with TestClient(app) as test_client:
         yield test_client
     get_proyecto_repository.cache_clear()
     get_evaluacion_economica_repository.cache_clear()

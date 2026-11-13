@@ -19,11 +19,12 @@ export async function registrarProyecto(
 ): Promise<LegacyRegistrarProyectoResponse> {
   return apiFetch<LegacyRegistrarProyectoResponse>('/api/v1/proyectos', {
     method: 'POST',
+    auth: true,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
 }
 
 export async function obtenerProyecto(id: number): Promise<LegacyProyecto> {
-  return apiFetch<LegacyProyecto>(`/api/v1/proyectos/${id}`)
+  return apiFetch<LegacyProyecto>(`/api/v1/proyectos/${id}`, { auth: true })
 }

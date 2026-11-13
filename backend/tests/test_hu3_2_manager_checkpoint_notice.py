@@ -285,7 +285,7 @@ def test_full_journey_v1_paused_followed_by_v2_mitigated_api_and_approval_gate(a
     2. El checkpoint histórico de v1 se conserva intacto en la base de datos (no se resuelve artificialmente).
     3. v2 mitigada vista por API y servicio NO tiene checkpoint activo y su estado efectivo para la versión vigente NO es pending_review.
     4. El aviso no bloquea al gerente en v2.
-    5. La compuerta de aprobación (human_approvals) evalúa la versión vigente: rechaza aprobar v1 pausada pero permite aprobar v2 una vez evaluada."""
+    5. La compuerta de aprobación (human_approvals) evalúa la versión vigente: rechaza aprobar v1 pausada y exige la evaluación multidimensional completa para aprobar v2."""
     db_url = get_test_db_url()
     headers_mgr = {"Authorization": "Bearer token-gerente-admin"}
     project_id = uuid4()
@@ -385,7 +385,7 @@ def test_full_journey_v1_paused_followed_by_v2_mitigated_api_and_approval_gate(a
     assert v2_state["status"] == "evaluated"
     assert v2_state["checkpoint"] is None
 
-    # Paso 8: El gerente emite aprobación formal sobre la versión 2 completada -> debe ser exitosa
+    # Paso 8: La evaluación económica sola no habilita aprobación multidimensional (HU1.12).
     approval_resp = api_client.post(
         f"/api/v1/projects/{project_id}/approval",
         json={
@@ -395,10 +395,13 @@ def test_full_journey_v1_paused_followed_by_v2_mitigated_api_and_approval_gate(a
         },
         headers={**headers_mgr, "Idempotency-Key": f"appr-v2-{uuid4()}"},
     )
-    assert approval_resp.status_code == 200
-    approval_data = approval_resp.json()
-    assert approval_data["decision"] == "approved"
-    assert approval_data["project_version_id"] == str(v2_id)
+    assert approval_resp.status_code == 409
+    assert "multidimensional" in approval_resp.json()["detail"]
+    with psycopg.connect(db_url) as conn:
+        assert conn.execute(
+            "SELECT count(*) FROM human_approvals WHERE project_version_id=%s",
+            (v2_id,),
+        ).fetchone()[0] == 0
 
     # Paso 9: Comprobar que para un expediente que sí tiene punto de control activo (como PRY-C), la compuerta de aprobación lo bloquea
     with pytest.raises(ConfiguracionPMV1Error, match="Pendiente de revisión"):

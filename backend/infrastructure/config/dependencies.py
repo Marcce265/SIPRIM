@@ -5,6 +5,7 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from backend.application.services.pmv1_services import AuthService, PlatformService
+from backend.application.services.validated_auth_service import ValidatedAuthService
 from backend.application.use_cases.evaluar_cumplimiento_legal import (
     EvaluarCumplimientoLegalUseCase,
 )
@@ -163,7 +164,7 @@ def get_evaluar_proyecto_ia_use_case(
 @lru_cache
 def get_auth_service() -> AuthService:
     settings = get_settings()
-    return AuthService(
+    return ValidatedAuthService(
         settings.auth_db_url,
         settings.jwt_secret.get_secret_value(),
         settings.jwt_issuer,
