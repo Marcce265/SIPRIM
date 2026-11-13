@@ -12,6 +12,7 @@ import { RevisionJuridicaPage } from '../features/juridica/RevisionJuridicaPage'
 import { NormativaPage } from '../features/normativa/NormativaPage'
 import { ProyectoDetallePage } from '../features/proyecto/ProyectoDetallePage'
 import { RegistrarPage } from '../features/registrar/RegistrarPage'
+import { PredictiveMLPage } from '../features/ml/PredictiveMLPage'
 
 export function AppRoutes() {
   return (
@@ -26,6 +27,9 @@ export function AppRoutes() {
           <Route path="registrar" element={<RegistrarPage />} />
           <Route path="consultar" element={<ConsultarPage />} />
           <Route path="integracion-ia" element={<GeminiIntegrationPage />} />
+          <Route element={<RoleRoute anyOf={['PLANNER', 'ADMIN']} />}>
+            <Route path="prediccion-ml" element={<PredictiveMLPage />} />
+          </Route>
           <Route path="proyectos/:projectId" element={<ProyectoDetallePage />} />
           <Route
             path="proyectos/:projectId/revision-juridica"
