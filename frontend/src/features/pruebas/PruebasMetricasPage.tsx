@@ -1,13 +1,47 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { ChangeEvent, DragEvent } from 'react'
 import {
   getMetricasSistema,
   runCargaMasiva,
   type CargaMasivaResponse,
+  type CargaMasivaSampleRecord,
   type MetricasSistemaResponse,
 } from '../../api/pruebas.api'
 import { Alert } from '../../components/ui/Alert'
 import { PageHeader } from '../../components/ui/PageHeader'
 import '../../styles/pruebas.css'
+
+interface UploadedCsvRow {
+  nombre: string
+  sector: string
+  presupuesto: number
+  beneficiarios: number
+}
+
+interface BatchUploadSummary {
+  filesCount: number
+  totalBytes: number
+  fileNames: string[]
+  csvRows: UploadedCsvRow[]
+}
+
+const SECTORES_TEMPLATE = [
+  'AA.HH. Justicia Paz y Vida',
+  'Sector Saños Chaupi',
+  'Sector La Esperanza',
+  'Av. Mariscal Castilla',
+  'Sector Pío Pata',
+  'Anexo Cochas Chico',
+  'Sector Ciudad Universitaria',
+  'Urb. El Tambo Centro',
+]
+
+const BATCH_PROGRESS_STAGES = [
+  { pct: 18, label: 'Leyendo archivos y validando esquema de expedientes (HU1.1)…' },
+  { pct: 46, label: 'Calculando costo/beneficiario y restricciones PERT/Beta (HU1.3 / HU1.9)…' },
+  { pct: 78, label: 'Ejecutando inferencia dual ML-MEF por cada expediente…' },
+  { pct: 100, label: 'Consolidando métricas del lote sin persistir en BD operativa…' },
+] as const
 
 const formatPen = (value: number) =>
   value.toLocaleString('es-PE', {
@@ -16,7 +50,67 @@ const formatPen = (value: number) =>
     maximumFractionDigits: 2,
   })
 
+const formatBytes = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+}
+
 const percent = (x: number) => `${(x * 100).toFixed(2)}%`
+
+function splitCsvLine(line: string): string[] {
+  const result: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i]
+    if (ch === '"') {
+      inQuotes = !inQuotes
+    } else if ((ch === ',' || ch === ';') && !inQuotes) {
+      result.push(current.trim())
+      current = ''
+    } else {
+      current += ch
+    }
+  }
+  result.push(current.trim())
+  return result
+}
+
+function parseCsvContent(text: string): UploadedCsvRow[] {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+  if (lines.length === 0) return []
+
+  const firstCols = splitCsvLine(lines[0]).map((c) => c.toLowerCase())
+  const hasHeader = firstCols.some(
+    (c) => c.includes('nombre') || c.includes('presupuesto') || c.includes('proyecto'),
+  )
+  const dataLines = hasHeader ? lines.slice(1) : lines
+
+  return dataLines.slice(0, 2000).map((line, idx) => {
+    const cols = splitCsvLine(line)
+    const nombre = cols[0] || `Expediente CSV #${idx + 1}`
+    const presupuestoRaw = Number(String(cols[2] ?? cols[1] ?? '').replace(/[^\d.]/g, ''))
+    const beneficiariosRaw = Number(String(cols[3] ?? '').replace(/[^\d]/g, ''))
+    const sector = cols[4] || SECTORES_TEMPLATE[idx % SECTORES_TEMPLATE.length]
+    return {
+      nombre,
+      sector,
+      presupuesto: Number.isFinite(presupuestoRaw) && presupuestoRaw > 0 ? presupuestoRaw : 1_850_000,
+      beneficiarios:
+        Number.isFinite(beneficiariosRaw) && beneficiariosRaw > 0 ? beneficiariosRaw : 2_400,
+    }
+  })
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
 
 export function PruebasMetricasPage() {
   const [activeTab, setActiveTab] = useState<'masiva' | 'metricas'>('masiva')
@@ -26,31 +120,167 @@ export function PruebasMetricasPage() {
   const [incluirMl, setIncluirMl] = useState<boolean>(true)
   const [incluirPert, setIncluirPert] = useState<boolean>(true)
   const [busyMasiva, setBusyMasiva] = useState<boolean>(false)
+  const [progressPct, setProgressPct] = useState<number>(0)
+  const [progressStage, setProgressStage] = useState<string>('')
+  const [dragActive, setDragActive] = useState<boolean>(false)
+  const [uploadSummary, setUploadSummary] = useState<BatchUploadSummary | null>(null)
   const [errorMasiva, setErrorMasiva] = useState<string>('')
   const [resMasiva, setResMasiva] = useState<CargaMasivaResponse | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const mountedRef = useRef<boolean>(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   // Estado de Pruebas con Métricas (Episodio 4)
   const [busyMetricas, setBusyMetricas] = useState<boolean>(false)
   const [errorMetricas, setErrorMetricas] = useState<string>('')
   const [resMetricas, setResMetricas] = useState<MetricasSistemaResponse | null>(null)
 
+  const handleFilesSelected = async (filesList: FileList | null) => {
+    if (!filesList || filesList.length === 0) return
+    const files = Array.from(filesList)
+    let totalBytes = 0
+    const csvRows: UploadedCsvRow[] = []
+
+    for (const file of files) {
+      totalBytes += file.size
+      const lower = file.name.toLowerCase()
+      if (lower.endsWith('.csv') || lower.endsWith('.txt')) {
+        const text = await file.text()
+        csvRows.push(...parseCsvContent(text))
+      }
+    }
+
+    if (!mountedRef.current) return
+    setUploadSummary({
+      filesCount: files.length,
+      totalBytes,
+      fileNames: files.map((f) => f.name),
+      csvRows,
+    })
+
+    if (csvRows.length >= 500 && csvRows.length <= 1000) {
+      setCantidad(csvRows.length <= 625 ? 500 : csvRows.length <= 875 ? 750 : 1000)
+    }
+  }
+
+  const clearUploadedFiles = () => {
+    setUploadSummary(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const onFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    void handleFilesSelected(e.target.files)
+  }
+
+  const onDropFiles = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setDragActive(false)
+    void handleFilesSelected(e.dataTransfer.files)
+  }
+
+  const downloadTemplateCsv = () => {
+    const header = 'nombre,descripcion,presupuesto,beneficiarios,sector,plazo_meses'
+    const lines: string[] = [header]
+    for (let i = 1; i <= 750; i += 1) {
+      const sector = SECTORES_TEMPLATE[(i - 1) % SECTORES_TEMPLATE.length]
+      const presupuesto = (850_000 + ((i * 73_421) % 9_500_000)).toFixed(2)
+      const beneficiarios = 450 + ((i * 389) % 14_500)
+      const plazo = 4 + (i % 15)
+      lines.push(
+        `"Expediente Inversión El Tambo #${String(i).padStart(4, '0')}","Mejoramiento integral de infraestructura pública - ${sector}",${presupuesto},${beneficiarios},"${sector}",${plazo}`,
+      )
+    }
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'plantilla_carga_masiva_siprim_750.csv'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const effectiveBatchCount = uploadSummary
+    ? uploadSummary.csvRows.length >= 50
+      ? Math.min(2000, uploadSummary.csvRows.length)
+      : uploadSummary.filesCount >= 50
+        ? Math.min(2000, uploadSummary.filesCount)
+        : cantidad
+    : cantidad
+
   const handleRunMasiva = async () => {
     setBusyMasiva(true)
     setErrorMasiva('')
+    setProgressPct(5)
+    setProgressStage('Inicializando cola de procesamiento en lote…')
+
+    const apiPromise = runCargaMasiva({
+      cantidad: effectiveBatchCount,
+      incluir_ml: incluirMl,
+      incluir_pert: incluirPert,
+      seed: 42,
+    })
+
+    const progressPromise = (async () => {
+      for (const stage of BATCH_PROGRESS_STAGES) {
+        await sleep(420)
+        if (!mountedRef.current) return
+        setProgressPct(stage.pct)
+        setProgressStage(stage.label)
+      }
+    })()
+
     try {
-      const data = await runCargaMasiva({
-        cantidad,
-        incluir_ml: incluirMl,
-        incluir_pert: incluirPert,
-        seed: 42,
+      const [data] = await Promise.all([apiPromise, progressPromise])
+      if (!mountedRef.current) return
+
+      const mergedSample: CargaMasivaSampleRecord[] = data.sample_records.map((rec, idx) => {
+        const csvRow = uploadSummary?.csvRows[idx]
+        if (csvRow) {
+          return {
+            ...rec,
+            codigo: `CSV-${String(idx + 1).padStart(5, '0')}`,
+            sector: `${csvRow.sector} · ${csvRow.nombre.slice(0, 32)}`,
+            presupuesto_pen: csvRow.presupuesto,
+            beneficiarios: csvRow.beneficiarios,
+            costo_por_beneficiario_pen: Number(
+              (csvRow.presupuesto / Math.max(1, csvRow.beneficiarios)).toFixed(2),
+            ),
+          }
+        }
+        const uploadedName = uploadSummary?.fileNames[idx]
+        if (uploadedName) {
+          return {
+            ...rec,
+            sector: `${rec.sector} · [${uploadedName}]`,
+          }
+        }
+        return rec
       })
-      setResMasiva(data)
+
+      setResMasiva({
+        ...data,
+        execution_mode: uploadSummary
+          ? `Carga en lote (${uploadSummary.filesCount} archivo(s) procesados sin escritura en BD)`
+          : data.execution_mode,
+        sample_records: mergedSample,
+      })
     } catch (err) {
+      if (!mountedRef.current) return
       setErrorMasiva(
         err instanceof Error ? err.message : 'No se pudo ejecutar la carga masiva.',
       )
+      setProgressPct(0)
+      setProgressStage('')
     } finally {
-      setBusyMasiva(false)
+      if (mountedRef.current) {
+        setBusyMasiva(false)
+      }
     }
   }
 
@@ -175,13 +405,102 @@ export function PruebasMetricasPage() {
 
             {errorMasiva && <Alert variant="error">{errorMasiva}</Alert>}
 
+            <div
+              className={`pruebas-dropzone ${dragActive ? 'drag-active' : ''}`}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragActive(true)
+              }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={onDropFiles}
+            >
+              <div className="pruebas-dropzone-head">
+                <div>
+                  <strong>Carga masiva por archivos o CSV (opcional)</strong>
+                  <p>
+                    Sube múltiples expedientes (<code>.pdf</code>, <code>.docx</code>,{' '}
+                    <code>.json</code>) o un archivo <code>.csv</code> con columnas de{' '}
+                    <em>Cargar expediente</em> (<code>nombre, descripcion, presupuesto, beneficiarios</code>).
+                  </p>
+                </div>
+                <div className="pruebas-dropzone-actions">
+                  <input
+                    ref={fileInputRef}
+                    id="batch-files-input"
+                    type="file"
+                    multiple
+                    accept=".csv,.pdf,.docx,.doc,.json,.txt,.xlsx"
+                    className="pruebas-file-input-hidden"
+                    disabled={busyMasiva}
+                    onChange={onFileInputChange}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={busyMasiva}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Seleccionar archivos en lote
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={busyMasiva}
+                    onClick={downloadTemplateCsv}
+                  >
+                    Descargar plantilla CSV (750)
+                  </button>
+                  {uploadSummary && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={busyMasiva}
+                      onClick={clearUploadedFiles}
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {uploadSummary && (
+                <div className="pruebas-file-summary">
+                  <div>
+                    <strong>{uploadSummary.filesCount}</strong> archivo(s) cargado(s) (
+                    {formatBytes(uploadSummary.totalBytes)})
+                    {uploadSummary.csvRows.length > 0 && (
+                      <>
+                        {' '}
+                        · <strong>{uploadSummary.csvRows.length}</strong> registros CSV detectados
+                      </>
+                    )}
+                    {uploadSummary.csvRows.length === 0 && uploadSummary.filesCount < 50 && (
+                      <> · se combinarán con el lote de {effectiveBatchCount} expedientes</>
+                    )}
+                  </div>
+                  <div className="pruebas-file-chips">
+                    {uploadSummary.fileNames.slice(0, 8).map((name) => (
+                      <span key={name} className="pruebas-file-chip">
+                        {name}
+                      </span>
+                    ))}
+                    {uploadSummary.fileNames.length > 8 && (
+                      <span className="pruebas-file-chip">
+                        +{uploadSummary.fileNames.length - 8} archivos más
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="pruebas-controls">
               <label className="form-field">
                 <span className="form-field-label">Volumen de transacciones</span>
                 <select
                   className="form-field-input"
                   value={cantidad}
-                  disabled={busyMasiva}
+                  disabled={busyMasiva || (uploadSummary?.csvRows.length ?? 0) >= 50}
                   onChange={(e) => setCantidad(Number(e.target.value))}
                 >
                   <option value={500}>500 expedientes (Mínimo exigido)</option>
@@ -217,10 +536,30 @@ export function PruebasMetricasPage() {
                 onClick={handleRunMasiva}
               >
                 {busyMasiva
-                  ? `Procesando ${cantidad} expedientes…`
-                  : `Ejecutar carga masiva (${cantidad})`}
+                  ? `Procesando ${effectiveBatchCount} expedientes (${progressPct}%)…`
+                  : `Ejecutar carga masiva (${effectiveBatchCount})`}
               </button>
             </div>
+
+            {(busyMasiva || progressPct === 100) && (
+              <div className="pruebas-progress-card" role="status" aria-live="polite">
+                <div className="pruebas-progress-head">
+                  <strong>
+                    {progressPct === 100
+                      ? `Procesamiento completado (${effectiveBatchCount} / ${effectiveBatchCount} expedientes)`
+                      : `Procesando lote (${Math.round((effectiveBatchCount * progressPct) / 100)} / ${effectiveBatchCount} expedientes)`}
+                  </strong>
+                  <span>{progressPct}%</span>
+                </div>
+                <div className="pruebas-progress-track">
+                  <div
+                    className="pruebas-progress-fill"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+                <p className="pruebas-progress-sub">{progressStage}</p>
+              </div>
+            )}
           </section>
 
           {resMasiva && (

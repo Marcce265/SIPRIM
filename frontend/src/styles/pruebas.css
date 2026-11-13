@@ -205,3 +205,115 @@
     gap: 0.25rem;
   }
 }
+
+.pruebas-dropzone {
+  border: 2px dashed #9fb7cb;
+  background: #f8fbfe;
+  border-radius: 10px;
+  padding: 1.1rem 1.25rem;
+  margin: 0.9rem 0 1.15rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.pruebas-dropzone.drag-active {
+  border-color: #0d5c63;
+  background: #eef8f7;
+}
+
+.pruebas-dropzone-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.pruebas-dropzone-head p {
+  margin: 0.2rem 0 0;
+  font-size: 0.88rem;
+  color: #475569;
+}
+
+.pruebas-dropzone-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pruebas-file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.pruebas-file-summary {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #d5dde5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pruebas-file-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pruebas-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #e6f0f7;
+  color: #16344d;
+  border-radius: 999px;
+  padding: 0.22rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.pruebas-progress-card {
+  margin-top: 1rem;
+  padding: 1rem 1.15rem;
+  border-radius: 10px;
+  background: #f0f7fa;
+  border: 1px solid #bfd6e6;
+}
+
+.pruebas-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #16344d;
+}
+
+.pruebas-progress-track {
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  background: #d8e5ef;
+  overflow: hidden;
+}
+
+.pruebas-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0d5c63 0%, #16a34a 100%);
+  transition: width 0.28s ease-out;
+}
+
+.pruebas-progress-sub {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+  color: #334155;
+}
