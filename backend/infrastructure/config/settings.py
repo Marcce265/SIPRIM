@@ -1,6 +1,7 @@
 from functools import lru_cache
+import os
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -39,6 +40,18 @@ class Settings(BaseSettings):
     gemini_api_key: SecretStr | None = None
     ai_model: str = Field(default="gemini-3.1-flash-lite", min_length=1)
     ai_timeout_seconds: float = Field(default=45, gt=0, le=120)
+
+
+    @model_validator(mode="after")
+    def validate_production_secret(self):
+        if self.app_env.lower() in {"production", "preview"} or os.environ.get("VERCEL") == "1":
+            secret = self.jwt_secret.get_secret_value()
+            if len(secret.encode()) < 32 or secret in {
+                "cambiar-esta-clave-segura-en-produccion",
+                "solo-desarrollo-cambiar-en-produccion",
+            }:
+                raise ValueError("JWT_SECRET debe ser una clave propia de al menos 32 bytes en produccion")
+        return self
 
 
 @lru_cache
