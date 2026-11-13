@@ -5,8 +5,10 @@ import { ProyectoCard } from '../../components/proyecto/ProyectoCard'
 import { Alert } from '../../components/ui/Alert'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { useConsultarProyecto } from './useConsultarProyecto'
+import { useAuth } from '../auth/AuthContext'
 
 export function ConsultarPage() {
+  const { hasRole } = useAuth()
   const { inputId, setInputId, proyecto, successMsg, error, loading, search } =
     useConsultarProyecto()
 
@@ -59,6 +61,9 @@ export function ConsultarPage() {
             <Link to={`/proyectos/${proyecto.id}`} className="btn btn-primary">
               Continuar evaluación
             </Link>
+            {(hasRole('PLANNER') || hasRole('ADMIN')) && <Link to={`/prediccion-ml?project=${encodeURIComponent(proyecto.id)}`} className="btn btn-secondary">
+              Predicción ML del expediente
+            </Link>}
           </div>
         </section>
       )}
