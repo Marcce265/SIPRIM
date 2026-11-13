@@ -7,6 +7,7 @@ from backend.domain.ports.ia_service_port import IAServicePort
 from backend.infrastructure.config.dependencies import (
     get_ia_service,
     get_proyecto_repository,
+    get_current_user,
 )
 from backend.main import create_app
 
@@ -27,6 +28,7 @@ class FakeIAService(IAServicePort):
 def test_evaluacion_ia_por_id_sin_consumir_gemini() -> None:
     get_proyecto_repository.cache_clear()
     app = create_app()
+    app.dependency_overrides[get_current_user] = lambda: {"sub": "10000000-0000-4000-a000-000000000002", "roles": ["PLANNER"]}
     app.dependency_overrides[get_ia_service] = lambda: FakeIAService()
 
     with TestClient(app) as client:
@@ -62,6 +64,7 @@ def test_evaluacion_ia_por_id_sin_consumir_gemini() -> None:
 def test_evaluacion_ia_bloquea_expediente_incompleto() -> None:
     get_proyecto_repository.cache_clear()
     app = create_app()
+    app.dependency_overrides[get_current_user] = lambda: {"sub": "10000000-0000-4000-a000-000000000002", "roles": ["PLANNER"]}
     app.dependency_overrides[get_ia_service] = lambda: FakeIAService()
 
     with TestClient(app) as client:
