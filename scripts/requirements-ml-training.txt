@@ -1,0 +1,4 @@
+# Only for offline, reproducible training. The API uses exported JSON trees.
+scikit-learn==1.8.0
+pandas==2.2.3
+numpy==2.3.5
